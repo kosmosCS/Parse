@@ -1,0 +1,72 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"PID.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.PID_calc_cntr,"ax",%progbits
+  19              		.align	2
+  20              		.global	PID_calc_cntr
+  21              		.thumb
+  22              		.thumb_func
+  24              	PID_calc_cntr:
+  25              	.LFB55:
+  26              		.file 1 "./src/motor/PID.c"
+   1:./src/motor/PID.c **** /**
+   2:./src/motor/PID.c ****  * @file	PID.c
+   3:./src/motor/PID.c ****  * @purpose
+   4:./src/motor/PID.c ****  * @brief
+   5:./src/motor/PID.c ****  * @version
+   6:./src/motor/PID.c ****  * @date	28-sep-2009
+   7:./src/motor/PID.c ****  * @author	nlv15840
+   8:./src/motor/PID.c **** */
+   9:./src/motor/PID.c **** /*----------------------------------------------------------------------------
+  10:./src/motor/PID.c ****  * Software that is described herein is for illustrative purposes only
+  11:./src/motor/PID.c ****  * which provides customers with programming information regarding the
+  12:./src/motor/PID.c ****  * products. This software is supplied "AS IS" without any warranties.
+  13:./src/motor/PID.c ****  * NXP Semiconductors assumes no responsibility or liability for the
+  14:./src/motor/PID.c ****  * use of the software, conveys no license or title under any patent,
+  15:./src/motor/PID.c ****  * copyright, or mask work right to the product. NXP Semiconductors
+  16:./src/motor/PID.c ****  * reserves the right to make changes in the software without
+  17:./src/motor/PID.c ****  * notification. NXP Semiconductors also make no representation or
+  18:./src/motor/PID.c ****  * warranty that such application will be suitable for the specified
+  19:./src/motor/PID.c ****  * use without further testing or modification.
+  20:./src/motor/PID.c ****  **********************************************************************/
+  21:./src/motor/PID.c **** #include "Application.h"
+  22:./src/motor/PID.c **** 
+  23:./src/motor/PID.c **** void PID_calc_cntr( PIDstr *ptr )
+  24:./src/motor/PID.c **** {
+  27              		.loc 1 24 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  32              	.LVL0:
+  33 0000 7047     		bx	lr
+  34              		.cfi_endproc
+  35              	.LFE55:
+  37 0002 00BF     		.text
+  38              	.Letext0:
+  39              		.file 2 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+  40              		.file 3 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+  41              		.file 4 "./src/motor/type.h"
+  42              		.file 5 "./src/motor/BLDC.h"
+  43              		.file 6 "./Core/core_cm3.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 PID.c
+C:\Users\kosmos\AppData\Local\Temp\ccmtxUF0.s:19     .text.PID_calc_cntr:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccmtxUF0.s:24     .text.PID_calc_cntr:00000000 PID_calc_cntr
+                     .debug_frame:00000010 $d
+
+NO UNDEFINED SYMBOLS

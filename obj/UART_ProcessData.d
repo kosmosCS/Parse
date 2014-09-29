@@ -1,0 +1,31 @@
+obj/UART_ProcessData.o: src/motor/UART_ProcessData.c \
+ d:\gnu\4_8\arm-none-eabi\include\stdio.h \
+ d:\gnu\4_8\arm-none-eabi\include\_ansi.h \
+ d:\gnu\4_8\arm-none-eabi\include\newlib.h \
+ d:\gnu\4_8\arm-none-eabi\include\sys\config.h \
+ d:\gnu\4_8\arm-none-eabi\include\machine\ieeefp.h \
+ d:\gnu\4_8\arm-none-eabi\include\sys\features.h \
+ d:\gnu\4_8\lib\gcc\arm-none-eabi\4.8.3\include\stddef.h \
+ d:\gnu\4_8\lib\gcc\arm-none-eabi\4.8.3\include\stdarg.h \
+ d:\gnu\4_8\arm-none-eabi\include\sys\reent.h \
+ d:\gnu\4_8\arm-none-eabi\include\_ansi.h \
+ d:\gnu\4_8\arm-none-eabi\include\sys\_types.h \
+ d:\gnu\4_8\arm-none-eabi\include\machine\_types.h \
+ d:\gnu\4_8\arm-none-eabi\include\machine\_default_types.h \
+ d:\gnu\4_8\arm-none-eabi\include\sys\lock.h \
+ d:\gnu\4_8\arm-none-eabi\include\sys\types.h \
+ d:\gnu\4_8\arm-none-eabi\include\machine\types.h \
+ d:\gnu\4_8\arm-none-eabi\include\sys\stdio.h \
+ d:\gnu\4_8\arm-none-eabi\include\string.h \
+ d:\gnu\4_8\lib\gcc\arm-none-eabi\4.8.3\include-fixed\sys\cdefs.h \
+ d:\gnu\4_8\arm-none-eabi\include\sys\string.h \
+ d:\gnu\4_8\arm-none-eabi\include\stdlib.h \
+ d:\gnu\4_8\arm-none-eabi\include\machine\stdlib.h \
+ d:\gnu\4_8\arm-none-eabi\include\alloca.h LPC17xx/LPC17xx.h \
+ Core/core_cm3.h d:\gnu\4_8\lib\gcc\arm-none-eabi\4.8.3\include\stdint.h \
+ d:\gnu\4_8\arm-none-eabi\include\stdint.h Core/core_cmInstr.h \
+ Core/core_cmFunc.h LPC17xx/system_LPC17xx.h \
+ Drivers/include/lpc17xx_mcpwm.h Drivers/include/lpc_types.h \
+ Drivers/include/vkv_compiler.h Drivers/include/lpc17xx_uart.h \
+ Drivers/include/lpc_types.h src/motor/type.h src/motor/BLDC.h \
+ src/motor/UART_ProcessData.h

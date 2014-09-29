@@ -1,0 +1,971 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"system_LPC17xx.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.SystemCoreClockUpdate,"ax",%progbits
+  19              		.align	2
+  20              		.global	SystemCoreClockUpdate
+  21              		.thumb
+  22              		.thumb_func
+  24              	SystemCoreClockUpdate:
+  25              	.LFB55:
+  26              		.file 1 "./LPC17xx/system_LPC17xx.c"
+   1:./LPC17xx/system_LPC17xx.c **** /**************************************************************************//**
+   2:./LPC17xx/system_LPC17xx.c ****  * @file     system_LPC17xx.c
+   3:./LPC17xx/system_LPC17xx.c ****  * @brief    CMSIS Cortex-M3 Device Peripheral Access Layer Source File
+   4:./LPC17xx/system_LPC17xx.c ****  *           for the NXP LPC17xx Device Series
+   5:./LPC17xx/system_LPC17xx.c ****  * @version  V1.03
+   6:./LPC17xx/system_LPC17xx.c ****  * @date     07. October 2009
+   7:./LPC17xx/system_LPC17xx.c ****  *
+   8:./LPC17xx/system_LPC17xx.c ****  * @note
+   9:./LPC17xx/system_LPC17xx.c ****  * Copyright (C) 2009 ARM Limited. All rights reserved.
+  10:./LPC17xx/system_LPC17xx.c ****  *
+  11:./LPC17xx/system_LPC17xx.c ****  * @par
+  12:./LPC17xx/system_LPC17xx.c ****  * ARM Limited (ARM) is supplying this software for use with Cortex-M
+  13:./LPC17xx/system_LPC17xx.c ****  * processor based microcontrollers.  This file can be freely distributed
+  14:./LPC17xx/system_LPC17xx.c ****  * within development tools that are supporting such ARM based processors.
+  15:./LPC17xx/system_LPC17xx.c ****  *
+  16:./LPC17xx/system_LPC17xx.c ****  * @par
+  17:./LPC17xx/system_LPC17xx.c ****  * THIS SOFTWARE IS PROVIDED "AS IS".  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
+  18:./LPC17xx/system_LPC17xx.c ****  * OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
+  19:./LPC17xx/system_LPC17xx.c ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
+  20:./LPC17xx/system_LPC17xx.c ****  * ARM SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+  21:./LPC17xx/system_LPC17xx.c ****  * CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+  22:./LPC17xx/system_LPC17xx.c ****  *
+  23:./LPC17xx/system_LPC17xx.c ****  ******************************************************************************/
+  24:./LPC17xx/system_LPC17xx.c **** 
+  25:./LPC17xx/system_LPC17xx.c **** 
+  26:./LPC17xx/system_LPC17xx.c **** #include <stdint.h>
+  27:./LPC17xx/system_LPC17xx.c **** #include "LPC17xx.h"
+  28:./LPC17xx/system_LPC17xx.c **** 
+  29:./LPC17xx/system_LPC17xx.c **** 
+  30:./LPC17xx/system_LPC17xx.c **** /** @addtogroup LPC17xx_System
+  31:./LPC17xx/system_LPC17xx.c ****  * @{
+  32:./LPC17xx/system_LPC17xx.c ****  */
+  33:./LPC17xx/system_LPC17xx.c **** 
+  34:./LPC17xx/system_LPC17xx.c **** /*
+  35:./LPC17xx/system_LPC17xx.c **** //-------- <<< Use Configuration Wizard in Context Menu >>> ------------------
+  36:./LPC17xx/system_LPC17xx.c **** */
+  37:./LPC17xx/system_LPC17xx.c **** 
+  38:./LPC17xx/system_LPC17xx.c **** /*--------------------- Clock Configuration ----------------------------------
+  39:./LPC17xx/system_LPC17xx.c **** //
+  40:./LPC17xx/system_LPC17xx.c **** // <e> Clock Configuration
+  41:./LPC17xx/system_LPC17xx.c **** //   <h> System Controls and Status Register (SCS)
+  42:./LPC17xx/system_LPC17xx.c **** //     <o1.4>    OSCRANGE: Main Oscillator Range Select
+  43:./LPC17xx/system_LPC17xx.c **** //                     <0=>  1 MHz to 20 MHz
+  44:./LPC17xx/system_LPC17xx.c **** //                     <1=> 15 MHz to 24 MHz
+  45:./LPC17xx/system_LPC17xx.c **** //     <e1.5>       OSCEN: Main Oscillator Enable
+  46:./LPC17xx/system_LPC17xx.c **** //     </e>
+  47:./LPC17xx/system_LPC17xx.c **** //   </h>
+  48:./LPC17xx/system_LPC17xx.c **** //
+  49:./LPC17xx/system_LPC17xx.c **** //   <h> Clock Source Select Register (CLKSRCSEL)
+  50:./LPC17xx/system_LPC17xx.c **** //     <o2.0..1>   CLKSRC: PLL Clock Source Selection
+  51:./LPC17xx/system_LPC17xx.c **** //                     <0=> Internal RC oscillator
+  52:./LPC17xx/system_LPC17xx.c **** //                     <1=> Main oscillator
+  53:./LPC17xx/system_LPC17xx.c **** //                     <2=> RTC oscillator
+  54:./LPC17xx/system_LPC17xx.c **** //   </h>
+  55:./LPC17xx/system_LPC17xx.c **** //
+  56:./LPC17xx/system_LPC17xx.c **** //   <e3> PLL0 Configuration (Main PLL)
+  57:./LPC17xx/system_LPC17xx.c **** //     <h> PLL0 Configuration Register (PLL0CFG)
+  58:./LPC17xx/system_LPC17xx.c **** //                     <i> F_cco0 = (2 * M * F_in) / N
+  59:./LPC17xx/system_LPC17xx.c **** //                     <i> F_in must be in the range of 32 kHz to 50 MHz
+  60:./LPC17xx/system_LPC17xx.c **** //                     <i> F_cco0 must be in the range of 275 MHz to 550 MHz
+  61:./LPC17xx/system_LPC17xx.c **** //       <o4.0..14>  MSEL: PLL Multiplier Selection
+  62:./LPC17xx/system_LPC17xx.c **** //                     <6-32768><#-1>
+  63:./LPC17xx/system_LPC17xx.c **** //                     <i> M Value
+  64:./LPC17xx/system_LPC17xx.c **** //       <o4.16..23> NSEL: PLL Divider Selection
+  65:./LPC17xx/system_LPC17xx.c **** //                     <1-256><#-1>
+  66:./LPC17xx/system_LPC17xx.c **** //                     <i> N Value
+  67:./LPC17xx/system_LPC17xx.c **** //     </h>
+  68:./LPC17xx/system_LPC17xx.c **** //   </e>
+  69:./LPC17xx/system_LPC17xx.c **** //
+  70:./LPC17xx/system_LPC17xx.c **** //   <e5> PLL1 Configuration (USB PLL)
+  71:./LPC17xx/system_LPC17xx.c **** //     <h> PLL1 Configuration Register (PLL1CFG)
+  72:./LPC17xx/system_LPC17xx.c **** //                     <i> F_usb = M * F_osc or F_usb = F_cco1 / (2 * P)
+  73:./LPC17xx/system_LPC17xx.c **** //                     <i> F_cco1 = F_osc * M * 2 * P
+  74:./LPC17xx/system_LPC17xx.c **** //                     <i> F_cco1 must be in the range of 156 MHz to 320 MHz
+  75:./LPC17xx/system_LPC17xx.c **** //       <o6.0..4>   MSEL: PLL Multiplier Selection
+  76:./LPC17xx/system_LPC17xx.c **** //                     <1-32><#-1>
+  77:./LPC17xx/system_LPC17xx.c **** //                     <i> M Value (for USB maximum value is 4)
+  78:./LPC17xx/system_LPC17xx.c **** //       <o6.5..6>   PSEL: PLL Divider Selection
+  79:./LPC17xx/system_LPC17xx.c **** //                     <0=> 1
+  80:./LPC17xx/system_LPC17xx.c **** //                     <1=> 2
+  81:./LPC17xx/system_LPC17xx.c **** //                     <2=> 4
+  82:./LPC17xx/system_LPC17xx.c **** //                     <3=> 8
+  83:./LPC17xx/system_LPC17xx.c **** //                     <i> P Value
+  84:./LPC17xx/system_LPC17xx.c **** //     </h>
+  85:./LPC17xx/system_LPC17xx.c **** //   </e>
+  86:./LPC17xx/system_LPC17xx.c **** //
+  87:./LPC17xx/system_LPC17xx.c **** //   <h> CPU Clock Configuration Register (CCLKCFG)
+  88:./LPC17xx/system_LPC17xx.c **** //     <o7.0..7>  CCLKSEL: Divide Value for CPU Clock from PLL0
+  89:./LPC17xx/system_LPC17xx.c **** //                     <3-256><#-1>
+  90:./LPC17xx/system_LPC17xx.c **** //   </h>
+  91:./LPC17xx/system_LPC17xx.c **** //
+  92:./LPC17xx/system_LPC17xx.c **** //   <h> USB Clock Configuration Register (USBCLKCFG)
+  93:./LPC17xx/system_LPC17xx.c **** //     <o8.0..3>   USBSEL: Divide Value for USB Clock from PLL0
+  94:./LPC17xx/system_LPC17xx.c **** //                     <0-15>
+  95:./LPC17xx/system_LPC17xx.c **** //                     <i> Divide is USBSEL + 1
+  96:./LPC17xx/system_LPC17xx.c **** //   </h>
+  97:./LPC17xx/system_LPC17xx.c **** //
+  98:./LPC17xx/system_LPC17xx.c **** //   <h> Peripheral Clock Selection Register 0 (PCLKSEL0)
+  99:./LPC17xx/system_LPC17xx.c **** //     <o9.0..1>    PCLK_WDT: Peripheral Clock Selection for WDT
+ 100:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 101:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 102:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 103:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 104:./LPC17xx/system_LPC17xx.c **** //     <o9.2..3>    PCLK_TIMER0: Peripheral Clock Selection for TIMER0
+ 105:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 106:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 107:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 108:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 109:./LPC17xx/system_LPC17xx.c **** //     <o9.4..5>    PCLK_TIMER1: Peripheral Clock Selection for TIMER1
+ 110:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 111:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 112:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 113:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 114:./LPC17xx/system_LPC17xx.c **** //     <o9.6..7>    PCLK_UART0: Peripheral Clock Selection for UART0
+ 115:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 116:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 117:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 118:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 119:./LPC17xx/system_LPC17xx.c **** //     <o9.8..9>    PCLK_UART1: Peripheral Clock Selection for UART1
+ 120:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 121:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 122:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 123:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 124:./LPC17xx/system_LPC17xx.c **** //     <o9.12..13>  PCLK_PWM1: Peripheral Clock Selection for PWM1
+ 125:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 126:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 127:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 128:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 129:./LPC17xx/system_LPC17xx.c **** //     <o9.14..15>  PCLK_I2C0: Peripheral Clock Selection for I2C0
+ 130:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 131:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 132:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 133:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 134:./LPC17xx/system_LPC17xx.c **** //     <o9.16..17>  PCLK_SPI: Peripheral Clock Selection for SPI
+ 135:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 136:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 137:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 138:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 139:./LPC17xx/system_LPC17xx.c **** //     <o9.20..21>  PCLK_SSP1: Peripheral Clock Selection for SSP1
+ 140:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 141:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 142:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 143:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 144:./LPC17xx/system_LPC17xx.c **** //     <o9.22..23>  PCLK_DAC: Peripheral Clock Selection for DAC
+ 145:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 146:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 147:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 148:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 149:./LPC17xx/system_LPC17xx.c **** //     <o9.24..25>  PCLK_ADC: Peripheral Clock Selection for ADC
+ 150:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 151:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 152:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 153:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 154:./LPC17xx/system_LPC17xx.c **** //     <o9.26..27>  PCLK_CAN1: Peripheral Clock Selection for CAN1
+ 155:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 156:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 157:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 158:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 6
+ 159:./LPC17xx/system_LPC17xx.c **** //     <o9.28..29>  PCLK_CAN2: Peripheral Clock Selection for CAN2
+ 160:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 161:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 162:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 163:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 6
+ 164:./LPC17xx/system_LPC17xx.c **** //     <o9.30..31>  PCLK_ACF: Peripheral Clock Selection for ACF
+ 165:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 166:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 167:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 168:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 6
+ 169:./LPC17xx/system_LPC17xx.c **** //   </h>
+ 170:./LPC17xx/system_LPC17xx.c **** //
+ 171:./LPC17xx/system_LPC17xx.c **** //   <h> Peripheral Clock Selection Register 1 (PCLKSEL1)
+ 172:./LPC17xx/system_LPC17xx.c **** //     <o10.0..1>   PCLK_QEI: Peripheral Clock Selection for the Quadrature Encoder Interface
+ 173:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 174:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 175:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 176:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 177:./LPC17xx/system_LPC17xx.c **** //     <o10.2..3>   PCLK_GPIO: Peripheral Clock Selection for GPIOs
+ 178:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 179:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 180:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 181:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 182:./LPC17xx/system_LPC17xx.c **** //     <o10.4..5>   PCLK_PCB: Peripheral Clock Selection for the Pin Connect Block
+ 183:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 184:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 185:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 186:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 187:./LPC17xx/system_LPC17xx.c **** //     <o10.6..7>   PCLK_I2C1: Peripheral Clock Selection for I2C1
+ 188:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 189:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 190:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 191:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 192:./LPC17xx/system_LPC17xx.c **** //     <o10.10..11> PCLK_SSP0: Peripheral Clock Selection for SSP0
+ 193:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 194:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 195:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 196:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 197:./LPC17xx/system_LPC17xx.c **** //     <o10.12..13> PCLK_TIMER2: Peripheral Clock Selection for TIMER2
+ 198:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 199:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 200:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 201:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 202:./LPC17xx/system_LPC17xx.c **** //     <o10.14..15> PCLK_TIMER3: Peripheral Clock Selection for TIMER3
+ 203:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 204:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 205:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 206:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 207:./LPC17xx/system_LPC17xx.c **** //     <o10.16..17> PCLK_UART2: Peripheral Clock Selection for UART2
+ 208:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 209:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 210:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 211:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 212:./LPC17xx/system_LPC17xx.c **** //     <o10.18..19> PCLK_UART3: Peripheral Clock Selection for UART3
+ 213:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 214:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 215:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 216:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 217:./LPC17xx/system_LPC17xx.c **** //     <o10.20..21> PCLK_I2C2: Peripheral Clock Selection for I2C2
+ 218:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 219:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 220:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 221:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 222:./LPC17xx/system_LPC17xx.c **** //     <o10.22..23> PCLK_I2S: Peripheral Clock Selection for I2S
+ 223:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 224:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 225:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 226:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 227:./LPC17xx/system_LPC17xx.c **** //     <o10.26..27> PCLK_RIT: Peripheral Clock Selection for the Repetitive Interrupt Timer
+ 228:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 229:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 230:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 231:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 232:./LPC17xx/system_LPC17xx.c **** //     <o10.28..29> PCLK_SYSCON: Peripheral Clock Selection for the System Control Block
+ 233:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 234:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 235:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 236:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 237:./LPC17xx/system_LPC17xx.c **** //     <o10.30..31> PCLK_MC: Peripheral Clock Selection for the Motor Control PWM
+ 238:./LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 239:./LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 240:./LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 241:./LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 242:./LPC17xx/system_LPC17xx.c **** //   </h>
+ 243:./LPC17xx/system_LPC17xx.c **** //
+ 244:./LPC17xx/system_LPC17xx.c **** //   <h> Power Control for Peripherals Register (PCONP)
+ 245:./LPC17xx/system_LPC17xx.c **** //     <o11.1>      PCTIM0: Timer/Counter 0 power/clock enable
+ 246:./LPC17xx/system_LPC17xx.c **** //     <o11.2>      PCTIM1: Timer/Counter 1 power/clock enable
+ 247:./LPC17xx/system_LPC17xx.c **** //     <o11.3>      PCUART0: UART 0 power/clock enable
+ 248:./LPC17xx/system_LPC17xx.c **** //     <o11.4>      PCUART1: UART 1 power/clock enable
+ 249:./LPC17xx/system_LPC17xx.c **** //     <o11.6>      PCPWM1: PWM 1 power/clock enable
+ 250:./LPC17xx/system_LPC17xx.c **** //     <o11.7>      PCI2C0: I2C interface 0 power/clock enable
+ 251:./LPC17xx/system_LPC17xx.c **** //     <o11.8>      PCSPI: SPI interface power/clock enable
+ 252:./LPC17xx/system_LPC17xx.c **** //     <o11.9>      PCRTC: RTC power/clock enable
+ 253:./LPC17xx/system_LPC17xx.c **** //     <o11.10>     PCSSP1: SSP interface 1 power/clock enable
+ 254:./LPC17xx/system_LPC17xx.c **** //     <o11.12>     PCAD: A/D converter power/clock enable
+ 255:./LPC17xx/system_LPC17xx.c **** //     <o11.13>     PCCAN1: CAN controller 1 power/clock enable
+ 256:./LPC17xx/system_LPC17xx.c **** //     <o11.14>     PCCAN2: CAN controller 2 power/clock enable
+ 257:./LPC17xx/system_LPC17xx.c **** //     <o11.15>     PCGPIO: GPIOs power/clock enable
+ 258:./LPC17xx/system_LPC17xx.c **** //     <o11.16>     PCRIT: Repetitive interrupt timer power/clock enable
+ 259:./LPC17xx/system_LPC17xx.c **** //     <o11.17>     PCMC: Motor control PWM power/clock enable
+ 260:./LPC17xx/system_LPC17xx.c **** //     <o11.18>     PCQEI: Quadrature encoder interface power/clock enable
+ 261:./LPC17xx/system_LPC17xx.c **** //     <o11.19>     PCI2C1: I2C interface 1 power/clock enable
+ 262:./LPC17xx/system_LPC17xx.c **** //     <o11.21>     PCSSP0: SSP interface 0 power/clock enable
+ 263:./LPC17xx/system_LPC17xx.c **** //     <o11.22>     PCTIM2: Timer 2 power/clock enable
+ 264:./LPC17xx/system_LPC17xx.c **** //     <o11.23>     PCTIM3: Timer 3 power/clock enable
+ 265:./LPC17xx/system_LPC17xx.c **** //     <o11.24>     PCUART2: UART 2 power/clock enable
+ 266:./LPC17xx/system_LPC17xx.c **** //     <o11.25>     PCUART3: UART 3 power/clock enable
+ 267:./LPC17xx/system_LPC17xx.c **** //     <o11.26>     PCI2C2: I2C interface 2 power/clock enable
+ 268:./LPC17xx/system_LPC17xx.c **** //     <o11.27>     PCI2S: I2S interface power/clock enable
+ 269:./LPC17xx/system_LPC17xx.c **** //     <o11.29>     PCGPDMA: GP DMA function power/clock enable
+ 270:./LPC17xx/system_LPC17xx.c **** //     <o11.30>     PCENET: Ethernet block power/clock enable
+ 271:./LPC17xx/system_LPC17xx.c **** //     <o11.31>     PCUSB: USB interface power/clock enable
+ 272:./LPC17xx/system_LPC17xx.c **** //   </h>
+ 273:./LPC17xx/system_LPC17xx.c **** //
+ 274:./LPC17xx/system_LPC17xx.c **** //   <h> Clock Output Configuration Register (CLKOUTCFG)
+ 275:./LPC17xx/system_LPC17xx.c **** //     <o12.0..3>   CLKOUTSEL: Selects clock source for CLKOUT
+ 276:./LPC17xx/system_LPC17xx.c **** //                     <0=> CPU clock
+ 277:./LPC17xx/system_LPC17xx.c **** //                     <1=> Main oscillator
+ 278:./LPC17xx/system_LPC17xx.c **** //                     <2=> Internal RC oscillator
+ 279:./LPC17xx/system_LPC17xx.c **** //                     <3=> USB clock
+ 280:./LPC17xx/system_LPC17xx.c **** //                     <4=> RTC oscillator
+ 281:./LPC17xx/system_LPC17xx.c **** //     <o12.4..7>   CLKOUTDIV: Selects clock divider for CLKOUT
+ 282:./LPC17xx/system_LPC17xx.c **** //                     <1-16><#-1>
+ 283:./LPC17xx/system_LPC17xx.c **** //     <o12.8>      CLKOUT_EN: CLKOUT enable control
+ 284:./LPC17xx/system_LPC17xx.c **** //   </h>
+ 285:./LPC17xx/system_LPC17xx.c **** //
+ 286:./LPC17xx/system_LPC17xx.c **** // </e>
+ 287:./LPC17xx/system_LPC17xx.c **** */
+ 288:./LPC17xx/system_LPC17xx.c **** 
+ 289:./LPC17xx/system_LPC17xx.c **** 
+ 290:./LPC17xx/system_LPC17xx.c **** 
+ 291:./LPC17xx/system_LPC17xx.c **** /** @addtogroup LPC17xx_System_Defines  LPC17xx System Defines
+ 292:./LPC17xx/system_LPC17xx.c ****   @{
+ 293:./LPC17xx/system_LPC17xx.c ****  */
+ 294:./LPC17xx/system_LPC17xx.c **** 
+ 295:./LPC17xx/system_LPC17xx.c **** #define CLOCK_SETUP           1
+ 296:./LPC17xx/system_LPC17xx.c **** #define SCS_Val               0x00000020
+ 297:./LPC17xx/system_LPC17xx.c **** #define CLKSRCSEL_Val         0x00000001
+ 298:./LPC17xx/system_LPC17xx.c **** #define PLL0_SETUP            1
+ 299:./LPC17xx/system_LPC17xx.c **** #define PLL0CFG_Val           0x00050063
+ 300:./LPC17xx/system_LPC17xx.c **** #define PLL1_SETUP            1
+ 301:./LPC17xx/system_LPC17xx.c **** #define PLL1CFG_Val           0x00000023
+ 302:./LPC17xx/system_LPC17xx.c **** #define CCLKCFG_Val           0x00000003 //main divider
+ 303:./LPC17xx/system_LPC17xx.c **** #define USBCLKCFG_Val         0x00000000
+ 304:./LPC17xx/system_LPC17xx.c **** #define PCLKSEL0_Val          0x00000000 | 0<<24// частота АЦП = main/8
+ 305:./LPC17xx/system_LPC17xx.c **** #define PCLKSEL1_Val          0x0000000c
+ 306:./LPC17xx/system_LPC17xx.c **** #define PCONP_Val             0x042887DE
+ 307:./LPC17xx/system_LPC17xx.c **** #define CLKOUTCFG_Val         0x00000110
+ 308:./LPC17xx/system_LPC17xx.c **** 
+ 309:./LPC17xx/system_LPC17xx.c **** 
+ 310:./LPC17xx/system_LPC17xx.c **** /*--------------------- Flash Accelerator Configuration ----------------------
+ 311:./LPC17xx/system_LPC17xx.c **** //
+ 312:./LPC17xx/system_LPC17xx.c **** // <e> Flash Accelerator Configuration
+ 313:./LPC17xx/system_LPC17xx.c **** //   <o1.0..11>  Reserved
+ 314:./LPC17xx/system_LPC17xx.c **** //   <o1.12..15> FLASHTIM: Flash Access Time
+ 315:./LPC17xx/system_LPC17xx.c **** //               <0=> 1 CPU clock (for CPU clock up to 20 MHz)
+ 316:./LPC17xx/system_LPC17xx.c **** //               <1=> 2 CPU clocks (for CPU clock up to 40 MHz)
+ 317:./LPC17xx/system_LPC17xx.c **** //               <2=> 3 CPU clocks (for CPU clock up to 60 MHz)
+ 318:./LPC17xx/system_LPC17xx.c **** //               <3=> 4 CPU clocks (for CPU clock up to 80 MHz)
+ 319:./LPC17xx/system_LPC17xx.c **** //               <4=> 5 CPU clocks (for CPU clock up to 100 MHz)
+ 320:./LPC17xx/system_LPC17xx.c **** //               <5=> 6 CPU clocks (for any CPU clock)
+ 321:./LPC17xx/system_LPC17xx.c **** // </e>
+ 322:./LPC17xx/system_LPC17xx.c **** */
+ 323:./LPC17xx/system_LPC17xx.c **** #define FLASH_SETUP           1
+ 324:./LPC17xx/system_LPC17xx.c **** #define FLASHCFG_Val          0x0000403A
+ 325:./LPC17xx/system_LPC17xx.c **** 
+ 326:./LPC17xx/system_LPC17xx.c **** /*
+ 327:./LPC17xx/system_LPC17xx.c **** //-------- <<< end of configuration section >>> ------------------------------
+ 328:./LPC17xx/system_LPC17xx.c **** */
+ 329:./LPC17xx/system_LPC17xx.c **** 
+ 330:./LPC17xx/system_LPC17xx.c **** /*----------------------------------------------------------------------------
+ 331:./LPC17xx/system_LPC17xx.c ****   Check the register settings
+ 332:./LPC17xx/system_LPC17xx.c ****  *----------------------------------------------------------------------------*/
+ 333:./LPC17xx/system_LPC17xx.c **** #define CHECK_RANGE(val, min, max)                ((val < min) || (val > max))
+ 334:./LPC17xx/system_LPC17xx.c **** #define CHECK_RSVD(val, mask)                     (val & mask)
+ 335:./LPC17xx/system_LPC17xx.c **** 
+ 336:./LPC17xx/system_LPC17xx.c **** /* Clock Configuration -------------------------------------------------------*/
+ 337:./LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((SCS_Val),       ~0x00000030))
+ 338:./LPC17xx/system_LPC17xx.c ****    #error "SCS: Invalid values of reserved bits!"
+ 339:./LPC17xx/system_LPC17xx.c **** #endif
+ 340:./LPC17xx/system_LPC17xx.c **** 
+ 341:./LPC17xx/system_LPC17xx.c **** #if (CHECK_RANGE((CLKSRCSEL_Val), 0, 2))
+ 342:./LPC17xx/system_LPC17xx.c ****    #error "CLKSRCSEL: Value out of range!"
+ 343:./LPC17xx/system_LPC17xx.c **** #endif
+ 344:./LPC17xx/system_LPC17xx.c **** 
+ 345:./LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((PLL0CFG_Val),   ~0x00FF7FFF))
+ 346:./LPC17xx/system_LPC17xx.c ****    #error "PLL0CFG: Invalid values of reserved bits!"
+ 347:./LPC17xx/system_LPC17xx.c **** #endif
+ 348:./LPC17xx/system_LPC17xx.c **** 
+ 349:./LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((PLL1CFG_Val),   ~0x0000007F))
+ 350:./LPC17xx/system_LPC17xx.c ****    #error "PLL1CFG: Invalid values of reserved bits!"
+ 351:./LPC17xx/system_LPC17xx.c **** #endif
+ 352:./LPC17xx/system_LPC17xx.c **** 
+ 353:./LPC17xx/system_LPC17xx.c **** #if ((CCLKCFG_Val != 0) && (((CCLKCFG_Val - 1) % 2)))
+ 354:./LPC17xx/system_LPC17xx.c ****    #error "CCLKCFG: CCLKSEL field does not contain only odd values or 0!"
+ 355:./LPC17xx/system_LPC17xx.c **** #endif
+ 356:./LPC17xx/system_LPC17xx.c **** 
+ 357:./LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((USBCLKCFG_Val), ~0x0000000F))
+ 358:./LPC17xx/system_LPC17xx.c ****    #error "USBCLKCFG: Invalid values of reserved bits!"
+ 359:./LPC17xx/system_LPC17xx.c **** #endif
+ 360:./LPC17xx/system_LPC17xx.c **** 
+ 361:./LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((PCLKSEL0_Val),   0x000C0C00))
+ 362:./LPC17xx/system_LPC17xx.c ****    #error "PCLKSEL0: Invalid values of reserved bits!"
+ 363:./LPC17xx/system_LPC17xx.c **** #endif
+ 364:./LPC17xx/system_LPC17xx.c **** 
+ 365:./LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((PCLKSEL1_Val),   0x03000300))
+ 366:./LPC17xx/system_LPC17xx.c ****    #error "PCLKSEL1: Invalid values of reserved bits!"
+ 367:./LPC17xx/system_LPC17xx.c **** #endif
+ 368:./LPC17xx/system_LPC17xx.c **** 
+ 369:./LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((PCONP_Val),      0x10100821))
+ 370:./LPC17xx/system_LPC17xx.c ****    #error "PCONP: Invalid values of reserved bits!"
+ 371:./LPC17xx/system_LPC17xx.c **** #endif
+ 372:./LPC17xx/system_LPC17xx.c **** 
+ 373:./LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((CLKOUTCFG_Val), ~0x000001FF))
+ 374:./LPC17xx/system_LPC17xx.c ****    #error "CLKOUTCFG: Invalid values of reserved bits!"
+ 375:./LPC17xx/system_LPC17xx.c **** #endif
+ 376:./LPC17xx/system_LPC17xx.c **** 
+ 377:./LPC17xx/system_LPC17xx.c **** /* Flash Accelerator Configuration -------------------------------------------*/
+ 378:./LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((FLASHCFG_Val), ~0x0000F07F))
+ 379:./LPC17xx/system_LPC17xx.c ****    #error "FLASHCFG: Invalid values of reserved bits!"
+ 380:./LPC17xx/system_LPC17xx.c **** #endif
+ 381:./LPC17xx/system_LPC17xx.c **** 
+ 382:./LPC17xx/system_LPC17xx.c **** 
+ 383:./LPC17xx/system_LPC17xx.c **** /*----------------------------------------------------------------------------
+ 384:./LPC17xx/system_LPC17xx.c ****   DEFINES
+ 385:./LPC17xx/system_LPC17xx.c ****  *----------------------------------------------------------------------------*/
+ 386:./LPC17xx/system_LPC17xx.c **** 
+ 387:./LPC17xx/system_LPC17xx.c **** /*----------------------------------------------------------------------------
+ 388:./LPC17xx/system_LPC17xx.c ****   Define clocks
+ 389:./LPC17xx/system_LPC17xx.c ****  *----------------------------------------------------------------------------*/
+ 390:./LPC17xx/system_LPC17xx.c **** #define XTAL        (12000000UL)        /* Oscillator frequency               */
+ 391:./LPC17xx/system_LPC17xx.c **** #define OSC_CLK     (      XTAL)        /* Main oscillator frequency          */
+ 392:./LPC17xx/system_LPC17xx.c **** #define RTC_CLK     (   32768UL)        /* RTC oscillator frequency           */
+ 393:./LPC17xx/system_LPC17xx.c **** #define IRC_OSC     ( 4000000UL)        /* Internal RC oscillator frequency   */
+ 394:./LPC17xx/system_LPC17xx.c **** 
+ 395:./LPC17xx/system_LPC17xx.c **** 
+ 396:./LPC17xx/system_LPC17xx.c **** /* F_cco0 = (2 * M * F_in) / N  */
+ 397:./LPC17xx/system_LPC17xx.c **** #define __M               (((PLL0CFG_Val      ) & 0x7FFF) + 1)
+ 398:./LPC17xx/system_LPC17xx.c **** #define __N               (((PLL0CFG_Val >> 16) & 0x00FF) + 1)
+ 399:./LPC17xx/system_LPC17xx.c **** #define __FCCO(__F_IN)    ((2 * __M * __F_IN) / __N)
+ 400:./LPC17xx/system_LPC17xx.c **** #define __CCLK_DIV        (((CCLKCFG_Val      ) & 0x00FF) + 1)
+ 401:./LPC17xx/system_LPC17xx.c **** 
+ 402:./LPC17xx/system_LPC17xx.c **** /* Determine core clock frequency according to settings */
+ 403:./LPC17xx/system_LPC17xx.c ****  #if (PLL0_SETUP)
+ 404:./LPC17xx/system_LPC17xx.c ****     #if   ((CLKSRCSEL_Val & 0x03) == 1)
+ 405:./LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (__FCCO(OSC_CLK) / __CCLK_DIV)
+ 406:./LPC17xx/system_LPC17xx.c ****     #elif ((CLKSRCSEL_Val & 0x03) == 2)
+ 407:./LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (__FCCO(RTC_CLK) / __CCLK_DIV)
+ 408:./LPC17xx/system_LPC17xx.c ****     #else
+ 409:./LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (__FCCO(IRC_OSC) / __CCLK_DIV)
+ 410:./LPC17xx/system_LPC17xx.c ****     #endif
+ 411:./LPC17xx/system_LPC17xx.c ****  #else
+ 412:./LPC17xx/system_LPC17xx.c ****     #if   ((CLKSRCSEL_Val & 0x03) == 1)
+ 413:./LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (OSC_CLK         / __CCLK_DIV)
+ 414:./LPC17xx/system_LPC17xx.c ****     #elif ((CLKSRCSEL_Val & 0x03) == 2)
+ 415:./LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (RTC_CLK         / __CCLK_DIV)
+ 416:./LPC17xx/system_LPC17xx.c ****     #else
+ 417:./LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (IRC_OSC         / __CCLK_DIV)
+ 418:./LPC17xx/system_LPC17xx.c ****     #endif
+ 419:./LPC17xx/system_LPC17xx.c ****  #endif
+ 420:./LPC17xx/system_LPC17xx.c **** 
+ 421:./LPC17xx/system_LPC17xx.c ****  /**
+ 422:./LPC17xx/system_LPC17xx.c ****   * @}
+ 423:./LPC17xx/system_LPC17xx.c ****   */
+ 424:./LPC17xx/system_LPC17xx.c **** 
+ 425:./LPC17xx/system_LPC17xx.c **** 
+ 426:./LPC17xx/system_LPC17xx.c **** /** @addtogroup LPC17xx_System_Public_Variables  LPC17xx System Public Variables
+ 427:./LPC17xx/system_LPC17xx.c ****   @{
+ 428:./LPC17xx/system_LPC17xx.c ****  */
+ 429:./LPC17xx/system_LPC17xx.c **** /*----------------------------------------------------------------------------
+ 430:./LPC17xx/system_LPC17xx.c ****   Clock Variable definitions
+ 431:./LPC17xx/system_LPC17xx.c ****  *----------------------------------------------------------------------------*/
+ 432:./LPC17xx/system_LPC17xx.c **** uint32_t SystemCoreClock = __CORE_CLK;/*!< System Clock Frequency (Core Clock)*/
+ 433:./LPC17xx/system_LPC17xx.c **** 
+ 434:./LPC17xx/system_LPC17xx.c **** /**
+ 435:./LPC17xx/system_LPC17xx.c ****  * @}
+ 436:./LPC17xx/system_LPC17xx.c ****  */
+ 437:./LPC17xx/system_LPC17xx.c **** 
+ 438:./LPC17xx/system_LPC17xx.c **** 
+ 439:./LPC17xx/system_LPC17xx.c **** /** @addtogroup LPC17xx_System_Public_Functions  LPC17xx System Public Functions
+ 440:./LPC17xx/system_LPC17xx.c ****   @{
+ 441:./LPC17xx/system_LPC17xx.c ****  */
+ 442:./LPC17xx/system_LPC17xx.c **** 
+ 443:./LPC17xx/system_LPC17xx.c **** /*----------------------------------------------------------------------------
+ 444:./LPC17xx/system_LPC17xx.c ****   Clock functions
+ 445:./LPC17xx/system_LPC17xx.c ****  *----------------------------------------------------------------------------*/
+ 446:./LPC17xx/system_LPC17xx.c **** 
+ 447:./LPC17xx/system_LPC17xx.c **** 
+ 448:./LPC17xx/system_LPC17xx.c **** void SystemCoreClockUpdate (void)            /* Get Core Clock Frequency      */
+ 449:./LPC17xx/system_LPC17xx.c **** {
+  27              		.loc 1 449 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+ 450:./LPC17xx/system_LPC17xx.c ****   /* Determine clock frequency according to clock register values             */
+ 451:./LPC17xx/system_LPC17xx.c ****   if (((LPC_SC->PLL0STAT >> 24) & 3) == 3) { /* If PLL0 enabled and connected */
+  32              		.loc 1 451 0
+  33 0000 254B     		ldr	r3, .L17
+  34 0002 D3F88820 		ldr	r2, [r3, #136]
+  35 0006 C2F30162 		ubfx	r2, r2, #24, #2
+  36 000a 032A     		cmp	r2, #3
+ 452:./LPC17xx/system_LPC17xx.c ****     switch (LPC_SC->CLKSRCSEL & 0x03) {
+  37              		.loc 1 452 0
+  38 000c D3F80C21 		ldr	r2, [r3, #268]
+  39 0010 02F00302 		and	r2, r2, #3
+ 451:./LPC17xx/system_LPC17xx.c ****   if (((LPC_SC->PLL0STAT >> 24) & 3) == 3) { /* If PLL0 enabled and connected */
+  40              		.loc 1 451 0
+  41 0014 0ED0     		beq	.L14
+ 453:./LPC17xx/system_LPC17xx.c ****       case 0:                                /* Int. RC oscillator => PLL0    */
+ 454:./LPC17xx/system_LPC17xx.c ****       case 3:                                /* Reserved, default to Int. RC  */
+ 455:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (IRC_OSC *
+ 456:./LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+ 457:./LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+ 458:./LPC17xx/system_LPC17xx.c ****                           ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+ 459:./LPC17xx/system_LPC17xx.c ****         break;
+ 460:./LPC17xx/system_LPC17xx.c ****       case 1:                                /* Main oscillator => PLL0       */
+ 461:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (OSC_CLK *
+ 462:./LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+ 463:./LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+ 464:./LPC17xx/system_LPC17xx.c ****                           ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+ 465:./LPC17xx/system_LPC17xx.c ****         break;
+ 466:./LPC17xx/system_LPC17xx.c ****       case 2:                                /* RTC oscillator => PLL0        */
+ 467:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (RTC_CLK *
+ 468:./LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+ 469:./LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+ 470:./LPC17xx/system_LPC17xx.c ****                           ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+ 471:./LPC17xx/system_LPC17xx.c ****         break;
+ 472:./LPC17xx/system_LPC17xx.c ****     }
+ 473:./LPC17xx/system_LPC17xx.c ****   } else {
+ 474:./LPC17xx/system_LPC17xx.c ****     switch (LPC_SC->CLKSRCSEL & 0x03) {
+  42              		.loc 1 474 0
+  43 0016 012A     		cmp	r2, #1
+  44 0018 28D0     		beq	.L8
+  45 001a 022A     		cmp	r2, #2
+ 475:./LPC17xx/system_LPC17xx.c ****       case 0:                                /* Int. RC oscillator => PLL0    */
+ 476:./LPC17xx/system_LPC17xx.c ****       case 3:                                /* Reserved, default to Int. RC  */
+ 477:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = IRC_OSC / ((LPC_SC->CCLKCFG & 0xFF)+ 1);
+ 478:./LPC17xx/system_LPC17xx.c ****         break;
+ 479:./LPC17xx/system_LPC17xx.c ****       case 1:                                /* Main oscillator => PLL0       */
+ 480:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = OSC_CLK / ((LPC_SC->CCLKCFG & 0xFF)+ 1);
+ 481:./LPC17xx/system_LPC17xx.c ****         break;
+ 482:./LPC17xx/system_LPC17xx.c ****       case 2:                                /* RTC oscillator => PLL0        */
+ 483:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = RTC_CLK / ((LPC_SC->CCLKCFG & 0xFF)+ 1);
+  46              		.loc 1 483 0
+  47 001c D3F80421 		ldr	r2, [r3, #260]
+ 474:./LPC17xx/system_LPC17xx.c ****     switch (LPC_SC->CLKSRCSEL & 0x03) {
+  48              		.loc 1 474 0
+  49 0020 22D1     		bne	.L15
+  50              		.loc 1 483 0
+  51 0022 4FF40041 		mov	r1, #32768
+  52              	.L10:
+  53 0026 D2B2     		uxtb	r2, r2
+  54 0028 0132     		adds	r2, r2, #1
+  55 002a 1C4B     		ldr	r3, .L17+4
+  56 002c B1FBF2F2 		udiv	r2, r1, r2
+  57 0030 1A60     		str	r2, [r3]
+  58 0032 7047     		bx	lr
+  59              	.L14:
+ 452:./LPC17xx/system_LPC17xx.c ****     switch (LPC_SC->CLKSRCSEL & 0x03) {
+  60              		.loc 1 452 0
+  61 0034 012A     		cmp	r2, #1
+  62 0036 1DD0     		beq	.L4
+  63 0038 022A     		cmp	r2, #2
+  64 003a 29D1     		bne	.L16
+ 468:./LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+  65              		.loc 1 468 0
+  66 003c D3F88820 		ldr	r2, [r3, #136]
+ 469:./LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+  67              		.loc 1 469 0
+  68 0040 D3F88800 		ldr	r0, [r3, #136]
+ 468:./LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+  69              		.loc 1 468 0
+  70 0044 C2F30E02 		ubfx	r2, r2, #0, #15
+ 467:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (RTC_CLK *
+  71              		.loc 1 467 0
+  72 0048 0132     		adds	r2, r2, #1
+ 470:./LPC17xx/system_LPC17xx.c ****                           ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+  73              		.loc 1 470 0
+  74 004a D3F80411 		ldr	r1, [r3, #260]
+ 467:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (RTC_CLK *
+  75              		.loc 1 467 0
+  76 004e 1204     		lsls	r2, r2, #16
+ 469:./LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+  77              		.loc 1 469 0
+  78 0050 C0F30743 		ubfx	r3, r0, #16, #8
+  79              	.L11:
+  80 0054 0133     		adds	r3, r3, #1
+ 470:./LPC17xx/system_LPC17xx.c ****                           ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+  81              		.loc 1 470 0
+  82 0056 C9B2     		uxtb	r1, r1
+ 468:./LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+  83              		.loc 1 468 0
+  84 0058 B2FBF3F2 		udiv	r2, r2, r3
+ 470:./LPC17xx/system_LPC17xx.c ****                           ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+  85              		.loc 1 470 0
+  86 005c 0131     		adds	r1, r1, #1
+ 467:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (RTC_CLK *
+  87              		.loc 1 467 0
+  88 005e 0F4B     		ldr	r3, .L17+4
+ 469:./LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+  89              		.loc 1 469 0
+  90 0060 B2FBF1F2 		udiv	r2, r2, r1
+ 467:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (RTC_CLK *
+  91              		.loc 1 467 0
+  92 0064 1A60     		str	r2, [r3]
+ 471:./LPC17xx/system_LPC17xx.c ****         break;
+  93              		.loc 1 471 0
+  94 0066 7047     		bx	lr
+  95              	.L15:
+ 477:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = IRC_OSC / ((LPC_SC->CCLKCFG & 0xFF)+ 1);
+  96              		.loc 1 477 0
+  97 0068 0D49     		ldr	r1, .L17+8
+  98 006a DCE7     		b	.L10
+  99              	.L8:
+ 480:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = OSC_CLK / ((LPC_SC->CCLKCFG & 0xFF)+ 1);
+ 100              		.loc 1 480 0
+ 101 006c D3F80421 		ldr	r2, [r3, #260]
+ 102 0070 0C49     		ldr	r1, .L17+12
+ 103 0072 D8E7     		b	.L10
+ 104              	.L4:
+ 462:./LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+ 105              		.loc 1 462 0
+ 106 0074 D3F88810 		ldr	r1, [r3, #136]
+ 461:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (OSC_CLK *
+ 107              		.loc 1 461 0
+ 108 0078 0B4A     		ldr	r2, .L17+16
+ 109              	.L12:
+ 463:./LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+ 110              		.loc 1 463 0
+ 111 007a D3F88800 		ldr	r0, [r3, #136]
+ 462:./LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+ 112              		.loc 1 462 0
+ 113 007e C1F30E01 		ubfx	r1, r1, #0, #15
+ 461:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (OSC_CLK *
+ 114              		.loc 1 461 0
+ 115 0082 01FB0222 		mla	r2, r1, r2, r2
+ 464:./LPC17xx/system_LPC17xx.c ****                           ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+ 116              		.loc 1 464 0
+ 117 0086 D3F80411 		ldr	r1, [r3, #260]
+ 463:./LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+ 118              		.loc 1 463 0
+ 119 008a C0F30743 		ubfx	r3, r0, #16, #8
+ 120 008e E1E7     		b	.L11
+ 121              	.L16:
+ 456:./LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+ 122              		.loc 1 456 0
+ 123 0090 D3F88810 		ldr	r1, [r3, #136]
+ 455:./LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (IRC_OSC *
+ 124              		.loc 1 455 0
+ 125 0094 054A     		ldr	r2, .L17+20
+ 126 0096 F0E7     		b	.L12
+ 127              	.L18:
+ 128              		.align	2
+ 129              	.L17:
+ 130 0098 00C00F40 		.word	1074774016
+ 131 009c 00000000 		.word	.LANCHOR0
+ 132 00a0 00093D00 		.word	4000000
+ 133 00a4 001BB700 		.word	12000000
+ 134 00a8 00366E01 		.word	24000000
+ 135 00ac 00127A00 		.word	8000000
+ 136              		.cfi_endproc
+ 137              	.LFE55:
+ 139              		.section	.text.SystemInit,"ax",%progbits
+ 140              		.align	2
+ 141              		.global	SystemInit
+ 142              		.thumb
+ 143              		.thumb_func
+ 145              	SystemInit:
+ 146              	.LFB56:
+ 484:./LPC17xx/system_LPC17xx.c ****         break;
+ 485:./LPC17xx/system_LPC17xx.c ****     }
+ 486:./LPC17xx/system_LPC17xx.c ****   }
+ 487:./LPC17xx/system_LPC17xx.c **** 
+ 488:./LPC17xx/system_LPC17xx.c **** }
+ 489:./LPC17xx/system_LPC17xx.c **** 
+ 490:./LPC17xx/system_LPC17xx.c **** 
+ 491:./LPC17xx/system_LPC17xx.c **** /**
+ 492:./LPC17xx/system_LPC17xx.c ****  * Initialize the system
+ 493:./LPC17xx/system_LPC17xx.c ****  *
+ 494:./LPC17xx/system_LPC17xx.c ****  * @param  none
+ 495:./LPC17xx/system_LPC17xx.c ****  * @return none
+ 496:./LPC17xx/system_LPC17xx.c ****  *
+ 497:./LPC17xx/system_LPC17xx.c ****  * @brief  Setup the microcontroller system.
+ 498:./LPC17xx/system_LPC17xx.c ****  *         Initialize the System.
+ 499:./LPC17xx/system_LPC17xx.c ****  */
+ 500:./LPC17xx/system_LPC17xx.c **** void SystemInit (void)
+ 501:./LPC17xx/system_LPC17xx.c **** {
+ 147              		.loc 1 501 0
+ 148              		.cfi_startproc
+ 149              		@ args = 0, pretend = 0, frame = 0
+ 150              		@ frame_needed = 0, uses_anonymous_args = 0
+ 151              		@ link register save eliminated.
+ 502:./LPC17xx/system_LPC17xx.c **** #if (CLOCK_SETUP)                       /* Clock Setup                        */
+ 503:./LPC17xx/system_LPC17xx.c ****   LPC_SC->SCS       = SCS_Val;							/*MINE_COM 6th bit to 1 i.e. 20=>0b100000*/
+ 152              		.loc 1 503 0
+ 153 0000 3C4A     		ldr	r2, .L34
+ 154 0002 2023     		movs	r3, #32
+ 501:./LPC17xx/system_LPC17xx.c **** {
+ 155              		.loc 1 501 0
+ 156 0004 F0B4     		push	{r4, r5, r6, r7}
+ 157              		.cfi_def_cfa_offset 16
+ 158              		.cfi_offset 4, -16
+ 159              		.cfi_offset 5, -12
+ 160              		.cfi_offset 6, -8
+ 161              		.cfi_offset 7, -4
+ 162              		.loc 1 503 0
+ 163 0006 C2F8A031 		str	r3, [r2, #416]
+ 504:./LPC17xx/system_LPC17xx.c ****   if (LPC_SC->SCS & (1 << 5)) {             /* If Main Oscillator is enabled  */
+ 164              		.loc 1 504 0
+ 165 000a D2F8A031 		ldr	r3, [r2, #416]
+ 166 000e 9D06     		lsls	r5, r3, #26
+ 167 0010 66D4     		bmi	.L21
+ 168              	.L20:
+ 505:./LPC17xx/system_LPC17xx.c ****     while ((LPC_SC->SCS & (1<<6)) == 0);/* Wait for Oscillator to be ready    */
+ 506:./LPC17xx/system_LPC17xx.c ****   }
+ 507:./LPC17xx/system_LPC17xx.c **** 
+ 508:./LPC17xx/system_LPC17xx.c ****   LPC_SC->CCLKCFG   = CCLKCFG_Val;      /* Setup Clock Divider                */
+ 169              		.loc 1 508 0
+ 170 0012 384B     		ldr	r3, .L34
+ 509:./LPC17xx/system_LPC17xx.c ****   /* Periphral clock must be selected before PLL0 enabling and connecting
+ 510:./LPC17xx/system_LPC17xx.c ****    * - according errata.lpc1768-16.March.2010 -
+ 511:./LPC17xx/system_LPC17xx.c ****    */
+ 512:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PCLKSEL0  = PCLKSEL0_Val;     /* Peripheral Clock Selection         */
+ 513:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PCLKSEL1  = PCLKSEL1_Val;
+ 514:./LPC17xx/system_LPC17xx.c **** 
+ 515:./LPC17xx/system_LPC17xx.c **** #if (PLL0_SETUP)
+ 516:./LPC17xx/system_LPC17xx.c ****   LPC_SC->CLKSRCSEL = CLKSRCSEL_Val;    /* Select Clock Source for PLL0       */
+ 517:./LPC17xx/system_LPC17xx.c **** 
+ 518:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0CFG   = PLL0CFG_Val;      /* configure PLL0                     */
+ 171              		.loc 1 518 0
+ 172 0014 384D     		ldr	r5, .L34+4
+ 508:./LPC17xx/system_LPC17xx.c ****   LPC_SC->CCLKCFG   = CCLKCFG_Val;      /* Setup Clock Divider                */
+ 173              		.loc 1 508 0
+ 174 0016 0321     		movs	r1, #3
+ 516:./LPC17xx/system_LPC17xx.c ****   LPC_SC->CLKSRCSEL = CLKSRCSEL_Val;    /* Select Clock Source for PLL0       */
+ 175              		.loc 1 516 0
+ 176 0018 0124     		movs	r4, #1
+ 519:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0xAA;
+ 177              		.loc 1 519 0
+ 178 001a AA20     		movs	r0, #170
+ 520:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0x55;
+ 179              		.loc 1 520 0
+ 180 001c 5522     		movs	r2, #85
+ 512:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PCLKSEL0  = PCLKSEL0_Val;     /* Peripheral Clock Selection         */
+ 181              		.loc 1 512 0
+ 182 001e 0027     		movs	r7, #0
+ 513:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PCLKSEL1  = PCLKSEL1_Val;
+ 183              		.loc 1 513 0
+ 184 0020 0C26     		movs	r6, #12
+ 508:./LPC17xx/system_LPC17xx.c ****   LPC_SC->CCLKCFG   = CCLKCFG_Val;      /* Setup Clock Divider                */
+ 185              		.loc 1 508 0
+ 186 0022 C3F80411 		str	r1, [r3, #260]
+ 512:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PCLKSEL0  = PCLKSEL0_Val;     /* Peripheral Clock Selection         */
+ 187              		.loc 1 512 0
+ 188 0026 C3F8A871 		str	r7, [r3, #424]
+ 521:./LPC17xx/system_LPC17xx.c **** 
+ 522:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0CON   = 0x01;             /* PLL0 Enable                        */
+ 523:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0xAA;
+ 524:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0x55;
+ 525:./LPC17xx/system_LPC17xx.c ****   while (!(LPC_SC->PLL0STAT & (1<<26)));/* Wait for PLOCK0                    */
+ 189              		.loc 1 525 0
+ 190 002a 1946     		mov	r1, r3
+ 513:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PCLKSEL1  = PCLKSEL1_Val;
+ 191              		.loc 1 513 0
+ 192 002c C3F8AC61 		str	r6, [r3, #428]
+ 516:./LPC17xx/system_LPC17xx.c ****   LPC_SC->CLKSRCSEL = CLKSRCSEL_Val;    /* Select Clock Source for PLL0       */
+ 193              		.loc 1 516 0
+ 194 0030 C3F80C41 		str	r4, [r3, #268]
+ 518:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0CFG   = PLL0CFG_Val;      /* configure PLL0                     */
+ 195              		.loc 1 518 0
+ 196 0034 C3F88450 		str	r5, [r3, #132]
+ 519:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0xAA;
+ 197              		.loc 1 519 0
+ 198 0038 C3F88C00 		str	r0, [r3, #140]
+ 520:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0x55;
+ 199              		.loc 1 520 0
+ 200 003c C3F88C20 		str	r2, [r3, #140]
+ 522:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0CON   = 0x01;             /* PLL0 Enable                        */
+ 201              		.loc 1 522 0
+ 202 0040 C3F88040 		str	r4, [r3, #128]
+ 523:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0xAA;
+ 203              		.loc 1 523 0
+ 204 0044 C3F88C00 		str	r0, [r3, #140]
+ 524:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0x55;
+ 205              		.loc 1 524 0
+ 206 0048 C3F88C20 		str	r2, [r3, #140]
+ 207              	.L23:
+ 208              		.loc 1 525 0 discriminator 1
+ 209 004c D1F88830 		ldr	r3, [r1, #136]
+ 210 0050 284A     		ldr	r2, .L34
+ 211 0052 5801     		lsls	r0, r3, #5
+ 212 0054 FAD5     		bpl	.L23
+ 526:./LPC17xx/system_LPC17xx.c **** 
+ 527:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0CON   = 0x03;             /* PLL0 Enable & Connect              */
+ 213              		.loc 1 527 0
+ 214 0056 0321     		movs	r1, #3
+ 528:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0xAA;
+ 215              		.loc 1 528 0
+ 216 0058 AA20     		movs	r0, #170
+ 529:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0x55;
+ 217              		.loc 1 529 0
+ 218 005a 5523     		movs	r3, #85
+ 527:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0CON   = 0x03;             /* PLL0 Enable & Connect              */
+ 219              		.loc 1 527 0
+ 220 005c C2F88010 		str	r1, [r2, #128]
+ 528:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0xAA;
+ 221              		.loc 1 528 0
+ 222 0060 C2F88C00 		str	r0, [r2, #140]
+ 530:./LPC17xx/system_LPC17xx.c ****   while (!(LPC_SC->PLL0STAT & ((1<<25) | (1<<24))));/* Wait for PLLC0_STAT & PLLE0_STAT */
+ 223              		.loc 1 530 0
+ 224 0064 1146     		mov	r1, r2
+ 529:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0x55;
+ 225              		.loc 1 529 0
+ 226 0066 C2F88C30 		str	r3, [r2, #140]
+ 227              	.L25:
+ 228              		.loc 1 530 0 discriminator 1
+ 229 006a D1F88830 		ldr	r3, [r1, #136]
+ 230 006e 214A     		ldr	r2, .L34
+ 231 0070 13F0407F 		tst	r3, #50331648
+ 232 0074 F9D0     		beq	.L25
+ 531:./LPC17xx/system_LPC17xx.c **** #endif
+ 532:./LPC17xx/system_LPC17xx.c **** 
+ 533:./LPC17xx/system_LPC17xx.c **** #if (PLL1_SETUP)
+ 534:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1CFG   = PLL1CFG_Val;
+ 233              		.loc 1 534 0
+ 234 0076 2321     		movs	r1, #35
+ 535:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0xAA;
+ 235              		.loc 1 535 0
+ 236 0078 AA20     		movs	r0, #170
+ 536:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0x55;
+ 237              		.loc 1 536 0
+ 238 007a 5523     		movs	r3, #85
+ 537:./LPC17xx/system_LPC17xx.c **** 
+ 538:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1CON   = 0x01;             /* PLL1 Enable                        */
+ 239              		.loc 1 538 0
+ 240 007c 0124     		movs	r4, #1
+ 534:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1CFG   = PLL1CFG_Val;
+ 241              		.loc 1 534 0
+ 242 007e C2F8A410 		str	r1, [r2, #164]
+ 535:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0xAA;
+ 243              		.loc 1 535 0
+ 244 0082 C2F8AC00 		str	r0, [r2, #172]
+ 539:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0xAA;
+ 540:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0x55;
+ 541:./LPC17xx/system_LPC17xx.c ****   while (!(LPC_SC->PLL1STAT & (1<<10)));/* Wait for PLOCK1                    */
+ 245              		.loc 1 541 0
+ 246 0086 1146     		mov	r1, r2
+ 536:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0x55;
+ 247              		.loc 1 536 0
+ 248 0088 C2F8AC30 		str	r3, [r2, #172]
+ 538:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1CON   = 0x01;             /* PLL1 Enable                        */
+ 249              		.loc 1 538 0
+ 250 008c C2F8A040 		str	r4, [r2, #160]
+ 539:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0xAA;
+ 251              		.loc 1 539 0
+ 252 0090 C2F8AC00 		str	r0, [r2, #172]
+ 540:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0x55;
+ 253              		.loc 1 540 0
+ 254 0094 C2F8AC30 		str	r3, [r2, #172]
+ 255              	.L27:
+ 256              		.loc 1 541 0 discriminator 1
+ 257 0098 D1F8A830 		ldr	r3, [r1, #168]
+ 258 009c 154A     		ldr	r2, .L34
+ 259 009e 5B05     		lsls	r3, r3, #21
+ 260 00a0 FAD5     		bpl	.L27
+ 542:./LPC17xx/system_LPC17xx.c **** 
+ 543:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1CON   = 0x03;             /* PLL1 Enable & Connect              */
+ 261              		.loc 1 543 0
+ 262 00a2 0321     		movs	r1, #3
+ 544:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0xAA;
+ 263              		.loc 1 544 0
+ 264 00a4 AA20     		movs	r0, #170
+ 545:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0x55;
+ 265              		.loc 1 545 0
+ 266 00a6 5523     		movs	r3, #85
+ 543:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1CON   = 0x03;             /* PLL1 Enable & Connect              */
+ 267              		.loc 1 543 0
+ 268 00a8 C2F8A010 		str	r1, [r2, #160]
+ 544:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0xAA;
+ 269              		.loc 1 544 0
+ 270 00ac C2F8AC00 		str	r0, [r2, #172]
+ 546:./LPC17xx/system_LPC17xx.c ****   while (!(LPC_SC->PLL1STAT & ((1<< 9) | (1<< 8))));/* Wait for PLLC1_STAT & PLLE1_STAT */
+ 271              		.loc 1 546 0
+ 272 00b0 1146     		mov	r1, r2
+ 545:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0x55;
+ 273              		.loc 1 545 0
+ 274 00b2 C2F8AC30 		str	r3, [r2, #172]
+ 275              	.L29:
+ 276              		.loc 1 546 0 discriminator 1
+ 277 00b6 D1F8A830 		ldr	r3, [r1, #168]
+ 278 00ba 0E4A     		ldr	r2, .L34
+ 279 00bc 13F4407F 		tst	r3, #768
+ 280 00c0 F9D0     		beq	.L29
+ 547:./LPC17xx/system_LPC17xx.c **** #else
+ 548:./LPC17xx/system_LPC17xx.c ****   LPC_SC->USBCLKCFG = USBCLKCFG_Val;    /* Setup USB Clock Divider            */
+ 549:./LPC17xx/system_LPC17xx.c **** #endif
+ 550:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PCONP     = PCONP_Val;        /* Power Control for Peripherals      */
+ 281              		.loc 1 550 0
+ 282 00c2 0E4D     		ldr	r5, .L34+8
+ 551:./LPC17xx/system_LPC17xx.c **** 
+ 552:./LPC17xx/system_LPC17xx.c ****   LPC_SC->CLKOUTCFG = CLKOUTCFG_Val;    /* Clock Output Configuration         */
+ 553:./LPC17xx/system_LPC17xx.c **** #endif
+ 554:./LPC17xx/system_LPC17xx.c **** 
+ 555:./LPC17xx/system_LPC17xx.c **** #if (FLASH_SETUP == 1)                  /* Flash Accelerator Setup            */
+ 556:./LPC17xx/system_LPC17xx.c ****   LPC_SC->FLASHCFG  = FLASHCFG_Val;
+ 557:./LPC17xx/system_LPC17xx.c **** #endif
+ 558:./LPC17xx/system_LPC17xx.c **** 
+ 559:./LPC17xx/system_LPC17xx.c **** //  Set Vector table offset value
+ 560:./LPC17xx/system_LPC17xx.c **** #if (__RAM_MODE__==1)
+ 561:./LPC17xx/system_LPC17xx.c ****   SCB->VTOR  = 0x10000000 & 0x3FFFFF80;
+ 562:./LPC17xx/system_LPC17xx.c **** #else
+ 563:./LPC17xx/system_LPC17xx.c ****   SCB->VTOR  = 0x00000000 & 0x3FFFFF80;
+ 283              		.loc 1 563 0
+ 284 00c4 0E4B     		ldr	r3, .L34+12
+ 552:./LPC17xx/system_LPC17xx.c ****   LPC_SC->CLKOUTCFG = CLKOUTCFG_Val;    /* Clock Output Configuration         */
+ 285              		.loc 1 552 0
+ 286 00c6 4FF48874 		mov	r4, #272
+ 556:./LPC17xx/system_LPC17xx.c ****   LPC_SC->FLASHCFG  = FLASHCFG_Val;
+ 287              		.loc 1 556 0
+ 288 00ca 44F23A00 		movw	r0, #16442
+ 289              		.loc 1 563 0
+ 290 00ce 0021     		movs	r1, #0
+ 550:./LPC17xx/system_LPC17xx.c ****   LPC_SC->PCONP     = PCONP_Val;        /* Power Control for Peripherals      */
+ 291              		.loc 1 550 0
+ 292 00d0 C2F8C450 		str	r5, [r2, #196]
+ 552:./LPC17xx/system_LPC17xx.c ****   LPC_SC->CLKOUTCFG = CLKOUTCFG_Val;    /* Clock Output Configuration         */
+ 293              		.loc 1 552 0
+ 294 00d4 C2F8C841 		str	r4, [r2, #456]
+ 556:./LPC17xx/system_LPC17xx.c ****   LPC_SC->FLASHCFG  = FLASHCFG_Val;
+ 295              		.loc 1 556 0
+ 296 00d8 1060     		str	r0, [r2]
+ 564:./LPC17xx/system_LPC17xx.c **** #endif
+ 565:./LPC17xx/system_LPC17xx.c **** 
+ 566:./LPC17xx/system_LPC17xx.c **** //  __libc_init_array();
+ 567:./LPC17xx/system_LPC17xx.c **** }
+ 297              		.loc 1 567 0
+ 298 00da F0BC     		pop	{r4, r5, r6, r7}
+ 563:./LPC17xx/system_LPC17xx.c ****   SCB->VTOR  = 0x00000000 & 0x3FFFFF80;
+ 299              		.loc 1 563 0
+ 300 00dc 9960     		str	r1, [r3, #8]
+ 301              		.loc 1 567 0
+ 302 00de 7047     		bx	lr
+ 303              	.L21:
+ 505:./LPC17xx/system_LPC17xx.c ****     while ((LPC_SC->SCS & (1<<6)) == 0);/* Wait for Oscillator to be ready    */
+ 304              		.loc 1 505 0
+ 305 00e0 D2F8A031 		ldr	r3, [r2, #416]
+ 306 00e4 5C06     		lsls	r4, r3, #25
+ 307 00e6 94D4     		bmi	.L20
+ 308 00e8 D2F8A031 		ldr	r3, [r2, #416]
+ 309 00ec 5C06     		lsls	r4, r3, #25
+ 310 00ee F7D5     		bpl	.L21
+ 311 00f0 8FE7     		b	.L20
+ 312              	.L35:
+ 313 00f2 00BF     		.align	2
+ 314              	.L34:
+ 315 00f4 00C00F40 		.word	1074774016
+ 316 00f8 63000500 		.word	327779
+ 317 00fc DE872804 		.word	69765086
+ 318 0100 00ED00E0 		.word	-536810240
+ 319              		.cfi_endproc
+ 320              	.LFE56:
+ 322              		.global	SystemCoreClock
+ 323              		.section	.data.SystemCoreClock,"aw",%progbits
+ 324              		.align	2
+ 325              		.set	.LANCHOR0,. + 0
+ 328              	SystemCoreClock:
+ 329 0000 00E1F505 		.word	100000000
+ 330              		.text
+ 331              	.Letext0:
+ 332              		.file 2 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 333              		.file 3 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+ 334              		.file 4 "./Core/core_cm3.h"
+ 335              		.file 5 "./LPC17xx/LPC17xx.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 system_LPC17xx.c
+C:\Users\kosmos\AppData\Local\Temp\ccXvBDNK.s:19     .text.SystemCoreClockUpdate:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccXvBDNK.s:24     .text.SystemCoreClockUpdate:00000000 SystemCoreClockUpdate
+C:\Users\kosmos\AppData\Local\Temp\ccXvBDNK.s:130    .text.SystemCoreClockUpdate:00000098 $d
+C:\Users\kosmos\AppData\Local\Temp\ccXvBDNK.s:140    .text.SystemInit:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccXvBDNK.s:145    .text.SystemInit:00000000 SystemInit
+C:\Users\kosmos\AppData\Local\Temp\ccXvBDNK.s:315    .text.SystemInit:000000f4 $d
+C:\Users\kosmos\AppData\Local\Temp\ccXvBDNK.s:328    .data.SystemCoreClock:00000000 SystemCoreClock
+C:\Users\kosmos\AppData\Local\Temp\ccXvBDNK.s:324    .data.SystemCoreClock:00000000 $d
+                     .debug_frame:00000010 $d
+
+NO UNDEFINED SYMBOLS

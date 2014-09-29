@@ -1,0 +1,33 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"crp.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.global	CRP_WORD
+  19              		.section	.crp,"a",%progbits
+  20              		.align	2
+  23              	CRP_WORD:
+  24 0000 FFFFFFFF 		.word	-1
+  25              		.text
+  26              	.Letext0:
+  27              		.file 1 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+  28              		.file 2 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+  29              		.file 3 "./LPC17xx/crp.c"
+DEFINED SYMBOLS
+                            *ABS*:00000000 crp.c
+C:\Users\kosmos\AppData\Local\Temp\cclSvVzr.s:23     .crp:00000000 CRP_WORD
+C:\Users\kosmos\AppData\Local\Temp\cclSvVzr.s:20     .crp:00000000 $d
+
+NO UNDEFINED SYMBOLS

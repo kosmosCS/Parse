@@ -1,0 +1,434 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"inter_volatile.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.DIV_round_U32,"ax",%progbits
+  19              		.align	2
+  20              		.global	DIV_round_U32
+  21              		.thumb
+  22              		.thumb_func
+  24              	DIV_round_U32:
+  25              	.LFB0:
+  26              		.file 1 "./src/inter_media/inter_volatile.c"
+   1:./src/inter_media/inter_volatile.c **** /*
+   2:./src/inter_media/inter_volatile.c ****  * inter_volatile.c
+   3:./src/inter_media/inter_volatile.c ****  *
+   4:./src/inter_media/inter_volatile.c ****  *  Created on: 16.07.2012
+   5:./src/inter_media/inter_volatile.c ****  *      Author: Graph
+   6:./src/inter_media/inter_volatile.c ****  */
+   7:./src/inter_media/inter_volatile.c **** 
+   8:./src/inter_media/inter_volatile.c **** #include "inter_volatile.h"
+   9:./src/inter_media/inter_volatile.c **** 
+  10:./src/inter_media/inter_volatile.c **** volatile U32 Bar_zero_pozition=1;// 1 - center, 0 - left, 2 - right
+  11:./src/inter_media/inter_volatile.c **** 
+  12:./src/inter_media/inter_volatile.c **** volatile U16 ADC_Res1 = 0;
+  13:./src/inter_media/inter_volatile.c **** volatile U16 ADC_Input = 0;
+  14:./src/inter_media/inter_volatile.c **** volatile U16 ADC_Res2 = 0;
+  15:./src/inter_media/inter_volatile.c **** 
+  16:./src/inter_media/inter_volatile.c **** volatile U32 ADC_Res1_16=0;
+  17:./src/inter_media/inter_volatile.c **** volatile U32 ADC_Res2_16=0;
+  18:./src/inter_media/inter_volatile.c **** 
+  19:./src/inter_media/inter_volatile.c **** volatile U16 ADC_counter1=0;
+  20:./src/inter_media/inter_volatile.c **** volatile U16 ADC_counter2=0;
+  21:./src/inter_media/inter_volatile.c **** 
+  22:./src/inter_media/inter_volatile.c **** 
+  23:./src/inter_media/inter_volatile.c **** volatile U32 ADC_Res1_r=0;
+  24:./src/inter_media/inter_volatile.c **** volatile U32 ADC_Res2_r=0;
+  25:./src/inter_media/inter_volatile.c **** 
+  26:./src/inter_media/inter_volatile.c **** volatile U8 G_sensor_send_buf[6]={0,0,0,0,0,0};
+  27:./src/inter_media/inter_volatile.c **** volatile U8 G_sensor_sends=0;
+  28:./src/inter_media/inter_volatile.c **** volatile U8 G_sensor_work_buf[6]={0,0,0,0,0,0};
+  29:./src/inter_media/inter_volatile.c **** 
+  30:./src/inter_media/inter_volatile.c **** 
+  31:./src/inter_media/inter_volatile.c **** //яркость//переменные для работы фильтра с гистерезисом
+  32:./src/inter_media/inter_volatile.c **** volatile U16 Bright_level_past=0;
+  33:./src/inter_media/inter_volatile.c **** volatile U16 Bright_level_run=0;
+  34:./src/inter_media/inter_volatile.c **** volatile U16 Bright_adc_value_past=0;
+  35:./src/inter_media/inter_volatile.c **** volatile U16 Bright_adc_value_run=0;
+  36:./src/inter_media/inter_volatile.c **** volatile U16 Histerezis_Bright=4;
+  37:./src/inter_media/inter_volatile.c **** volatile U16 Bright_adc_value_MAX=3095;
+  38:./src/inter_media/inter_volatile.c **** volatile U16 Bright_delta=0;
+  39:./src/inter_media/inter_volatile.c **** 
+  40:./src/inter_media/inter_volatile.c **** //Uвходное//переменные для работы фильтра с гистерезисом
+  41:./src/inter_media/inter_volatile.c **** volatile U16 Input_level_past=0;
+  42:./src/inter_media/inter_volatile.c **** volatile U16 Input_level_run=0;
+  43:./src/inter_media/inter_volatile.c **** volatile U16 Input_adc_value_past=0;
+  44:./src/inter_media/inter_volatile.c **** volatile U16 Input_adc_value_run=0;
+  45:./src/inter_media/inter_volatile.c **** volatile U16 Histerezis_Input=20;
+  46:./src/inter_media/inter_volatile.c **** volatile U16 Input_adc_value_MAX=3097;
+  47:./src/inter_media/inter_volatile.c **** 
+  48:./src/inter_media/inter_volatile.c **** volatile U32 Input_adc_scaler=1647;// 5'000'000/3097
+  49:./src/inter_media/inter_volatile.c **** 
+  50:./src/inter_media/inter_volatile.c **** volatile U16 Input_delta=50;// 5000/100 50мВ на 1 диод при 5В на входе
+  51:./src/inter_media/inter_volatile.c **** 
+  52:./src/inter_media/inter_volatile.c **** volatile U8  Adc_calibration_flag=0;//флаг старта калибровки
+  53:./src/inter_media/inter_volatile.c **** volatile U32 Adc_symm_16=0;  //сумма значений АЦП за 16 отсчетов
+  54:./src/inter_media/inter_volatile.c **** volatile U8  Adc_symm_count=0;
+  55:./src/inter_media/inter_volatile.c **** volatile U8  Adc_symm_ready_flag=0;
+  56:./src/inter_media/inter_volatile.c **** volatile U16 Adc_calibration_arg=0;
+  57:./src/inter_media/inter_volatile.c **** 
+  58:./src/inter_media/inter_volatile.c **** volatile U8  Bright_switch_flag=0; //перекл. упр. 0-интерфейс, 1-резистор
+  59:./src/inter_media/inter_volatile.c **** volatile U16 temp_bright=0;
+  60:./src/inter_media/inter_volatile.c **** 
+  61:./src/inter_media/inter_volatile.c **** 
+  62:./src/inter_media/inter_volatile.c **** U32 DIV_round_U32(U32 chi, U32 zna)
+  63:./src/inter_media/inter_volatile.c **** {
+  27              		.loc 1 63 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  32              	.LVL0:
+  64:./src/inter_media/inter_volatile.c **** 	U32 rez=0;
+  65:./src/inter_media/inter_volatile.c **** 	rez=chi/zna;
+  33              		.loc 1 65 0
+  34 0000 B0FBF1F3 		udiv	r3, r0, r1
+  35              	.LVL1:
+  66:./src/inter_media/inter_volatile.c **** 	if((chi - rez*zna) >  (zna/2)) rez++;
+  36              		.loc 1 66 0
+  37 0004 01FB1300 		mls	r0, r1, r3, r0
+  38              	.LVL2:
+  39 0008 B0EB510F 		cmp	r0, r1, lsr #1
+  40 000c 88BF     		it	hi
+  41 000e 0133     		addhi	r3, r3, #1
+  42              	.LVL3:
+  67:./src/inter_media/inter_volatile.c **** 	return rez;
+  68:./src/inter_media/inter_volatile.c **** }
+  43              		.loc 1 68 0
+  44 0010 1846     		mov	r0, r3
+  45 0012 7047     		bx	lr
+  46              		.cfi_endproc
+  47              	.LFE0:
+  49              		.global	wdt_n1
+  50              		.global	wdt_n0
+  51              		.global	re_write_cur_repeat
+  52              		.global	RE_write_cur_struct_flag
+  53              		.global	re_write_repeat
+  54              		.global	RE_write_structs_flag
+  55              		.global	write_repeat
+  56              		.global	Save_work_struct_flag
+  57              		.global	n7
+  58              		.global	Dot_flag
+  59              		.global	Flash_flag
+  60              		.global	temp_bright
+  61              		.global	Bright_switch_flag
+  62              		.global	Adc_calibration_arg
+  63              		.global	Adc_symm_ready_flag
+  64              		.global	Adc_symm_count
+  65              		.global	Adc_symm_16
+  66              		.global	Adc_calibration_flag
+  67              		.global	Input_delta
+  68              		.global	Input_adc_scaler
+  69              		.global	Input_adc_value_MAX
+  70              		.global	Histerezis_Input
+  71              		.global	Input_adc_value_run
+  72              		.global	Input_adc_value_past
+  73              		.global	Input_level_run
+  74              		.global	Input_level_past
+  75              		.global	Bright_delta
+  76              		.global	Bright_adc_value_MAX
+  77              		.global	Histerezis_Bright
+  78              		.global	Bright_adc_value_run
+  79              		.global	Bright_adc_value_past
+  80              		.global	Bright_level_run
+  81              		.global	Bright_level_past
+  82              		.global	G_sensor_work_buf
+  83              		.global	G_sensor_sends
+  84              		.global	G_sensor_send_buf
+  85              		.global	ADC_Res2_r
+  86              		.global	ADC_Res1_r
+  87              		.global	ADC_counter2
+  88              		.global	ADC_counter1
+  89              		.global	ADC_Res2_16
+  90              		.global	ADC_Res1_16
+  91              		.global	ADC_Res2
+  92              		.global	ADC_Input
+  93              		.global	ADC_Res1
+  94              		.global	Bar_zero_pozition
+  95              		.section	.data.Flash_flag,"aw",%progbits
+  98              	Flash_flag:
+  99 0000 01       		.byte	1
+ 100              		.section	.data.Bright_adc_value_MAX,"aw",%progbits
+ 101              		.align	1
+ 104              	Bright_adc_value_MAX:
+ 105 0000 170C     		.short	3095
+ 106              		.section	.bss.Save_work_struct_flag,"aw",%nobits
+ 109              	Save_work_struct_flag:
+ 110 0000 00       		.space	1
+ 111              		.section	.data.Input_adc_value_MAX,"aw",%progbits
+ 112              		.align	1
+ 115              	Input_adc_value_MAX:
+ 116 0000 190C     		.short	3097
+ 117              		.section	.bss.ADC_Res2_r,"aw",%nobits
+ 118              		.align	2
+ 121              	ADC_Res2_r:
+ 122 0000 00000000 		.space	4
+ 123              		.section	.bss.Input_adc_value_past,"aw",%nobits
+ 124              		.align	1
+ 127              	Input_adc_value_past:
+ 128 0000 0000     		.space	2
+ 129              		.section	.bss.Bright_level_run,"aw",%nobits
+ 130              		.align	1
+ 133              	Bright_level_run:
+ 134 0000 0000     		.space	2
+ 135              		.section	.bss.RE_write_cur_struct_flag,"aw",%nobits
+ 138              	RE_write_cur_struct_flag:
+ 139 0000 00       		.space	1
+ 140              		.section	.bss.Adc_calibration_arg,"aw",%nobits
+ 141              		.align	1
+ 144              	Adc_calibration_arg:
+ 145 0000 0000     		.space	2
+ 146              		.section	.bss.G_sensor_sends,"aw",%nobits
+ 149              	G_sensor_sends:
+ 150 0000 00       		.space	1
+ 151              		.section	.data.Histerezis_Bright,"aw",%progbits
+ 152              		.align	1
+ 155              	Histerezis_Bright:
+ 156 0000 0400     		.short	4
+ 157              		.section	.bss.Bright_delta,"aw",%nobits
+ 158              		.align	1
+ 161              	Bright_delta:
+ 162 0000 0000     		.space	2
+ 163              		.section	.bss.ADC_Res2_16,"aw",%nobits
+ 164              		.align	2
+ 167              	ADC_Res2_16:
+ 168 0000 00000000 		.space	4
+ 169              		.section	.bss.ADC_counter2,"aw",%nobits
+ 170              		.align	1
+ 173              	ADC_counter2:
+ 174 0000 0000     		.space	2
+ 175              		.section	.bss.Input_level_run,"aw",%nobits
+ 176              		.align	1
+ 179              	Input_level_run:
+ 180 0000 0000     		.space	2
+ 181              		.section	.bss.re_write_cur_repeat,"aw",%nobits
+ 184              	re_write_cur_repeat:
+ 185 0000 00       		.space	1
+ 186              		.section	.bss.Bright_adc_value_past,"aw",%nobits
+ 187              		.align	1
+ 190              	Bright_adc_value_past:
+ 191 0000 0000     		.space	2
+ 192              		.section	.data.Input_adc_scaler,"aw",%progbits
+ 193              		.align	2
+ 196              	Input_adc_scaler:
+ 197 0000 6F060000 		.word	1647
+ 198              		.section	.bss.Input_level_past,"aw",%nobits
+ 199              		.align	1
+ 202              	Input_level_past:
+ 203 0000 0000     		.space	2
+ 204              		.section	.data.Input_delta,"aw",%progbits
+ 205              		.align	1
+ 208              	Input_delta:
+ 209 0000 3200     		.short	50
+ 210              		.section	.data.Histerezis_Input,"aw",%progbits
+ 211              		.align	1
+ 214              	Histerezis_Input:
+ 215 0000 1400     		.short	20
+ 216              		.section	.bss.Bright_switch_flag,"aw",%nobits
+ 219              	Bright_switch_flag:
+ 220 0000 00       		.space	1
+ 221              		.section	.data.Bar_zero_pozition,"aw",%progbits
+ 222              		.align	2
+ 225              	Bar_zero_pozition:
+ 226 0000 01000000 		.word	1
+ 227              		.section	.bss.wdt_n0,"aw",%nobits
+ 228              		.align	2
+ 231              	wdt_n0:
+ 232 0000 00000000 		.space	4
+ 233              		.section	.bss.wdt_n1,"aw",%nobits
+ 234              		.align	2
+ 237              	wdt_n1:
+ 238 0000 00000000 		.space	4
+ 239              		.section	.bss.Dot_flag,"aw",%nobits
+ 242              	Dot_flag:
+ 243 0000 00       		.space	1
+ 244              		.section	.bss.Adc_symm_ready_flag,"aw",%nobits
+ 247              	Adc_symm_ready_flag:
+ 248 0000 00       		.space	1
+ 249              		.section	.bss.Adc_symm_count,"aw",%nobits
+ 252              	Adc_symm_count:
+ 253 0000 00       		.space	1
+ 254              		.section	.bss.ADC_Input,"aw",%nobits
+ 255              		.align	1
+ 258              	ADC_Input:
+ 259 0000 0000     		.space	2
+ 260              		.section	.bss.ADC_Res1_16,"aw",%nobits
+ 261              		.align	2
+ 264              	ADC_Res1_16:
+ 265 0000 00000000 		.space	4
+ 266              		.section	.bss.RE_write_structs_flag,"aw",%nobits
+ 269              	RE_write_structs_flag:
+ 270 0000 00       		.space	1
+ 271              		.section	.bss.G_sensor_work_buf,"aw",%nobits
+ 272              		.align	2
+ 275              	G_sensor_work_buf:
+ 276 0000 00000000 		.space	6
+ 276      0000
+ 277 0006 0000     		.section	.bss.Bright_adc_value_run,"aw",%nobits
+ 278              		.align	1
+ 281              	Bright_adc_value_run:
+ 282 0000 0000     		.space	2
+ 283              		.section	.bss.re_write_repeat,"aw",%nobits
+ 286              	re_write_repeat:
+ 287 0000 00       		.space	1
+ 288              		.section	.bss.G_sensor_send_buf,"aw",%nobits
+ 289              		.align	2
+ 292              	G_sensor_send_buf:
+ 293 0000 00000000 		.space	6
+ 293      0000
+ 294 0006 0000     		.section	.bss.n7,"aw",%nobits
+ 295              		.align	2
+ 298              	n7:
+ 299 0000 0000     		.space	2
+ 300 0002 0000     		.section	.bss.ADC_Res1,"aw",%nobits
+ 301              		.align	1
+ 304              	ADC_Res1:
+ 305 0000 0000     		.space	2
+ 306              		.section	.bss.Adc_calibration_flag,"aw",%nobits
+ 309              	Adc_calibration_flag:
+ 310 0000 00       		.space	1
+ 311              		.section	.bss.Input_adc_value_run,"aw",%nobits
+ 312              		.align	1
+ 315              	Input_adc_value_run:
+ 316 0000 0000     		.space	2
+ 317              		.section	.bss.Adc_symm_16,"aw",%nobits
+ 318              		.align	2
+ 321              	Adc_symm_16:
+ 322 0000 00000000 		.space	4
+ 323              		.section	.bss.ADC_Res1_r,"aw",%nobits
+ 324              		.align	2
+ 327              	ADC_Res1_r:
+ 328 0000 00000000 		.space	4
+ 329              		.section	.bss.ADC_Res2,"aw",%nobits
+ 330              		.align	1
+ 333              	ADC_Res2:
+ 334 0000 0000     		.space	2
+ 335              		.section	.bss.temp_bright,"aw",%nobits
+ 336              		.align	1
+ 339              	temp_bright:
+ 340 0000 0000     		.space	2
+ 341              		.section	.bss.write_repeat,"aw",%nobits
+ 344              	write_repeat:
+ 345 0000 00       		.space	1
+ 346              		.section	.bss.ADC_counter1,"aw",%nobits
+ 347              		.align	1
+ 350              	ADC_counter1:
+ 351 0000 0000     		.space	2
+ 352              		.section	.bss.Bright_level_past,"aw",%nobits
+ 353              		.align	1
+ 356              	Bright_level_past:
+ 357 0000 0000     		.space	2
+ 358              		.text
+ 359              	.Letext0:
+ 360              		.file 2 "./Drivers/include/vkv_compiler.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 inter_volatile.c
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:19     .text.DIV_round_U32:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:24     .text.DIV_round_U32:00000000 DIV_round_U32
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:237    .bss.wdt_n1:00000000 wdt_n1
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:231    .bss.wdt_n0:00000000 wdt_n0
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:184    .bss.re_write_cur_repeat:00000000 re_write_cur_repeat
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:138    .bss.RE_write_cur_struct_flag:00000000 RE_write_cur_struct_flag
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:286    .bss.re_write_repeat:00000000 re_write_repeat
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:269    .bss.RE_write_structs_flag:00000000 RE_write_structs_flag
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:344    .bss.write_repeat:00000000 write_repeat
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:109    .bss.Save_work_struct_flag:00000000 Save_work_struct_flag
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:298    .bss.n7:00000000 n7
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:242    .bss.Dot_flag:00000000 Dot_flag
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:98     .data.Flash_flag:00000000 Flash_flag
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:339    .bss.temp_bright:00000000 temp_bright
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:219    .bss.Bright_switch_flag:00000000 Bright_switch_flag
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:144    .bss.Adc_calibration_arg:00000000 Adc_calibration_arg
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:247    .bss.Adc_symm_ready_flag:00000000 Adc_symm_ready_flag
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:252    .bss.Adc_symm_count:00000000 Adc_symm_count
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:321    .bss.Adc_symm_16:00000000 Adc_symm_16
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:309    .bss.Adc_calibration_flag:00000000 Adc_calibration_flag
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:208    .data.Input_delta:00000000 Input_delta
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:196    .data.Input_adc_scaler:00000000 Input_adc_scaler
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:115    .data.Input_adc_value_MAX:00000000 Input_adc_value_MAX
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:214    .data.Histerezis_Input:00000000 Histerezis_Input
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:315    .bss.Input_adc_value_run:00000000 Input_adc_value_run
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:127    .bss.Input_adc_value_past:00000000 Input_adc_value_past
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:179    .bss.Input_level_run:00000000 Input_level_run
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:202    .bss.Input_level_past:00000000 Input_level_past
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:161    .bss.Bright_delta:00000000 Bright_delta
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:104    .data.Bright_adc_value_MAX:00000000 Bright_adc_value_MAX
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:155    .data.Histerezis_Bright:00000000 Histerezis_Bright
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:281    .bss.Bright_adc_value_run:00000000 Bright_adc_value_run
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:190    .bss.Bright_adc_value_past:00000000 Bright_adc_value_past
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:133    .bss.Bright_level_run:00000000 Bright_level_run
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:356    .bss.Bright_level_past:00000000 Bright_level_past
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:275    .bss.G_sensor_work_buf:00000000 G_sensor_work_buf
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:149    .bss.G_sensor_sends:00000000 G_sensor_sends
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:292    .bss.G_sensor_send_buf:00000000 G_sensor_send_buf
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:121    .bss.ADC_Res2_r:00000000 ADC_Res2_r
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:327    .bss.ADC_Res1_r:00000000 ADC_Res1_r
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:173    .bss.ADC_counter2:00000000 ADC_counter2
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:350    .bss.ADC_counter1:00000000 ADC_counter1
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:167    .bss.ADC_Res2_16:00000000 ADC_Res2_16
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:264    .bss.ADC_Res1_16:00000000 ADC_Res1_16
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:333    .bss.ADC_Res2:00000000 ADC_Res2
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:258    .bss.ADC_Input:00000000 ADC_Input
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:304    .bss.ADC_Res1:00000000 ADC_Res1
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:225    .data.Bar_zero_pozition:00000000 Bar_zero_pozition
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:101    .data.Bright_adc_value_MAX:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:110    .bss.Save_work_struct_flag:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:112    .data.Input_adc_value_MAX:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:118    .bss.ADC_Res2_r:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:124    .bss.Input_adc_value_past:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:130    .bss.Bright_level_run:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:139    .bss.RE_write_cur_struct_flag:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:141    .bss.Adc_calibration_arg:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:150    .bss.G_sensor_sends:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:152    .data.Histerezis_Bright:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:158    .bss.Bright_delta:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:164    .bss.ADC_Res2_16:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:170    .bss.ADC_counter2:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:176    .bss.Input_level_run:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:185    .bss.re_write_cur_repeat:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:187    .bss.Bright_adc_value_past:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:193    .data.Input_adc_scaler:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:199    .bss.Input_level_past:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:205    .data.Input_delta:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:211    .data.Histerezis_Input:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:220    .bss.Bright_switch_flag:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:222    .data.Bar_zero_pozition:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:228    .bss.wdt_n0:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:234    .bss.wdt_n1:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:243    .bss.Dot_flag:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:248    .bss.Adc_symm_ready_flag:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:253    .bss.Adc_symm_count:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:255    .bss.ADC_Input:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:261    .bss.ADC_Res1_16:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:270    .bss.RE_write_structs_flag:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:272    .bss.G_sensor_work_buf:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:278    .bss.Bright_adc_value_run:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:287    .bss.re_write_repeat:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:289    .bss.G_sensor_send_buf:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:295    .bss.n7:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:301    .bss.ADC_Res1:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:310    .bss.Adc_calibration_flag:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:312    .bss.Input_adc_value_run:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:318    .bss.Adc_symm_16:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:324    .bss.ADC_Res1_r:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:330    .bss.ADC_Res2:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:336    .bss.temp_bright:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:345    .bss.write_repeat:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:347    .bss.ADC_counter1:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cci0X8ec.s:353    .bss.Bright_level_past:00000000 $d
+                     .debug_frame:00000010 $d
+
+NO UNDEFINED SYMBOLS

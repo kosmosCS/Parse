@@ -1,0 +1,801 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"lpc17xx_adc.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.ADC_Init,"ax",%progbits
+  19              		.align	2
+  20              		.global	ADC_Init
+  21              		.thumb
+  22              		.thumb_func
+  24              	ADC_Init:
+  25              	.LFB55:
+  26              		.file 1 "./Drivers/source/lpc17xx_adc.c"
+   1:./Drivers/source/lpc17xx_adc.c **** /***********************************************************************//**
+   2:./Drivers/source/lpc17xx_adc.c ****  * @file		lpc17xx_adc.c
+   3:./Drivers/source/lpc17xx_adc.c ****  * @brief		Contains all functions support for ADC firmware library on LPC17xx
+   4:./Drivers/source/lpc17xx_adc.c ****  * @version		3.0
+   5:./Drivers/source/lpc17xx_adc.c ****  * @date		18. June. 2010
+   6:./Drivers/source/lpc17xx_adc.c ****  * @author		NXP MCU SW Application Team
+   7:./Drivers/source/lpc17xx_adc.c ****  **************************************************************************
+   8:./Drivers/source/lpc17xx_adc.c ****  * Software that is described herein is for illustrative purposes only
+   9:./Drivers/source/lpc17xx_adc.c ****  * which provides customers with programming information regarding the
+  10:./Drivers/source/lpc17xx_adc.c ****  * products. This software is supplied "AS IS" without any warranties.
+  11:./Drivers/source/lpc17xx_adc.c ****  * NXP Semiconductors assumes no responsibility or liability for the
+  12:./Drivers/source/lpc17xx_adc.c ****  * use of the software, conveys no license or title under any patent,
+  13:./Drivers/source/lpc17xx_adc.c ****  * copyright, or mask work right to the product. NXP Semiconductors
+  14:./Drivers/source/lpc17xx_adc.c ****  * reserves the right to make changes in the software without
+  15:./Drivers/source/lpc17xx_adc.c ****  * notification. NXP Semiconductors also make no representation or
+  16:./Drivers/source/lpc17xx_adc.c ****  * warranty that such application will be suitable for the specified
+  17:./Drivers/source/lpc17xx_adc.c ****  * use without further testing or modification.
+  18:./Drivers/source/lpc17xx_adc.c ****  **********************************************************************/
+  19:./Drivers/source/lpc17xx_adc.c **** 
+  20:./Drivers/source/lpc17xx_adc.c **** /* Peripheral group ----------------------------------------------------------- */
+  21:./Drivers/source/lpc17xx_adc.c **** /** @addtogroup ADC
+  22:./Drivers/source/lpc17xx_adc.c ****  * @{
+  23:./Drivers/source/lpc17xx_adc.c ****  */
+  24:./Drivers/source/lpc17xx_adc.c **** 
+  25:./Drivers/source/lpc17xx_adc.c **** /* Includes ------------------------------------------------------------------- */
+  26:./Drivers/source/lpc17xx_adc.c **** #include "lpc17xx_adc.h"
+  27:./Drivers/source/lpc17xx_adc.c **** #include "lpc17xx_clkpwr.h"
+  28:./Drivers/source/lpc17xx_adc.c **** 
+  29:./Drivers/source/lpc17xx_adc.c **** /* If this source file built with example, the LPC17xx FW library configuration
+  30:./Drivers/source/lpc17xx_adc.c ****  * file in each example directory ("lpc17xx_libcfg.h") must be included,
+  31:./Drivers/source/lpc17xx_adc.c ****  * otherwise the default FW library configuration file must be included instead
+  32:./Drivers/source/lpc17xx_adc.c ****  */
+  33:./Drivers/source/lpc17xx_adc.c **** #ifdef __BUILD_WITH_EXAMPLE__
+  34:./Drivers/source/lpc17xx_adc.c **** #include "lpc17xx_libcfg.h"
+  35:./Drivers/source/lpc17xx_adc.c **** #else
+  36:./Drivers/source/lpc17xx_adc.c **** #include "lpc17xx_libcfg_default.h"
+  37:./Drivers/source/lpc17xx_adc.c **** #endif /* __BUILD_WITH_EXAMPLE__ */
+  38:./Drivers/source/lpc17xx_adc.c **** 
+  39:./Drivers/source/lpc17xx_adc.c **** 
+  40:./Drivers/source/lpc17xx_adc.c **** #ifdef _ADC
+  41:./Drivers/source/lpc17xx_adc.c **** 
+  42:./Drivers/source/lpc17xx_adc.c **** /* Public Functions ----------------------------------------------------------- */
+  43:./Drivers/source/lpc17xx_adc.c **** /** @addtogroup ADC_Public_Functions
+  44:./Drivers/source/lpc17xx_adc.c ****  * @{
+  45:./Drivers/source/lpc17xx_adc.c ****  */
+  46:./Drivers/source/lpc17xx_adc.c **** 
+  47:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+  48:./Drivers/source/lpc17xx_adc.c ****  * @brief 		Initial for ADC
+  49:./Drivers/source/lpc17xx_adc.c ****  * 					+ Set bit PCADC
+  50:./Drivers/source/lpc17xx_adc.c ****  * 					+ Set clock for ADC
+  51:./Drivers/source/lpc17xx_adc.c ****  * 					+ Set Clock Frequency
+  52:./Drivers/source/lpc17xx_adc.c ****  * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+  53:./Drivers/source/lpc17xx_adc.c ****  * @param[in]	rate ADC conversion rate, should be <=200KHz
+  54:./Drivers/source/lpc17xx_adc.c ****  * @return 		None
+  55:./Drivers/source/lpc17xx_adc.c ****  **********************************************************************/
+  56:./Drivers/source/lpc17xx_adc.c **** void ADC_Init(LPC_ADC_TypeDef *ADCx, uint32_t rate)
+  57:./Drivers/source/lpc17xx_adc.c **** {
+  27              		.loc 1 57 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              	.LVL0:
+  32 0000 38B5     		push	{r3, r4, r5, lr}
+  33              		.cfi_def_cfa_offset 16
+  34              		.cfi_offset 3, -16
+  35              		.cfi_offset 4, -12
+  36              		.cfi_offset 5, -8
+  37              		.cfi_offset 14, -4
+  38              		.loc 1 57 0
+  39 0002 0446     		mov	r4, r0
+  40 0004 0D46     		mov	r5, r1
+  58:./Drivers/source/lpc17xx_adc.c **** 	uint32_t temp, tmp;
+  59:./Drivers/source/lpc17xx_adc.c **** 
+  60:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+  61:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADC_RATE(rate));
+  62:./Drivers/source/lpc17xx_adc.c **** 
+  63:./Drivers/source/lpc17xx_adc.c **** 	// Turn on power and clock
+  64:./Drivers/source/lpc17xx_adc.c **** 	CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCAD, ENABLE);
+  41              		.loc 1 64 0
+  42 0006 4FF48050 		mov	r0, #4096
+  43              	.LVL1:
+  44 000a 0121     		movs	r1, #1
+  45              	.LVL2:
+  46 000c FFF7FEFF 		bl	CLKPWR_ConfigPPWR
+  47              	.LVL3:
+  65:./Drivers/source/lpc17xx_adc.c **** 
+  66:./Drivers/source/lpc17xx_adc.c **** 	ADCx->ADCR = 0;
+  48              		.loc 1 66 0
+  49 0010 0023     		movs	r3, #0
+  50 0012 2360     		str	r3, [r4]
+  51              	.LVL4:
+  67:./Drivers/source/lpc17xx_adc.c **** 
+  68:./Drivers/source/lpc17xx_adc.c **** 	//Enable PDN bit
+  69:./Drivers/source/lpc17xx_adc.c **** 	tmp = ADC_CR_PDN;
+  70:./Drivers/source/lpc17xx_adc.c **** 	// Set clock frequency
+  71:./Drivers/source/lpc17xx_adc.c **** 	temp = CLKPWR_GetPCLK(CLKPWR_PCLKSEL_ADC);
+  52              		.loc 1 71 0
+  53 0014 1820     		movs	r0, #24
+  54 0016 FFF7FEFF 		bl	CLKPWR_GetPCLK
+  55              	.LVL5:
+  72:./Drivers/source/lpc17xx_adc.c **** 	/* The APB clock (PCLK_ADC0) is divided by (CLKDIV+1) to produce the clock for
+  73:./Drivers/source/lpc17xx_adc.c **** 	 * A/D converter, which should be less than or equal to 13MHz.
+  74:./Drivers/source/lpc17xx_adc.c **** 	 * A fully conversion requires 65 of these clocks.
+  75:./Drivers/source/lpc17xx_adc.c **** 	 * ADC clock = PCLK_ADC0 / (CLKDIV + 1);
+  76:./Drivers/source/lpc17xx_adc.c **** 	 * ADC rate = ADC clock / 65;
+  77:./Drivers/source/lpc17xx_adc.c **** 	 */
+  78:./Drivers/source/lpc17xx_adc.c **** 	temp = (temp /(rate * 65)) - 1;
+  56              		.loc 1 78 0
+  57 001a 05EB8515 		add	r5, r5, r5, lsl #6
+  58              	.LVL6:
+  59 001e B0FBF5F0 		udiv	r0, r0, r5
+  60              	.LVL7:
+  61 0022 451E     		subs	r5, r0, #1
+  62              	.LVL8:
+  79:./Drivers/source/lpc17xx_adc.c **** 	tmp |=  ADC_CR_CLKDIV(temp);
+  63              		.loc 1 79 0
+  64 0024 2D02     		lsls	r5, r5, #8
+  65              	.LVL9:
+  66 0026 45F40015 		orr	r5, r5, #2097152
+  67              	.LVL10:
+  80:./Drivers/source/lpc17xx_adc.c **** 
+  81:./Drivers/source/lpc17xx_adc.c **** 	ADCx->ADCR = tmp;
+  68              		.loc 1 81 0
+  69 002a 2560     		str	r5, [r4]
+  70 002c 38BD     		pop	{r3, r4, r5, pc}
+  71              		.cfi_endproc
+  72              	.LFE55:
+  74 002e 00BF     		.section	.text.ADC_DeInit,"ax",%progbits
+  75              		.align	2
+  76              		.global	ADC_DeInit
+  77              		.thumb
+  78              		.thumb_func
+  80              	ADC_DeInit:
+  81              	.LFB56:
+  82:./Drivers/source/lpc17xx_adc.c **** }
+  83:./Drivers/source/lpc17xx_adc.c **** 
+  84:./Drivers/source/lpc17xx_adc.c **** 
+  85:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+  86:./Drivers/source/lpc17xx_adc.c **** * @brief 		Close ADC
+  87:./Drivers/source/lpc17xx_adc.c **** * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+  88:./Drivers/source/lpc17xx_adc.c **** * @return 		None
+  89:./Drivers/source/lpc17xx_adc.c **** **********************************************************************/
+  90:./Drivers/source/lpc17xx_adc.c **** void ADC_DeInit(LPC_ADC_TypeDef *ADCx)
+  91:./Drivers/source/lpc17xx_adc.c **** {
+  82              		.loc 1 91 0
+  83              		.cfi_startproc
+  84              		@ args = 0, pretend = 0, frame = 0
+  85              		@ frame_needed = 0, uses_anonymous_args = 0
+  86              		@ link register save eliminated.
+  87              	.LVL11:
+  92:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+  93:./Drivers/source/lpc17xx_adc.c **** 
+  94:./Drivers/source/lpc17xx_adc.c **** 	// Clear PDN bit
+  95:./Drivers/source/lpc17xx_adc.c **** 	ADCx->ADCR &= ~ADC_CR_PDN;
+  88              		.loc 1 95 0
+  89 0000 0268     		ldr	r2, [r0]
+  91:./Drivers/source/lpc17xx_adc.c **** {
+  90              		.loc 1 91 0
+  91 0002 0346     		mov	r3, r0
+  92              		.loc 1 95 0
+  93 0004 22F40012 		bic	r2, r2, #2097152
+  96:./Drivers/source/lpc17xx_adc.c **** 	// Turn on power and clock
+  97:./Drivers/source/lpc17xx_adc.c **** 	CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCAD, DISABLE);
+  94              		.loc 1 97 0
+  95 0008 4FF48050 		mov	r0, #4096
+  96              	.LVL12:
+  95:./Drivers/source/lpc17xx_adc.c **** 	ADCx->ADCR &= ~ADC_CR_PDN;
+  97              		.loc 1 95 0
+  98 000c 1A60     		str	r2, [r3]
+  99              		.loc 1 97 0
+ 100 000e 0021     		movs	r1, #0
+ 101 0010 FFF7FEBF 		b	CLKPWR_ConfigPPWR
+ 102              	.LVL13:
+ 103              		.cfi_endproc
+ 104              	.LFE56:
+ 106              		.section	.text.ADC_GetData,"ax",%progbits
+ 107              		.align	2
+ 108              		.global	ADC_GetData
+ 109              		.thumb
+ 110              		.thumb_func
+ 112              	ADC_GetData:
+ 113              	.LFB57:
+  98:./Drivers/source/lpc17xx_adc.c **** }
+  99:./Drivers/source/lpc17xx_adc.c **** 
+ 100:./Drivers/source/lpc17xx_adc.c **** 
+ 101:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+ 102:./Drivers/source/lpc17xx_adc.c **** * @brief 		Get Result conversion from A/D data register
+ 103:./Drivers/source/lpc17xx_adc.c **** * @param[in]	channel number which want to read back the result
+ 104:./Drivers/source/lpc17xx_adc.c **** * @return 		Result of conversion
+ 105:./Drivers/source/lpc17xx_adc.c **** *********************************************************************/
+ 106:./Drivers/source/lpc17xx_adc.c **** uint32_t ADC_GetData(uint32_t channel)
+ 107:./Drivers/source/lpc17xx_adc.c **** {
+ 114              		.loc 1 107 0
+ 115              		.cfi_startproc
+ 116              		@ args = 0, pretend = 0, frame = 0
+ 117              		@ frame_needed = 0, uses_anonymous_args = 0
+ 118              		@ link register save eliminated.
+ 119              	.LVL14:
+ 108:./Drivers/source/lpc17xx_adc.c **** 	uint32_t adc_value;
+ 109:./Drivers/source/lpc17xx_adc.c **** 
+ 110:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADC_CHANNEL_SELECTION(channel));
+ 111:./Drivers/source/lpc17xx_adc.c **** 
+ 112:./Drivers/source/lpc17xx_adc.c **** 	adc_value = *(uint32_t *)((&LPC_ADC->ADDR0) + channel);
+ 120              		.loc 1 112 0
+ 121 0000 024B     		ldr	r3, .L4
+ 113:./Drivers/source/lpc17xx_adc.c **** 	return ADC_GDR_RESULT(adc_value);
+ 122              		.loc 1 113 0
+ 123 0002 53F82000 		ldr	r0, [r3, r0, lsl #2]
+ 124              	.LVL15:
+ 114:./Drivers/source/lpc17xx_adc.c **** }
+ 125              		.loc 1 114 0
+ 126 0006 C0F30B10 		ubfx	r0, r0, #4, #12
+ 127 000a 7047     		bx	lr
+ 128              	.L5:
+ 129              		.align	2
+ 130              	.L4:
+ 131 000c 10400340 		.word	1073954832
+ 132              		.cfi_endproc
+ 133              	.LFE57:
+ 135              		.section	.text.ADC_StartCmd,"ax",%progbits
+ 136              		.align	2
+ 137              		.global	ADC_StartCmd
+ 138              		.thumb
+ 139              		.thumb_func
+ 141              	ADC_StartCmd:
+ 142              	.LFB58:
+ 115:./Drivers/source/lpc17xx_adc.c **** 
+ 116:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+ 117:./Drivers/source/lpc17xx_adc.c **** * @brief 		Set start mode for ADC
+ 118:./Drivers/source/lpc17xx_adc.c **** * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+ 119:./Drivers/source/lpc17xx_adc.c **** * @param[in]	start_mode Start mode choose one of modes in
+ 120:./Drivers/source/lpc17xx_adc.c **** * 				'ADC_START_OPT' enumeration type definition, should be:
+ 121:./Drivers/source/lpc17xx_adc.c **** * 				- ADC_START_CONTINUOUS
+ 122:./Drivers/source/lpc17xx_adc.c **** * 				- ADC_START_NOW
+ 123:./Drivers/source/lpc17xx_adc.c **** * 				- ADC_START_ON_EINT0
+ 124:./Drivers/source/lpc17xx_adc.c **** * 				- ADC_START_ON_CAP01
+ 125:./Drivers/source/lpc17xx_adc.c **** *				- ADC_START_ON_MAT01
+ 126:./Drivers/source/lpc17xx_adc.c **** *				- ADC_START_ON_MAT03
+ 127:./Drivers/source/lpc17xx_adc.c **** *				- ADC_START_ON_MAT10
+ 128:./Drivers/source/lpc17xx_adc.c **** *				- ADC_START_ON_MAT11
+ 129:./Drivers/source/lpc17xx_adc.c **** * @return 		None
+ 130:./Drivers/source/lpc17xx_adc.c **** *********************************************************************/
+ 131:./Drivers/source/lpc17xx_adc.c **** void ADC_StartCmd(LPC_ADC_TypeDef *ADCx, uint8_t start_mode)
+ 132:./Drivers/source/lpc17xx_adc.c **** {
+ 143              		.loc 1 132 0
+ 144              		.cfi_startproc
+ 145              		@ args = 0, pretend = 0, frame = 0
+ 146              		@ frame_needed = 0, uses_anonymous_args = 0
+ 147              		@ link register save eliminated.
+ 148              	.LVL16:
+ 133:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+ 134:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADC_START_OPT(start_mode));
+ 135:./Drivers/source/lpc17xx_adc.c **** 
+ 136:./Drivers/source/lpc17xx_adc.c **** 	ADCx->ADCR &= ~ADC_CR_START_MASK;
+ 149              		.loc 1 136 0
+ 150 0000 0368     		ldr	r3, [r0]
+ 151 0002 23F0E063 		bic	r3, r3, #117440512
+ 152 0006 0360     		str	r3, [r0]
+ 137:./Drivers/source/lpc17xx_adc.c **** 	ADCx->ADCR |=ADC_CR_START_MODE_SEL((uint32_t)start_mode);
+ 153              		.loc 1 137 0
+ 154 0008 0368     		ldr	r3, [r0]
+ 155 000a 43EA0161 		orr	r1, r3, r1, lsl #24
+ 156              	.LVL17:
+ 157 000e 0160     		str	r1, [r0]
+ 158 0010 7047     		bx	lr
+ 159              		.cfi_endproc
+ 160              	.LFE58:
+ 162 0012 00BF     		.section	.text.ADC_BurstCmd,"ax",%progbits
+ 163              		.align	2
+ 164              		.global	ADC_BurstCmd
+ 165              		.thumb
+ 166              		.thumb_func
+ 168              	ADC_BurstCmd:
+ 169              	.LFB59:
+ 138:./Drivers/source/lpc17xx_adc.c **** }
+ 139:./Drivers/source/lpc17xx_adc.c **** 
+ 140:./Drivers/source/lpc17xx_adc.c **** 
+ 141:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+ 142:./Drivers/source/lpc17xx_adc.c **** * @brief 		ADC Burst mode setting
+ 143:./Drivers/source/lpc17xx_adc.c **** * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+ 144:./Drivers/source/lpc17xx_adc.c **** * @param[in]	NewState
+ 145:./Drivers/source/lpc17xx_adc.c **** * 				-	1: Set Burst mode
+ 146:./Drivers/source/lpc17xx_adc.c **** * 				-	0: reset Burst mode
+ 147:./Drivers/source/lpc17xx_adc.c **** * @return 		None
+ 148:./Drivers/source/lpc17xx_adc.c **** **********************************************************************/
+ 149:./Drivers/source/lpc17xx_adc.c **** void ADC_BurstCmd(LPC_ADC_TypeDef *ADCx, FunctionalState NewState)
+ 150:./Drivers/source/lpc17xx_adc.c **** {
+ 170              		.loc 1 150 0
+ 171              		.cfi_startproc
+ 172              		@ args = 0, pretend = 0, frame = 0
+ 173              		@ frame_needed = 0, uses_anonymous_args = 0
+ 174              		@ link register save eliminated.
+ 175              	.LVL18:
+ 151:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+ 152:./Drivers/source/lpc17xx_adc.c **** 
+ 153:./Drivers/source/lpc17xx_adc.c **** 	ADCx->ADCR &= ~ADC_CR_BURST;
+ 176              		.loc 1 153 0
+ 177 0000 0368     		ldr	r3, [r0]
+ 178 0002 23F48033 		bic	r3, r3, #65536
+ 179 0006 0360     		str	r3, [r0]
+ 154:./Drivers/source/lpc17xx_adc.c **** 	if (NewState){
+ 180              		.loc 1 154 0
+ 181 0008 19B1     		cbz	r1, .L7
+ 155:./Drivers/source/lpc17xx_adc.c **** 		ADCx->ADCR |= ADC_CR_BURST;
+ 182              		.loc 1 155 0
+ 183 000a 0368     		ldr	r3, [r0]
+ 184 000c 43F48033 		orr	r3, r3, #65536
+ 185 0010 0360     		str	r3, [r0]
+ 186              	.L7:
+ 187 0012 7047     		bx	lr
+ 188              		.cfi_endproc
+ 189              	.LFE59:
+ 191              		.section	.text.ADC_PowerdownCmd,"ax",%progbits
+ 192              		.align	2
+ 193              		.global	ADC_PowerdownCmd
+ 194              		.thumb
+ 195              		.thumb_func
+ 197              	ADC_PowerdownCmd:
+ 198              	.LFB60:
+ 156:./Drivers/source/lpc17xx_adc.c **** 	}
+ 157:./Drivers/source/lpc17xx_adc.c **** }
+ 158:./Drivers/source/lpc17xx_adc.c **** 
+ 159:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+ 160:./Drivers/source/lpc17xx_adc.c **** * @brief 		Set AD conversion in power mode
+ 161:./Drivers/source/lpc17xx_adc.c **** * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+ 162:./Drivers/source/lpc17xx_adc.c **** * @param[in]	NewState
+ 163:./Drivers/source/lpc17xx_adc.c **** * 				-	1: AD converter is optional
+ 164:./Drivers/source/lpc17xx_adc.c **** * 				-	0: AD Converter is in power down mode
+ 165:./Drivers/source/lpc17xx_adc.c **** * @return 		None
+ 166:./Drivers/source/lpc17xx_adc.c **** **********************************************************************/
+ 167:./Drivers/source/lpc17xx_adc.c **** void ADC_PowerdownCmd(LPC_ADC_TypeDef *ADCx, FunctionalState NewState)
+ 168:./Drivers/source/lpc17xx_adc.c **** {
+ 199              		.loc 1 168 0
+ 200              		.cfi_startproc
+ 201              		@ args = 0, pretend = 0, frame = 0
+ 202              		@ frame_needed = 0, uses_anonymous_args = 0
+ 203              		@ link register save eliminated.
+ 204              	.LVL19:
+ 169:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+ 170:./Drivers/source/lpc17xx_adc.c **** 
+ 171:./Drivers/source/lpc17xx_adc.c **** 	ADCx->ADCR &= ~ADC_CR_PDN;
+ 205              		.loc 1 171 0
+ 206 0000 0368     		ldr	r3, [r0]
+ 207 0002 23F40013 		bic	r3, r3, #2097152
+ 208 0006 0360     		str	r3, [r0]
+ 172:./Drivers/source/lpc17xx_adc.c **** 	if (NewState){
+ 209              		.loc 1 172 0
+ 210 0008 19B1     		cbz	r1, .L13
+ 173:./Drivers/source/lpc17xx_adc.c **** 		ADCx->ADCR |= ADC_CR_PDN;
+ 211              		.loc 1 173 0
+ 212 000a 0368     		ldr	r3, [r0]
+ 213 000c 43F40013 		orr	r3, r3, #2097152
+ 214 0010 0360     		str	r3, [r0]
+ 215              	.L13:
+ 216 0012 7047     		bx	lr
+ 217              		.cfi_endproc
+ 218              	.LFE60:
+ 220              		.section	.text.ADC_EdgeStartConfig,"ax",%progbits
+ 221              		.align	2
+ 222              		.global	ADC_EdgeStartConfig
+ 223              		.thumb
+ 224              		.thumb_func
+ 226              	ADC_EdgeStartConfig:
+ 227              	.LFB61:
+ 174:./Drivers/source/lpc17xx_adc.c **** 	}
+ 175:./Drivers/source/lpc17xx_adc.c **** }
+ 176:./Drivers/source/lpc17xx_adc.c **** 
+ 177:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+ 178:./Drivers/source/lpc17xx_adc.c **** * @brief 		Set Edge start configuration
+ 179:./Drivers/source/lpc17xx_adc.c **** * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+ 180:./Drivers/source/lpc17xx_adc.c **** * @param[in]	EdgeOption is ADC_START_ON_RISING and ADC_START_ON_FALLING
+ 181:./Drivers/source/lpc17xx_adc.c **** * 					0:ADC_START_ON_RISING
+ 182:./Drivers/source/lpc17xx_adc.c **** * 					1:ADC_START_ON_FALLING
+ 183:./Drivers/source/lpc17xx_adc.c **** * @return 		None
+ 184:./Drivers/source/lpc17xx_adc.c **** **********************************************************************/
+ 185:./Drivers/source/lpc17xx_adc.c **** void ADC_EdgeStartConfig(LPC_ADC_TypeDef *ADCx, uint8_t EdgeOption)
+ 186:./Drivers/source/lpc17xx_adc.c **** {
+ 228              		.loc 1 186 0
+ 229              		.cfi_startproc
+ 230              		@ args = 0, pretend = 0, frame = 0
+ 231              		@ frame_needed = 0, uses_anonymous_args = 0
+ 232              		@ link register save eliminated.
+ 233              	.LVL20:
+ 187:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+ 188:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADC_START_ON_EDGE_OPT(EdgeOption));
+ 189:./Drivers/source/lpc17xx_adc.c **** 
+ 190:./Drivers/source/lpc17xx_adc.c **** 	ADCx->ADCR &= ~ADC_CR_EDGE;
+ 234              		.loc 1 190 0
+ 235 0000 0368     		ldr	r3, [r0]
+ 236 0002 23F00063 		bic	r3, r3, #134217728
+ 237 0006 0360     		str	r3, [r0]
+ 191:./Drivers/source/lpc17xx_adc.c **** 	if (EdgeOption){
+ 238              		.loc 1 191 0
+ 239 0008 19B1     		cbz	r1, .L18
+ 192:./Drivers/source/lpc17xx_adc.c **** 		ADCx->ADCR |= ADC_CR_EDGE;
+ 240              		.loc 1 192 0
+ 241 000a 0368     		ldr	r3, [r0]
+ 242 000c 43F00063 		orr	r3, r3, #134217728
+ 243 0010 0360     		str	r3, [r0]
+ 244              	.L18:
+ 245 0012 7047     		bx	lr
+ 246              		.cfi_endproc
+ 247              	.LFE61:
+ 249              		.section	.text.ADC_IntConfig,"ax",%progbits
+ 250              		.align	2
+ 251              		.global	ADC_IntConfig
+ 252              		.thumb
+ 253              		.thumb_func
+ 255              	ADC_IntConfig:
+ 256              	.LFB62:
+ 193:./Drivers/source/lpc17xx_adc.c **** 	}
+ 194:./Drivers/source/lpc17xx_adc.c **** }
+ 195:./Drivers/source/lpc17xx_adc.c **** 
+ 196:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+ 197:./Drivers/source/lpc17xx_adc.c **** * @brief 		ADC interrupt configuration
+ 198:./Drivers/source/lpc17xx_adc.c **** * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+ 199:./Drivers/source/lpc17xx_adc.c **** * @param[in]	IntType: type of interrupt, should be:
+ 200:./Drivers/source/lpc17xx_adc.c **** * 				- ADC_ADINTEN0: Interrupt channel 0
+ 201:./Drivers/source/lpc17xx_adc.c **** * 				- ADC_ADINTEN1: Interrupt channel 1
+ 202:./Drivers/source/lpc17xx_adc.c **** * 				...
+ 203:./Drivers/source/lpc17xx_adc.c **** * 				- ADC_ADINTEN7: Interrupt channel 7
+ 204:./Drivers/source/lpc17xx_adc.c **** * 				- ADC_ADGINTEN: Individual channel/global flag done generate an interrupt
+ 205:./Drivers/source/lpc17xx_adc.c **** * @param[in]	NewState:
+ 206:./Drivers/source/lpc17xx_adc.c **** * 					- SET : enable ADC interrupt
+ 207:./Drivers/source/lpc17xx_adc.c **** * 					- RESET: disable ADC interrupt
+ 208:./Drivers/source/lpc17xx_adc.c **** * @return 		None
+ 209:./Drivers/source/lpc17xx_adc.c **** **********************************************************************/
+ 210:./Drivers/source/lpc17xx_adc.c **** void ADC_IntConfig (LPC_ADC_TypeDef *ADCx, ADC_TYPE_INT_OPT IntType, FunctionalState NewState)
+ 211:./Drivers/source/lpc17xx_adc.c **** {
+ 257              		.loc 1 211 0
+ 258              		.cfi_startproc
+ 259              		@ args = 0, pretend = 0, frame = 0
+ 260              		@ frame_needed = 0, uses_anonymous_args = 0
+ 261              		@ link register save eliminated.
+ 262              	.LVL21:
+ 212:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+ 213:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADC_TYPE_INT_OPT(IntType));
+ 214:./Drivers/source/lpc17xx_adc.c **** 
+ 215:./Drivers/source/lpc17xx_adc.c **** 	ADCx->ADINTEN &= ~ADC_INTEN_CH(IntType);
+ 263              		.loc 1 215 0
+ 264 0000 0123     		movs	r3, #1
+ 265 0002 03FA01F1 		lsl	r1, r3, r1
+ 266              	.LVL22:
+ 267 0006 C368     		ldr	r3, [r0, #12]
+ 268 0008 23EA0103 		bic	r3, r3, r1
+ 269 000c C360     		str	r3, [r0, #12]
+ 216:./Drivers/source/lpc17xx_adc.c **** 	if (NewState){
+ 270              		.loc 1 216 0
+ 271 000e 12B1     		cbz	r2, .L23
+ 217:./Drivers/source/lpc17xx_adc.c **** 		ADCx->ADINTEN |= ADC_INTEN_CH(IntType);
+ 272              		.loc 1 217 0
+ 273 0010 C368     		ldr	r3, [r0, #12]
+ 274 0012 1943     		orrs	r1, r1, r3
+ 275 0014 C160     		str	r1, [r0, #12]
+ 276              	.L23:
+ 277 0016 7047     		bx	lr
+ 278              		.cfi_endproc
+ 279              	.LFE62:
+ 281              		.section	.text.ADC_ChannelCmd,"ax",%progbits
+ 282              		.align	2
+ 283              		.global	ADC_ChannelCmd
+ 284              		.thumb
+ 285              		.thumb_func
+ 287              	ADC_ChannelCmd:
+ 288              	.LFB63:
+ 218:./Drivers/source/lpc17xx_adc.c **** 	}
+ 219:./Drivers/source/lpc17xx_adc.c **** }
+ 220:./Drivers/source/lpc17xx_adc.c **** 
+ 221:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+ 222:./Drivers/source/lpc17xx_adc.c **** * @brief 		Enable/Disable ADC channel number
+ 223:./Drivers/source/lpc17xx_adc.c **** * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+ 224:./Drivers/source/lpc17xx_adc.c **** * @param[in]	Channel channel number
+ 225:./Drivers/source/lpc17xx_adc.c **** * @param[in]	NewState Enable or Disable
+ 226:./Drivers/source/lpc17xx_adc.c **** *
+ 227:./Drivers/source/lpc17xx_adc.c **** * @return 		None
+ 228:./Drivers/source/lpc17xx_adc.c **** **********************************************************************/
+ 229:./Drivers/source/lpc17xx_adc.c **** void ADC_ChannelCmd (LPC_ADC_TypeDef *ADCx, uint8_t Channel, FunctionalState NewState)
+ 230:./Drivers/source/lpc17xx_adc.c **** {
+ 289              		.loc 1 230 0
+ 290              		.cfi_startproc
+ 291              		@ args = 0, pretend = 0, frame = 0
+ 292              		@ frame_needed = 0, uses_anonymous_args = 0
+ 293              		@ link register save eliminated.
+ 294              	.LVL23:
+ 231:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+ 232:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADC_CHANNEL_SELECTION(Channel));
+ 233:./Drivers/source/lpc17xx_adc.c **** 
+ 234:./Drivers/source/lpc17xx_adc.c **** 	if (NewState == ENABLE) {
+ 295              		.loc 1 234 0
+ 296 0000 012A     		cmp	r2, #1
+ 297 0002 07D0     		beq	.L31
+ 235:./Drivers/source/lpc17xx_adc.c **** 		ADCx->ADCR |= ADC_CR_CH_SEL(Channel);
+ 236:./Drivers/source/lpc17xx_adc.c **** 	} else {
+ 237:./Drivers/source/lpc17xx_adc.c **** 		ADCx->ADCR &= ~ADC_CR_CH_SEL(Channel);
+ 298              		.loc 1 237 0
+ 299 0004 0122     		movs	r2, #1
+ 300              	.LVL24:
+ 301 0006 02FA01F1 		lsl	r1, r2, r1
+ 302              	.LVL25:
+ 303 000a 0368     		ldr	r3, [r0]
+ 304 000c 23EA0101 		bic	r1, r3, r1
+ 305 0010 0160     		str	r1, [r0]
+ 306 0012 7047     		bx	lr
+ 307              	.LVL26:
+ 308              	.L31:
+ 235:./Drivers/source/lpc17xx_adc.c **** 		ADCx->ADCR |= ADC_CR_CH_SEL(Channel);
+ 309              		.loc 1 235 0
+ 310 0014 8A40     		lsls	r2, r2, r1
+ 311              	.LVL27:
+ 312 0016 0368     		ldr	r3, [r0]
+ 313 0018 1A43     		orrs	r2, r2, r3
+ 314 001a 0260     		str	r2, [r0]
+ 315 001c 7047     		bx	lr
+ 316              		.cfi_endproc
+ 317              	.LFE63:
+ 319 001e 00BF     		.section	.text.ADC_ChannelGetData,"ax",%progbits
+ 320              		.align	2
+ 321              		.global	ADC_ChannelGetData
+ 322              		.thumb
+ 323              		.thumb_func
+ 325              	ADC_ChannelGetData:
+ 326              	.LFB64:
+ 238:./Drivers/source/lpc17xx_adc.c **** 	}
+ 239:./Drivers/source/lpc17xx_adc.c **** }
+ 240:./Drivers/source/lpc17xx_adc.c **** 
+ 241:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+ 242:./Drivers/source/lpc17xx_adc.c **** * @brief 		Get ADC result
+ 243:./Drivers/source/lpc17xx_adc.c **** * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+ 244:./Drivers/source/lpc17xx_adc.c **** * @param[in]	channel: channel number, should be 0...7
+ 245:./Drivers/source/lpc17xx_adc.c **** * @return 		Data conversion
+ 246:./Drivers/source/lpc17xx_adc.c **** **********************************************************************/
+ 247:./Drivers/source/lpc17xx_adc.c **** uint16_t ADC_ChannelGetData(LPC_ADC_TypeDef *ADCx, uint8_t channel)
+ 248:./Drivers/source/lpc17xx_adc.c **** {
+ 327              		.loc 1 248 0
+ 328              		.cfi_startproc
+ 329              		@ args = 0, pretend = 0, frame = 0
+ 330              		@ frame_needed = 0, uses_anonymous_args = 0
+ 331              		@ link register save eliminated.
+ 332              	.LVL28:
+ 249:./Drivers/source/lpc17xx_adc.c **** 	uint32_t adc_value;
+ 250:./Drivers/source/lpc17xx_adc.c **** 
+ 251:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+ 252:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADC_CHANNEL_SELECTION(channel));
+ 253:./Drivers/source/lpc17xx_adc.c **** 
+ 254:./Drivers/source/lpc17xx_adc.c **** 	adc_value = *(uint32_t *) ((&ADCx->ADDR0) + channel);
+ 333              		.loc 1 254 0
+ 334 0000 00EB8101 		add	r1, r0, r1, lsl #2
+ 335              	.LVL29:
+ 255:./Drivers/source/lpc17xx_adc.c **** 	return ADC_DR_RESULT(adc_value);
+ 336              		.loc 1 255 0
+ 337 0004 0869     		ldr	r0, [r1, #16]
+ 338              	.LVL30:
+ 256:./Drivers/source/lpc17xx_adc.c **** }
+ 339              		.loc 1 256 0
+ 340 0006 C0F30B10 		ubfx	r0, r0, #4, #12
+ 341 000a 7047     		bx	lr
+ 342              		.cfi_endproc
+ 343              	.LFE64:
+ 345              		.section	.text.ADC_ChannelGetStatus,"ax",%progbits
+ 346              		.align	2
+ 347              		.global	ADC_ChannelGetStatus
+ 348              		.thumb
+ 349              		.thumb_func
+ 351              	ADC_ChannelGetStatus:
+ 352              	.LFB65:
+ 257:./Drivers/source/lpc17xx_adc.c **** 
+ 258:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+ 259:./Drivers/source/lpc17xx_adc.c **** * @brief 		Get ADC Chanel status from ADC data register
+ 260:./Drivers/source/lpc17xx_adc.c **** * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+ 261:./Drivers/source/lpc17xx_adc.c **** * @param[in]	channel: channel number, should be 0..7
+ 262:./Drivers/source/lpc17xx_adc.c **** * @param[in]  	StatusType
+ 263:./Drivers/source/lpc17xx_adc.c **** *              		 	0:Burst status
+ 264:./Drivers/source/lpc17xx_adc.c **** *               		1:Done 	status
+ 265:./Drivers/source/lpc17xx_adc.c **** * @return 		SET / RESET
+ 266:./Drivers/source/lpc17xx_adc.c **** **********************************************************************/
+ 267:./Drivers/source/lpc17xx_adc.c **** FlagStatus ADC_ChannelGetStatus(LPC_ADC_TypeDef *ADCx, uint8_t channel, uint32_t StatusType)
+ 268:./Drivers/source/lpc17xx_adc.c **** {
+ 353              		.loc 1 268 0
+ 354              		.cfi_startproc
+ 355              		@ args = 0, pretend = 0, frame = 0
+ 356              		@ frame_needed = 0, uses_anonymous_args = 0
+ 357              		@ link register save eliminated.
+ 358              	.LVL31:
+ 269:./Drivers/source/lpc17xx_adc.c **** 	uint32_t temp;
+ 270:./Drivers/source/lpc17xx_adc.c **** 
+ 271:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+ 272:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADC_CHANNEL_SELECTION(channel));
+ 273:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADC_DATA_STATUS(StatusType));
+ 274:./Drivers/source/lpc17xx_adc.c **** 
+ 275:./Drivers/source/lpc17xx_adc.c **** 	temp =  *(uint32_t *) ((&ADCx->ADDR0) + channel);
+ 359              		.loc 1 275 0
+ 360 0000 00EB8101 		add	r1, r0, r1, lsl #2
+ 361              	.LVL32:
+ 362 0004 0869     		ldr	r0, [r1, #16]
+ 363              	.LVL33:
+ 276:./Drivers/source/lpc17xx_adc.c **** 	if (StatusType) {
+ 364              		.loc 1 276 0
+ 365 0006 2AB1     		cbz	r2, .L34
+ 277:./Drivers/source/lpc17xx_adc.c **** 		temp &= ADC_DR_DONE_FLAG;
+ 366              		.loc 1 277 0
+ 367 0008 00F00040 		and	r0, r0, #-2147483648
+ 368              	.LVL34:
+ 278:./Drivers/source/lpc17xx_adc.c **** 	}else{
+ 279:./Drivers/source/lpc17xx_adc.c **** 		temp &= ADC_DR_OVERRUN_FLAG;
+ 280:./Drivers/source/lpc17xx_adc.c **** 	}
+ 281:./Drivers/source/lpc17xx_adc.c **** 	if (temp) {
+ 282:./Drivers/source/lpc17xx_adc.c **** 		return SET;
+ 283:./Drivers/source/lpc17xx_adc.c **** 	} else {
+ 284:./Drivers/source/lpc17xx_adc.c **** 		return RESET;
+ 285:./Drivers/source/lpc17xx_adc.c **** 	}
+ 286:./Drivers/source/lpc17xx_adc.c **** 
+ 287:./Drivers/source/lpc17xx_adc.c **** }
+ 369              		.loc 1 287 0
+ 370 000c 0030     		adds	r0, r0, #0
+ 371 000e 18BF     		it	ne
+ 372 0010 0120     		movne	r0, #1
+ 373              	.LVL35:
+ 374 0012 7047     		bx	lr
+ 375              	.LVL36:
+ 376              	.L34:
+ 279:./Drivers/source/lpc17xx_adc.c **** 		temp &= ADC_DR_OVERRUN_FLAG;
+ 377              		.loc 1 279 0
+ 378 0014 00F08040 		and	r0, r0, #1073741824
+ 379              	.LVL37:
+ 380              		.loc 1 287 0
+ 381 0018 0030     		adds	r0, r0, #0
+ 382 001a 18BF     		it	ne
+ 383 001c 0120     		movne	r0, #1
+ 384              	.LVL38:
+ 385 001e 7047     		bx	lr
+ 386              		.cfi_endproc
+ 387              	.LFE65:
+ 389              		.section	.text.ADC_GlobalGetData,"ax",%progbits
+ 390              		.align	2
+ 391              		.global	ADC_GlobalGetData
+ 392              		.thumb
+ 393              		.thumb_func
+ 395              	ADC_GlobalGetData:
+ 396              	.LFB66:
+ 288:./Drivers/source/lpc17xx_adc.c **** 
+ 289:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+ 290:./Drivers/source/lpc17xx_adc.c **** * @brief 		Get ADC Data from AD Global register
+ 291:./Drivers/source/lpc17xx_adc.c **** * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+ 292:./Drivers/source/lpc17xx_adc.c **** * @return 		Result of conversion
+ 293:./Drivers/source/lpc17xx_adc.c **** **********************************************************************/
+ 294:./Drivers/source/lpc17xx_adc.c **** uint32_t ADC_GlobalGetData(LPC_ADC_TypeDef *ADCx)
+ 295:./Drivers/source/lpc17xx_adc.c **** {
+ 397              		.loc 1 295 0
+ 398              		.cfi_startproc
+ 399              		@ args = 0, pretend = 0, frame = 0
+ 400              		@ frame_needed = 0, uses_anonymous_args = 0
+ 401              		@ link register save eliminated.
+ 402              	.LVL39:
+ 296:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+ 297:./Drivers/source/lpc17xx_adc.c **** 
+ 298:./Drivers/source/lpc17xx_adc.c **** 	return ((uint32_t)(ADCx->ADGDR));
+ 403              		.loc 1 298 0
+ 404 0000 4068     		ldr	r0, [r0, #4]
+ 405              	.LVL40:
+ 299:./Drivers/source/lpc17xx_adc.c **** }
+ 406              		.loc 1 299 0
+ 407 0002 7047     		bx	lr
+ 408              		.cfi_endproc
+ 409              	.LFE66:
+ 411              		.section	.text.ADC_GlobalGetStatus,"ax",%progbits
+ 412              		.align	2
+ 413              		.global	ADC_GlobalGetStatus
+ 414              		.thumb
+ 415              		.thumb_func
+ 417              	ADC_GlobalGetStatus:
+ 418              	.LFB67:
+ 300:./Drivers/source/lpc17xx_adc.c **** 
+ 301:./Drivers/source/lpc17xx_adc.c **** /*********************************************************************//**
+ 302:./Drivers/source/lpc17xx_adc.c **** * @brief 		Get ADC Chanel status from AD global data register
+ 303:./Drivers/source/lpc17xx_adc.c **** * @param[in]	ADCx pointer to LPC_ADC_TypeDef, should be: LPC_ADC
+ 304:./Drivers/source/lpc17xx_adc.c **** * @param[in]  	StatusType
+ 305:./Drivers/source/lpc17xx_adc.c **** *              		 	0:Burst status
+ 306:./Drivers/source/lpc17xx_adc.c **** *               		1:Done 	status
+ 307:./Drivers/source/lpc17xx_adc.c **** * @return 		SET / RESET
+ 308:./Drivers/source/lpc17xx_adc.c **** **********************************************************************/
+ 309:./Drivers/source/lpc17xx_adc.c **** FlagStatus	ADC_GlobalGetStatus(LPC_ADC_TypeDef *ADCx, uint32_t StatusType)
+ 310:./Drivers/source/lpc17xx_adc.c **** {
+ 419              		.loc 1 310 0
+ 420              		.cfi_startproc
+ 421              		@ args = 0, pretend = 0, frame = 0
+ 422              		@ frame_needed = 0, uses_anonymous_args = 0
+ 423              		@ link register save eliminated.
+ 424              	.LVL41:
+ 311:./Drivers/source/lpc17xx_adc.c **** 	uint32_t temp;
+ 312:./Drivers/source/lpc17xx_adc.c **** 
+ 313:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADCx(ADCx));
+ 314:./Drivers/source/lpc17xx_adc.c **** 	CHECK_PARAM(PARAM_ADC_DATA_STATUS(StatusType));
+ 315:./Drivers/source/lpc17xx_adc.c **** 
+ 316:./Drivers/source/lpc17xx_adc.c **** 	temp =  ADCx->ADGDR;
+ 425              		.loc 1 316 0
+ 426 0000 4068     		ldr	r0, [r0, #4]
+ 427              	.LVL42:
+ 317:./Drivers/source/lpc17xx_adc.c **** 	if (StatusType){
+ 428              		.loc 1 317 0
+ 429 0002 29B1     		cbz	r1, .L38
+ 318:./Drivers/source/lpc17xx_adc.c **** 		temp &= ADC_DR_DONE_FLAG;
+ 430              		.loc 1 318 0
+ 431 0004 00F00040 		and	r0, r0, #-2147483648
+ 432              	.LVL43:
+ 319:./Drivers/source/lpc17xx_adc.c **** 	}else{
+ 320:./Drivers/source/lpc17xx_adc.c **** 		temp &= ADC_DR_OVERRUN_FLAG;
+ 321:./Drivers/source/lpc17xx_adc.c **** 	}
+ 322:./Drivers/source/lpc17xx_adc.c **** 	if (temp){
+ 323:./Drivers/source/lpc17xx_adc.c **** 		return SET;
+ 324:./Drivers/source/lpc17xx_adc.c **** 	}else{
+ 325:./Drivers/source/lpc17xx_adc.c **** 		return RESET;
+ 326:./Drivers/source/lpc17xx_adc.c **** 	}
+ 327:./Drivers/source/lpc17xx_adc.c **** }
+ 433              		.loc 1 327 0
+ 434 0008 0030     		adds	r0, r0, #0
+ 435 000a 18BF     		it	ne
+ 436 000c 0120     		movne	r0, #1
+ 437              	.LVL44:
+ 438 000e 7047     		bx	lr
+ 439              	.LVL45:
+ 440              	.L38:
+ 320:./Drivers/source/lpc17xx_adc.c **** 		temp &= ADC_DR_OVERRUN_FLAG;
+ 441              		.loc 1 320 0
+ 442 0010 00F08040 		and	r0, r0, #1073741824
+ 443              	.LVL46:
+ 444              		.loc 1 327 0
+ 445 0014 0030     		adds	r0, r0, #0
+ 446 0016 18BF     		it	ne
+ 447 0018 0120     		movne	r0, #1
+ 448              	.LVL47:
+ 449 001a 7047     		bx	lr
+ 450              		.cfi_endproc
+ 451              	.LFE67:
+ 453              		.text
+ 454              	.Letext0:
+ 455              		.file 2 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 456              		.file 3 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+ 457              		.file 4 "./LPC17xx/LPC17xx.h"
+ 458              		.file 5 "./Drivers/include/lpc_types.h"
+ 459              		.file 6 "./Drivers/include/lpc17xx_adc.h"
+ 460              		.file 7 "./Drivers/include/lpc17xx_clkpwr.h"
+ 461              		.file 8 "./Core/core_cm3.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 lpc17xx_adc.c
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:19     .text.ADC_Init:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:24     .text.ADC_Init:00000000 ADC_Init
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:75     .text.ADC_DeInit:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:80     .text.ADC_DeInit:00000000 ADC_DeInit
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:107    .text.ADC_GetData:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:112    .text.ADC_GetData:00000000 ADC_GetData
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:131    .text.ADC_GetData:0000000c $d
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:136    .text.ADC_StartCmd:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:141    .text.ADC_StartCmd:00000000 ADC_StartCmd
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:163    .text.ADC_BurstCmd:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:168    .text.ADC_BurstCmd:00000000 ADC_BurstCmd
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:192    .text.ADC_PowerdownCmd:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:197    .text.ADC_PowerdownCmd:00000000 ADC_PowerdownCmd
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:221    .text.ADC_EdgeStartConfig:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:226    .text.ADC_EdgeStartConfig:00000000 ADC_EdgeStartConfig
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:250    .text.ADC_IntConfig:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:255    .text.ADC_IntConfig:00000000 ADC_IntConfig
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:282    .text.ADC_ChannelCmd:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:287    .text.ADC_ChannelCmd:00000000 ADC_ChannelCmd
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:320    .text.ADC_ChannelGetData:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:325    .text.ADC_ChannelGetData:00000000 ADC_ChannelGetData
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:346    .text.ADC_ChannelGetStatus:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:351    .text.ADC_ChannelGetStatus:00000000 ADC_ChannelGetStatus
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:390    .text.ADC_GlobalGetData:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:395    .text.ADC_GlobalGetData:00000000 ADC_GlobalGetData
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:412    .text.ADC_GlobalGetStatus:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccGCJre4.s:417    .text.ADC_GlobalGetStatus:00000000 ADC_GlobalGetStatus
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+CLKPWR_ConfigPPWR
+CLKPWR_GetPCLK

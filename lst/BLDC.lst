@@ -1,0 +1,1471 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"BLDC.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.BLDC_Init,"ax",%progbits
+  19              		.align	2
+  20              		.global	BLDC_Init
+  21              		.thumb
+  22              		.thumb_func
+  24              	BLDC_Init:
+  25              	.LFB55:
+  26              		.file 1 "./src/motor/BLDC.c"
+   1:./src/motor/BLDC.c **** /**
+   2:./src/motor/BLDC.c ****  * @file	BLDC.c
+   3:./src/motor/BLDC.c ****  * @purpose	Initializing and controlling BLDC motor
+   4:./src/motor/BLDC.c ****  * @brief	BLDC motor control initialization and controlling file
+   5:./src/motor/BLDC.c ****  * @version	1.0
+   6:./src/motor/BLDC.c ****  * @date	29 July 2009
+   7:./src/motor/BLDC.c ****  * @author	nlv15840
+   8:./src/motor/BLDC.c **** */
+   9:./src/motor/BLDC.c **** /*----------------------------------------------------------------------------
+  10:./src/motor/BLDC.c ****  * Software that is described herein is for illustrative purposes only
+  11:./src/motor/BLDC.c ****  * which provides customers with programming information regarding the
+  12:./src/motor/BLDC.c ****  * products. This software is supplied "AS IS" without any warranties.
+  13:./src/motor/BLDC.c ****  * NXP Semiconductors assumes no responsibility or liability for the
+  14:./src/motor/BLDC.c ****  * use of the software, conveys no license or title under any patent,
+  15:./src/motor/BLDC.c ****  * copyright, or mask work right to the product. NXP Semiconductors
+  16:./src/motor/BLDC.c ****  * reserves the right to make changes in the software without
+  17:./src/motor/BLDC.c ****  * notification. NXP Semiconductors also make no representation or
+  18:./src/motor/BLDC.c ****  * warranty that such application will be suitable for the specified
+  19:./src/motor/BLDC.c ****  * use without further testing or modification.
+  20:./src/motor/BLDC.c ****  **********************************************************************/
+  21:./src/motor/BLDC.c **** 
+  22:./src/motor/BLDC.c **** #include "Application.h"
+  23:./src/motor/BLDC.c **** 
+  24:./src/motor/BLDC.c **** volatile uint8_t test=0;
+  25:./src/motor/BLDC.c **** 
+  26:./src/motor/BLDC.c **** /************************** PRIVATE VARIABLES *************************/
+  27:./src/motor/BLDC.c **** /**
+  28:./src/motor/BLDC.c ****  * @addtogroup PRIVATE_VARIABLES
+  29:./src/motor/BLDC.c ****  * @{
+  30:./src/motor/BLDC.c ****  */
+  31:./src/motor/BLDC.c **** 
+  32:./src/motor/BLDC.c **** /* Pin configuration data */
+  33:./src/motor/BLDC.c **** /** Motor Control Channel 0 Output A */
+  34:./src/motor/BLDC.c **** const PINSEL_CFG_Type mcpwm_mco0a_pin[1] = {{1, 19, 1, 0, 0}};
+  35:./src/motor/BLDC.c **** /** Motor Control Channel 0 Output B */
+  36:./src/motor/BLDC.c **** const PINSEL_CFG_Type mcpwm_mco0b_pin[1] = {{1, 22, 1, 0, 0}};
+  37:./src/motor/BLDC.c **** 
+  38:./src/motor/BLDC.c **** /** Motor Control Channel 1 Output A */
+  39:./src/motor/BLDC.c **** const PINSEL_CFG_Type mcpwm_mco1a_pin[1] = {{1, 25, 1, 0, 0}};
+  40:./src/motor/BLDC.c **** /** Motor Control Channel 1 Output B */
+  41:./src/motor/BLDC.c **** const PINSEL_CFG_Type mcpwm_mco1b_pin[1] = {{1, 26, 1, 0, 0}};
+  42:./src/motor/BLDC.c **** 
+  43:./src/motor/BLDC.c **** /** Motor Control Channel 2 Output A */
+  44:./src/motor/BLDC.c **** const PINSEL_CFG_Type mcpwm_mco2a_pin[1] = {{1, 28, 1, 0, 0}};
+  45:./src/motor/BLDC.c **** /** Motor Control Channel 2 Output B */
+  46:./src/motor/BLDC.c **** const PINSEL_CFG_Type mcpwm_mco2b_pin[1] = {{1, 29, 1, 0, 0}};
+  47:./src/motor/BLDC.c **** 
+  48:./src/motor/BLDC.c **** #if (USE_HALL == 1)
+  49:./src/motor/BLDC.c **** /** Motor Control Feed Back Channel 0 - MCI0 */
+  50:./src/motor/BLDC.c **** const PINSEL_CFG_Type mcpwm_mcfb0_pin[1] = {{1, 20, 1, 0, 0}};
+  51:./src/motor/BLDC.c **** /** Motor Control Feed Back Channel 1 - MCI1 */
+  52:./src/motor/BLDC.c **** const PINSEL_CFG_Type mcpwm_mcfb1_pin[1] = {{1, 23, 1, 0, 0}};
+  53:./src/motor/BLDC.c **** /** Motor Control Feed Back Channel 2 - MCI2 */
+  54:./src/motor/BLDC.c **** const PINSEL_CFG_Type mcpwm_mcfb2_pin[1] = {{1, 24, 1, 0, 0}};
+  55:./src/motor/BLDC.c **** #endif
+  56:./src/motor/BLDC.c **** 
+  57:./src/motor/BLDC.c **** /** Motor Control Low-active abort feed back */
+  58:./src/motor/BLDC.c **** const PINSEL_CFG_Type mcpwm_mcabort_pin[1] = {{ 1, 21, 1, 0, 0}};
+  59:./src/motor/BLDC.c **** 
+  60:./src/motor/BLDC.c **** /** @brief MCPWM Channel configuration data */
+  61:./src/motor/BLDC.c **** MCPWM_CHANNEL_CFG_Type channelsetup[3];
+  62:./src/motor/BLDC.c **** 
+  63:./src/motor/BLDC.c **** /** @brief Capture configuration data */
+  64:./src/motor/BLDC.c **** MCPWM_CAPTURE_CFG_Type captureCfg;
+  65:./src/motor/BLDC.c **** 
+  66:./src/motor/BLDC.c **** /**
+  67:./src/motor/BLDC.c ****  * @}
+  68:./src/motor/BLDC.c ****  */
+  69:./src/motor/BLDC.c **** 
+  70:./src/motor/BLDC.c **** /**
+  71:./src/motor/BLDC.c ****  * @defgroup MOTOR_VARIABLES
+  72:./src/motor/BLDC.c ****  * @{
+  73:./src/motor/BLDC.c ****  */
+  74:./src/motor/BLDC.c **** 
+  75:./src/motor/BLDC.c **** /** Motor controlling structure */
+  76:./src/motor/BLDC.c **** volatile PIDstr PID_Motor
+  77:./src/motor/BLDC.c **** = {
+  78:./src/motor/BLDC.c **** /* PID_Motor.p           */ 4,
+  79:./src/motor/BLDC.c **** /* PID_Motor.i           */ 10,
+  80:./src/motor/BLDC.c **** /* PID_Motor.d           */ 0,
+  81:./src/motor/BLDC.c **** /* PID_Motor.sp          */ 1500,
+  82:./src/motor/BLDC.c **** /* PID_Motor.pv          */ 0,
+  83:./src/motor/BLDC.c **** /* PID_Motor.err[3]      */ {0,0,0},
+  84:./src/motor/BLDC.c **** /* PID_Motor.mv          */ 0,
+  85:./src/motor/BLDC.c **** /* PID_Motor.HALstate    */ 0,
+  86:./src/motor/BLDC.c **** /* PID_Motor.CMT_CNT     */ 0,
+  87:./src/motor/BLDC.c **** /* PID_Motor.CMT_step    */ 0,
+  88:./src/motor/BLDC.c **** /* PID_Motor.RPM         */ 0,
+  89:./src/motor/BLDC.c **** /* PID_Motor.Enable      */ DISABLE,
+  90:./src/motor/BLDC.c **** /* PID_Motor.Direction   */ CW,
+  91:./src/motor/BLDC.c **** /* PID_Motor.Brake       */ ENABLE,
+  92:./src/motor/BLDC.c **** /* PID_Motor.Period      */ 25000,
+  93:./src/motor/BLDC.c **** /* PID_Motor.Poles       */ 1,
+  94:./src/motor/BLDC.c **** /* PID_Motor.Tick_cur    */ 0,
+  95:./src/motor/BLDC.c **** /* PID_Motor.Tick_old    */ 0,
+  96:./src/motor/BLDC.c **** /* PID_Motor.Tick_new    */ 0
+  97:./src/motor/BLDC.c **** };
+  98:./src/motor/BLDC.c **** 
+  99:./src/motor/BLDC.c **** /** Commutation table, connected to hall sensor */
+ 100:./src/motor/BLDC.c **** volatile uint8_t CMT_tbl[2][8] = {	{0xF, 2, 0, 1, 4, 3, 5, 0xF},
+ 101:./src/motor/BLDC.c **** 									{0xF, 5, 3, 4, 1, 0, 2, 0xF} };
+ 102:./src/motor/BLDC.c **** 
+ 103:./src/motor/BLDC.c **** /** Lookup table for QEI compare interrupts */
+ 104:./src/motor/BLDC.c **** volatile uint32_t QEI_POS_tbl [2][6] = 	{
+ 105:./src/motor/BLDC.c **** 											/* Table for running CW */ 
+ 106:./src/motor/BLDC.c **** 											{
+ 107:./src/motor/BLDC.c **** 												
+ 108:./src/motor/BLDC.c **** 												
+ 109:./src/motor/BLDC.c **** 												1000+QEI_offset,
+ 110:./src/motor/BLDC.c **** 												1333+QEI_offset,
+ 111:./src/motor/BLDC.c **** 												1667+QEI_offset,
+ 112:./src/motor/BLDC.c **** 												0+QEI_offset,
+ 113:./src/motor/BLDC.c **** 												333+QEI_offset,
+ 114:./src/motor/BLDC.c **** 												667+QEI_offset,
+ 115:./src/motor/BLDC.c **** 												
+ 116:./src/motor/BLDC.c **** 														
+ 117:./src/motor/BLDC.c **** 											},
+ 118:./src/motor/BLDC.c **** 											/* Table for running CCW */ 
+ 119:./src/motor/BLDC.c **** 											{
+ 120:./src/motor/BLDC.c **** 												333+QEI_offset,
+ 121:./src/motor/BLDC.c **** 												0+QEI_offset,
+ 122:./src/motor/BLDC.c **** 												1667+QEI_offset,
+ 123:./src/motor/BLDC.c **** 												1333+QEI_offset,
+ 124:./src/motor/BLDC.c **** 												1000+QEI_offset,	
+ 125:./src/motor/BLDC.c **** 												667+QEI_offset,
+ 126:./src/motor/BLDC.c **** 											}
+ 127:./src/motor/BLDC.c **** 										};
+ 128:./src/motor/BLDC.c **** 
+ 129:./src/motor/BLDC.c **** /** Old systick value for RPM calculation */
+ 130:./src/motor/BLDC.c **** volatile uint32_t bldc_SySTickold = 0;
+ 131:./src/motor/BLDC.c **** /** New systick value for RPM calculation */
+ 132:./src/motor/BLDC.c **** volatile uint32_t bldc_SySTicknew = 0;
+ 133:./src/motor/BLDC.c **** 
+ 134:./src/motor/BLDC.c **** /**
+ 135:./src/motor/BLDC.c ****  * @}
+ 136:./src/motor/BLDC.c ****  */
+ 137:./src/motor/BLDC.c **** 
+ 138:./src/motor/BLDC.c **** /**
+ 139:./src/motor/BLDC.c ****  * @brief	Initialize the system to control the Brushless DC motor
+ 140:./src/motor/BLDC.c ****  * @par		Pin settings:
+ 141:./src/motor/BLDC.c ****  *			- P1.19 = MC0A
+ 142:./src/motor/BLDC.c ****  *			- P1.22 = MC0B
+ 143:./src/motor/BLDC.c ****  *			- P1.25 = MC1A
+ 144:./src/motor/BLDC.c ****  *			- P1.26 = MC1B
+ 145:./src/motor/BLDC.c ****  *			- P1.28	= MC2A
+ 146:./src/motor/BLDC.c ****  *			- P1.29 = MC2B
+ 147:./src/motor/BLDC.c ****  *			- P1.20 = MCFB0
+ 148:./src/motor/BLDC.c ****  *			- P1.23 = MCFB1
+ 149:./src/motor/BLDC.c ****  *			- P1.24 = MCFB2
+ 150:./src/motor/BLDC.c ****  *			- P1.21 = MCABORT
+ 151:./src/motor/BLDC.c ****  * @par	Channel settings:
+ 152:./src/motor/BLDC.c ****  *			- Type = edge mode
+ 153:./src/motor/BLDC.c ****  *			- Polarity = Low passive
+ 154:./src/motor/BLDC.c ****  *			- Deadtime = disabled
+ 155:./src/motor/BLDC.c ****  *			- Deadtime value = 0
+ 156:./src/motor/BLDC.c ****  */
+ 157:./src/motor/BLDC.c **** void BLDC_Init (void)
+ 158:./src/motor/BLDC.c **** {
+  27              		.loc 1 158 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+  32              		.cfi_def_cfa_offset 24
+  33              		.cfi_offset 3, -24
+  34              		.cfi_offset 4, -20
+  35              		.cfi_offset 5, -16
+  36              		.cfi_offset 6, -12
+  37              		.cfi_offset 7, -8
+  38              		.cfi_offset 14, -4
+ 159:./src/motor/BLDC.c **** #if (USE_QEI == 1)
+ 160:./src/motor/BLDC.c **** 	/* QEI configuration structure variable */
+ 161:./src/motor/BLDC.c **** 	QEI_CFG_Type QEIConfigStruct;
+ 162:./src/motor/BLDC.c **** #endif
+ 163:./src/motor/BLDC.c **** 
+ 164:./src/motor/BLDC.c ****     /* MCPWM INITIALIZATION *******************************************/
+ 165:./src/motor/BLDC.c ****     /* Initializes pin corresponding to MCPWM function */
+ 166:./src/motor/BLDC.c ****     PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mco0a_pin[0]);
+  39              		.loc 1 166 0
+  40 0002 2848     		ldr	r0, .L2
+  41 0004 FFF7FEFF 		bl	PINSEL_ConfigPin
+  42              	.LVL0:
+ 167:./src/motor/BLDC.c ****     PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mco0b_pin[0]);
+  43              		.loc 1 167 0
+  44 0008 2748     		ldr	r0, .L2+4
+  45 000a FFF7FEFF 		bl	PINSEL_ConfigPin
+  46              	.LVL1:
+ 168:./src/motor/BLDC.c ****     PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mco1a_pin[0]);
+  47              		.loc 1 168 0
+  48 000e 2748     		ldr	r0, .L2+8
+  49 0010 FFF7FEFF 		bl	PINSEL_ConfigPin
+  50              	.LVL2:
+ 169:./src/motor/BLDC.c ****     PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mco1b_pin[0]);
+  51              		.loc 1 169 0
+  52 0014 2648     		ldr	r0, .L2+12
+  53 0016 FFF7FEFF 		bl	PINSEL_ConfigPin
+  54              	.LVL3:
+ 170:./src/motor/BLDC.c ****     PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mco2a_pin[0]);
+  55              		.loc 1 170 0
+  56 001a 2648     		ldr	r0, .L2+16
+  57 001c FFF7FEFF 		bl	PINSEL_ConfigPin
+  58              	.LVL4:
+ 171:./src/motor/BLDC.c ****     PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mco2b_pin[0]);
+ 172:./src/motor/BLDC.c **** 	PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mcabort_pin[0]);
+ 173:./src/motor/BLDC.c **** 
+ 174:./src/motor/BLDC.c **** #if (USE_HALL == 1)
+ 175:./src/motor/BLDC.c **** #if (USE_MCPWM_FEEDBACK == 1)
+ 176:./src/motor/BLDC.c **** 	/* Configure the MCPWM Feedback pins to be CAP inputs */
+ 177:./src/motor/BLDC.c ****     PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mcfb0_pin[0]);
+ 178:./src/motor/BLDC.c ****     PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mcfb1_pin[0]);
+ 179:./src/motor/BLDC.c ****     PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mcfb2_pin[0]);
+ 180:./src/motor/BLDC.c ****     /* Disable interrupt for MCPWM */
+ 181:./src/motor/BLDC.c **** 	NVIC_SetPriority(MCPWM_IRQn, ((0x01<<3)|0x01));
+ 182:./src/motor/BLDC.c **** 	NVIC_DisableIRQ(MCPWM_IRQn);
+ 183:./src/motor/BLDC.c **** #else
+ 184:./src/motor/BLDC.c **** 	/* Disable interrupt for MCPWM */
+ 185:./src/motor/BLDC.c **** 	/* preemption = 1, sub-priority = 1 */
+ 186:./src/motor/BLDC.c **** 	NVIC_DisableIRQ(EINT3_IRQn);
+ 187:./src/motor/BLDC.c **** 	NVIC_SetPriority(EINT3_IRQn, ((0x01<<3)|0x01));
+ 188:./src/motor/BLDC.c **** 
+ 189:./src/motor/BLDC.c **** 	/*-- HALL input settings using GPIO interrupts --*/
+ 190:./src/motor/BLDC.c ****     /* Make sure P0.16..0.18 are GPIO */
+ 191:./src/motor/BLDC.c ****     PINCON->PINSEL1 &= ~(0x3F<<0);
+ 192:./src/motor/BLDC.c ****     /* Set P0.16..0.18 as input */
+ 193:./src/motor/BLDC.c ****     GPIO0->FIODIR &= ~(0x7<<16);
+ 194:./src/motor/BLDC.c **** 
+ 195:./src/motor/BLDC.c ****     /* Clear all pending interrupt */
+ 196:./src/motor/BLDC.c ****     GPIOINT->IO0IntClr = (0xFFFFFFFF);
+ 197:./src/motor/BLDC.c ****     /* Enable the rising edge interrupts on GPIO */
+ 198:./src/motor/BLDC.c ****     GPIOINT->IO0IntEnR |= (0x7<<16);
+ 199:./src/motor/BLDC.c ****     /* Enable the falling edge interrupts on GPIO */
+ 200:./src/motor/BLDC.c ****     GPIOINT->IO0IntEnF |= (0x7<<16);
+ 201:./src/motor/BLDC.c **** #endif
+ 202:./src/motor/BLDC.c **** #endif
+ 203:./src/motor/BLDC.c **** 
+ 204:./src/motor/BLDC.c ****     /* Init MCPWM peripheral */
+ 205:./src/motor/BLDC.c **** 
+ 206:./src/motor/BLDC.c ****     MCPWM_Init(LPC_MCPWM);
+  59              		.loc 1 206 0
+  60 0020 254E     		ldr	r6, .L2+20
+ 171:./src/motor/BLDC.c ****     PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mco2b_pin[0]);
+  61              		.loc 1 171 0
+  62 0022 2648     		ldr	r0, .L2+24
+  63 0024 FFF7FEFF 		bl	PINSEL_ConfigPin
+  64              	.LVL5:
+ 172:./src/motor/BLDC.c **** 	PINSEL_ConfigPin((PINSEL_CFG_Type *)&mcpwm_mcabort_pin[0]);
+  65              		.loc 1 172 0
+  66 0028 2548     		ldr	r0, .L2+28
+  67 002a FFF7FEFF 		bl	PINSEL_ConfigPin
+  68              	.LVL6:
+  69              		.loc 1 206 0
+  70 002e 3046     		mov	r0, r6
+  71 0030 FFF7FEFF 		bl	MCPWM_Init
+  72              	.LVL7:
+ 207:./src/motor/BLDC.c **** 
+ 208:./src/motor/BLDC.c ****     /* MCPWM Channel 0 setup */
+ 209:./src/motor/BLDC.c ****     channelsetup[0].channelType = MCPWM_CHANNEL_EDGE_MODE;
+ 210:./src/motor/BLDC.c ****     channelsetup[0].channelPolarity = MCPWM_CHANNEL_PASSIVE_HI;
+ 211:./src/motor/BLDC.c ****     channelsetup[0].channelDeadtimeEnable = ENABLE;
+ 212:./src/motor/BLDC.c ****     channelsetup[0].channelDeadtimeValue = 1250;
+ 213:./src/motor/BLDC.c ****     channelsetup[0].channelUpdateEnable = ENABLE;
+ 214:./src/motor/BLDC.c ****     channelsetup[0].channelTimercounterValue = 0;
+ 215:./src/motor/BLDC.c ****     channelsetup[0].channelPeriodValue = PID_Motor.Period;
+  73              		.loc 1 215 0
+  74 0034 234B     		ldr	r3, .L2+32
+ 209:./src/motor/BLDC.c ****     channelsetup[0].channelType = MCPWM_CHANNEL_EDGE_MODE;
+  75              		.loc 1 209 0
+  76 0036 244C     		ldr	r4, .L2+36
+  77              		.loc 1 215 0
+  78 0038 1A6D     		ldr	r2, [r3, #80]
+ 209:./src/motor/BLDC.c ****     channelsetup[0].channelType = MCPWM_CHANNEL_EDGE_MODE;
+  79              		.loc 1 209 0
+  80 003a 0027     		movs	r7, #0
+  81              		.loc 1 215 0
+  82 003c A261     		str	r2, [r4, #24]
+ 216:./src/motor/BLDC.c ****     channelsetup[0].channelPulsewidthValue = 0;
+ 217:./src/motor/BLDC.c **** 
+ 218:./src/motor/BLDC.c ****     /* MCPWM Channel 1 setup */
+ 219:./src/motor/BLDC.c ****     channelsetup[1].channelType = MCPWM_CHANNEL_EDGE_MODE;
+ 220:./src/motor/BLDC.c ****     channelsetup[1].channelPolarity = MCPWM_CHANNEL_PASSIVE_HI;
+ 221:./src/motor/BLDC.c ****     channelsetup[1].channelDeadtimeEnable = ENABLE;
+ 222:./src/motor/BLDC.c ****     channelsetup[1].channelDeadtimeValue = 1250;
+ 223:./src/motor/BLDC.c ****     channelsetup[1].channelUpdateEnable = ENABLE;
+ 224:./src/motor/BLDC.c ****     channelsetup[1].channelTimercounterValue = 0;
+ 225:./src/motor/BLDC.c ****     channelsetup[1].channelPeriodValue = PID_Motor.Period;
+  83              		.loc 1 225 0
+  84 003e 1A6D     		ldr	r2, [r3, #80]
+ 226:./src/motor/BLDC.c ****     channelsetup[1].channelPulsewidthValue = 0;
+ 227:./src/motor/BLDC.c **** 
+ 228:./src/motor/BLDC.c ****     /* MCPWM Channel 2 setup */
+ 229:./src/motor/BLDC.c ****     channelsetup[2].channelType = MCPWM_CHANNEL_CENTER_MODE;
+ 230:./src/motor/BLDC.c ****     channelsetup[2].channelPolarity = MCPWM_CHANNEL_PASSIVE_HI;
+ 231:./src/motor/BLDC.c ****     channelsetup[2].channelDeadtimeEnable = ENABLE;
+ 232:./src/motor/BLDC.c ****     channelsetup[2].channelDeadtimeValue = 1250;
+ 233:./src/motor/BLDC.c ****     channelsetup[2].channelUpdateEnable = ENABLE;
+ 234:./src/motor/BLDC.c ****     channelsetup[2].channelTimercounterValue = 0;
+ 235:./src/motor/BLDC.c ****     channelsetup[2].channelPeriodValue = PID_Motor.Period;
+  85              		.loc 1 235 0
+  86 0040 1B6D     		ldr	r3, [r3, #80]
+ 210:./src/motor/BLDC.c ****     channelsetup[0].channelPolarity = MCPWM_CHANNEL_PASSIVE_HI;
+  87              		.loc 1 210 0
+  88 0042 0125     		movs	r5, #1
+ 212:./src/motor/BLDC.c ****     channelsetup[0].channelDeadtimeValue = 1250;
+  89              		.loc 1 212 0
+  90 0044 40F2E24E 		movw	lr, #1250
+ 225:./src/motor/BLDC.c ****     channelsetup[1].channelPeriodValue = PID_Motor.Period;
+  91              		.loc 1 225 0
+  92 0048 A263     		str	r2, [r4, #56]
+ 236:./src/motor/BLDC.c ****     channelsetup[2].channelPulsewidthValue = 0;
+ 237:./src/motor/BLDC.c **** 
+ 238:./src/motor/BLDC.c ****     /* Apply the setup to the channels */
+ 239:./src/motor/BLDC.c ****     MCPWM_ConfigChannel(LPC_MCPWM, 0, &channelsetup[0]);
+  93              		.loc 1 239 0
+  94 004a 3046     		mov	r0, r6
+  95 004c 2246     		mov	r2, r4
+  96 004e 3946     		mov	r1, r7
+ 235:./src/motor/BLDC.c ****     channelsetup[2].channelPeriodValue = PID_Motor.Period;
+  97              		.loc 1 235 0
+  98 0050 A365     		str	r3, [r4, #88]
+ 212:./src/motor/BLDC.c ****     channelsetup[0].channelDeadtimeValue = 1250;
+  99              		.loc 1 212 0
+ 100 0052 C4F80CE0 		str	lr, [r4, #12]
+ 222:./src/motor/BLDC.c ****     channelsetup[1].channelDeadtimeValue = 1250;
+ 101              		.loc 1 222 0
+ 102 0056 C4F82CE0 		str	lr, [r4, #44]
+ 232:./src/motor/BLDC.c ****     channelsetup[2].channelDeadtimeValue = 1250;
+ 103              		.loc 1 232 0
+ 104 005a C4F84CE0 		str	lr, [r4, #76]
+ 209:./src/motor/BLDC.c ****     channelsetup[0].channelType = MCPWM_CHANNEL_EDGE_MODE;
+ 105              		.loc 1 209 0
+ 106 005e 2760     		str	r7, [r4]
+ 214:./src/motor/BLDC.c ****     channelsetup[0].channelTimercounterValue = 0;
+ 107              		.loc 1 214 0
+ 108 0060 6761     		str	r7, [r4, #20]
+ 216:./src/motor/BLDC.c ****     channelsetup[0].channelPulsewidthValue = 0;
+ 109              		.loc 1 216 0
+ 110 0062 E761     		str	r7, [r4, #28]
+ 219:./src/motor/BLDC.c ****     channelsetup[1].channelType = MCPWM_CHANNEL_EDGE_MODE;
+ 111              		.loc 1 219 0
+ 112 0064 2762     		str	r7, [r4, #32]
+ 224:./src/motor/BLDC.c ****     channelsetup[1].channelTimercounterValue = 0;
+ 113              		.loc 1 224 0
+ 114 0066 6763     		str	r7, [r4, #52]
+ 226:./src/motor/BLDC.c ****     channelsetup[1].channelPulsewidthValue = 0;
+ 115              		.loc 1 226 0
+ 116 0068 E763     		str	r7, [r4, #60]
+ 234:./src/motor/BLDC.c ****     channelsetup[2].channelTimercounterValue = 0;
+ 117              		.loc 1 234 0
+ 118 006a 6765     		str	r7, [r4, #84]
+ 236:./src/motor/BLDC.c ****     channelsetup[2].channelPulsewidthValue = 0;
+ 119              		.loc 1 236 0
+ 120 006c E765     		str	r7, [r4, #92]
+ 210:./src/motor/BLDC.c ****     channelsetup[0].channelPolarity = MCPWM_CHANNEL_PASSIVE_HI;
+ 121              		.loc 1 210 0
+ 122 006e 6560     		str	r5, [r4, #4]
+ 211:./src/motor/BLDC.c ****     channelsetup[0].channelDeadtimeEnable = ENABLE;
+ 123              		.loc 1 211 0
+ 124 0070 A560     		str	r5, [r4, #8]
+ 213:./src/motor/BLDC.c ****     channelsetup[0].channelUpdateEnable = ENABLE;
+ 125              		.loc 1 213 0
+ 126 0072 2561     		str	r5, [r4, #16]
+ 220:./src/motor/BLDC.c ****     channelsetup[1].channelPolarity = MCPWM_CHANNEL_PASSIVE_HI;
+ 127              		.loc 1 220 0
+ 128 0074 6562     		str	r5, [r4, #36]
+ 221:./src/motor/BLDC.c ****     channelsetup[1].channelDeadtimeEnable = ENABLE;
+ 129              		.loc 1 221 0
+ 130 0076 A562     		str	r5, [r4, #40]
+ 223:./src/motor/BLDC.c ****     channelsetup[1].channelUpdateEnable = ENABLE;
+ 131              		.loc 1 223 0
+ 132 0078 2563     		str	r5, [r4, #48]
+ 229:./src/motor/BLDC.c ****     channelsetup[2].channelType = MCPWM_CHANNEL_CENTER_MODE;
+ 133              		.loc 1 229 0
+ 134 007a 2564     		str	r5, [r4, #64]
+ 230:./src/motor/BLDC.c ****     channelsetup[2].channelPolarity = MCPWM_CHANNEL_PASSIVE_HI;
+ 135              		.loc 1 230 0
+ 136 007c 6564     		str	r5, [r4, #68]
+ 231:./src/motor/BLDC.c ****     channelsetup[2].channelDeadtimeEnable = ENABLE;
+ 137              		.loc 1 231 0
+ 138 007e A564     		str	r5, [r4, #72]
+ 233:./src/motor/BLDC.c ****     channelsetup[2].channelUpdateEnable = ENABLE;
+ 139              		.loc 1 233 0
+ 140 0080 2565     		str	r5, [r4, #80]
+ 141              		.loc 1 239 0
+ 142 0082 FFF7FEFF 		bl	MCPWM_ConfigChannel
+ 143              	.LVL8:
+ 240:./src/motor/BLDC.c ****     MCPWM_ConfigChannel(LPC_MCPWM, 1, &channelsetup[1]);
+ 144              		.loc 1 240 0
+ 145 0086 3046     		mov	r0, r6
+ 146 0088 2946     		mov	r1, r5
+ 147 008a 04F12002 		add	r2, r4, #32
+ 148 008e FFF7FEFF 		bl	MCPWM_ConfigChannel
+ 149              	.LVL9:
+ 241:./src/motor/BLDC.c ****     MCPWM_ConfigChannel(LPC_MCPWM, 2, &channelsetup[2]);
+ 150              		.loc 1 241 0
+ 151 0092 3046     		mov	r0, r6
+ 152 0094 04F14002 		add	r2, r4, #64
+ 153 0098 0221     		movs	r1, #2
+ 242:./src/motor/BLDC.c **** 
+ 243:./src/motor/BLDC.c **** #if (USE_HALL == 1) && (USE_MCPWM_FEEDBACK == 1)
+ 244:./src/motor/BLDC.c ****     captureCfg.captureChannel = 0;
+ 245:./src/motor/BLDC.c ****     captureCfg.captureFalling = ENABLE;
+ 246:./src/motor/BLDC.c ****     captureCfg.captureRising = ENABLE;
+ 247:./src/motor/BLDC.c ****     captureCfg.hnfEnable = DISABLE;
+ 248:./src/motor/BLDC.c ****     captureCfg.timerReset = DISABLE;
+ 249:./src/motor/BLDC.c ****     MCPWM_ConfigCapture(MCPWM, 0, &captureCfg);
+ 250:./src/motor/BLDC.c **** 
+ 251:./src/motor/BLDC.c ****     captureCfg.captureChannel = 1;
+ 252:./src/motor/BLDC.c ****     captureCfg.captureFalling = ENABLE;
+ 253:./src/motor/BLDC.c ****     captureCfg.captureRising = ENABLE;
+ 254:./src/motor/BLDC.c ****     captureCfg.hnfEnable = DISABLE;
+ 255:./src/motor/BLDC.c ****     captureCfg.timerReset = DISABLE;
+ 256:./src/motor/BLDC.c ****     MCPWM_ConfigCapture(MCPWM, 1, &captureCfg);
+ 257:./src/motor/BLDC.c **** 
+ 258:./src/motor/BLDC.c ****     captureCfg.captureChannel = 2;
+ 259:./src/motor/BLDC.c ****     captureCfg.captureFalling = ENABLE;
+ 260:./src/motor/BLDC.c ****     captureCfg.captureRising = ENABLE;
+ 261:./src/motor/BLDC.c ****     captureCfg.hnfEnable = DISABLE;
+ 262:./src/motor/BLDC.c ****     captureCfg.timerReset = DISABLE;
+ 263:./src/motor/BLDC.c ****     MCPWM_ConfigCapture(MCPWM, 2, &captureCfg);
+ 264:./src/motor/BLDC.c **** #endif
+ 265:./src/motor/BLDC.c **** 
+ 266:./src/motor/BLDC.c **** 
+ 267:./src/motor/BLDC.c **** #if (USE_QEI == 1)
+ 268:./src/motor/BLDC.c **** 	/* QEI CONFIGURATION **********************************************/
+ 269:./src/motor/BLDC.c **** 	/* Configure the QEI */
+ 270:./src/motor/BLDC.c **** 	QEIConfigStruct.CaptureMode = QEI_CAPMODE_4X;
+ 271:./src/motor/BLDC.c **** 	QEIConfigStruct.DirectionInvert = QEI_DIRINV_NONE;
+ 272:./src/motor/BLDC.c **** 	QEIConfigStruct.InvertIndex = QEI_INVINX_NONE;
+ 273:./src/motor/BLDC.c **** 	QEIConfigStruct.SignalMode = QEI_SIGNALMODE_QUAD;
+ 274:./src/motor/BLDC.c **** 	/* Initialize the QEI */
+ 275:./src/motor/BLDC.c **** 	QEI_Init(LPC_QEI, &QEIConfigStruct);
+ 276:./src/motor/BLDC.c **** 	/* Set the QEI Filter clock counter*/
+ 277:./src/motor/BLDC.c **** 	QEI_SetDigiFilter(LPC_QEI, 20);
+ 278:./src/motor/BLDC.c **** 	/* Set the max QEI position */
+ 279:./src/motor/BLDC.c **** 	QEI_SetMaxPosition(LPC_QEI, 2000);
+ 280:./src/motor/BLDC.c **** 	/* Set the first position compare value */
+ 281:./src/motor/BLDC.c **** 	QEI_SetPositionComp(LPC_QEI,QEI_COMPPOS_CH_0, 333+QEI_offset);
+ 282:./src/motor/BLDC.c **** 
+ 283:./src/motor/BLDC.c **** 	LPC_QEI->QEICON = (1<<1);
+ 284:./src/motor/BLDC.c **** 
+ 285:./src/motor/BLDC.c **** 	/* Enable interrupt for velocity Timer overflow for capture velocity into Acc */
+ 286:./src/motor/BLDC.c **** 	QEI_IntCmd(LPC_QEI, QEI_INTFLAG_POS0_Int, ENABLE);
+ 287:./src/motor/BLDC.c **** 	/* preemption = 1, sub-priority = 1 */
+ 288:./src/motor/BLDC.c **** 	NVIC_SetPriority(QEI_IRQn, ((0x01<<3)|0x01));
+ 289:./src/motor/BLDC.c **** 	/* Enable interrupt for QEI  */
+ 290:./src/motor/BLDC.c **** 	NVIC_EnableIRQ(QEI_IRQn);
+ 291:./src/motor/BLDC.c **** 
+ 292:./src/motor/BLDC.c **** #endif // END OF USE_QEI
+ 293:./src/motor/BLDC.c **** 
+ 294:./src/motor/BLDC.c **** 
+ 295:./src/motor/BLDC.c **** }
+ 154              		.loc 1 295 0
+ 155 009a BDE8F840 		pop	{r3, r4, r5, r6, r7, lr}
+ 241:./src/motor/BLDC.c ****     MCPWM_ConfigChannel(LPC_MCPWM, 2, &channelsetup[2]);
+ 156              		.loc 1 241 0
+ 157 009e FFF7FEBF 		b	MCPWM_ConfigChannel
+ 158              	.LVL10:
+ 159              	.L3:
+ 160 00a2 00BF     		.align	2
+ 161              	.L2:
+ 162 00a4 00000000 		.word	.LANCHOR0
+ 163 00a8 00000000 		.word	.LANCHOR1
+ 164 00ac 00000000 		.word	.LANCHOR2
+ 165 00b0 00000000 		.word	.LANCHOR3
+ 166 00b4 00000000 		.word	.LANCHOR4
+ 167 00b8 00800B40 		.word	1074495488
+ 168 00bc 00000000 		.word	.LANCHOR5
+ 169 00c0 00000000 		.word	.LANCHOR6
+ 170 00c4 00000000 		.word	.LANCHOR7
+ 171 00c8 00000000 		.word	channelsetup
+ 172              		.cfi_endproc
+ 173              	.LFE55:
+ 175              		.section	.text.BLDC_Enable,"ax",%progbits
+ 176              		.align	2
+ 177              		.global	BLDC_Enable
+ 178              		.thumb
+ 179              		.thumb_func
+ 181              	BLDC_Enable:
+ 182              	.LFB56:
+ 296:./src/motor/BLDC.c **** 
+ 297:./src/motor/BLDC.c **** /**
+ 298:./src/motor/BLDC.c ****  *	@brief
+ 299:./src/motor/BLDC.c ****  * 			This function enables the BLDC motor control by setting the MCPWM in the
+ 300:./src/motor/BLDC.c ****  *			right mode, enable the capturing and starting the MCPWM
+ 301:./src/motor/BLDC.c ****  */
+ 302:./src/motor/BLDC.c **** void BLDC_Enable (void)
+ 303:./src/motor/BLDC.c **** {
+ 183              		.loc 1 303 0
+ 184              		.cfi_startproc
+ 185              		@ args = 0, pretend = 0, frame = 0
+ 186              		@ frame_needed = 0, uses_anonymous_args = 0
+ 187 0000 10B5     		push	{r4, lr}
+ 188              		.cfi_def_cfa_offset 8
+ 189              		.cfi_offset 4, -8
+ 190              		.cfi_offset 14, -4
+ 304:./src/motor/BLDC.c **** 
+ 305:./src/motor/BLDC.c ****     /* Enable the MCPWM DC mode and all output pins */
+ 306:./src/motor/BLDC.c ****     MCPWM_ACMode(LPC_MCPWM, ENABLE);
+ 191              		.loc 1 306 0
+ 192 0002 1C4C     		ldr	r4, .L5
+ 193 0004 0121     		movs	r1, #1
+ 194 0006 2046     		mov	r0, r4
+ 195 0008 FFF7FEFF 		bl	MCPWM_ACMode
+ 196              	.LVL11:
+ 307:./src/motor/BLDC.c **** 
+ 308:./src/motor/BLDC.c ****     /* Set the PWM output value */
+ 309:./src/motor/BLDC.c ****     //channelsetup[0].channelPulsewidthValue = 100;
+ 310:./src/motor/BLDC.c **** 
+ 311:./src/motor/BLDC.c ****     /* Write to the shadow register */
+ 312:./src/motor/BLDC.c ****     MCPWM_WriteToShadow(LPC_MCPWM, 0, &channelsetup[0]);
+ 197              		.loc 1 312 0
+ 198 000c 2046     		mov	r0, r4
+ 199 000e 0021     		movs	r1, #0
+ 200 0010 194A     		ldr	r2, .L5+4
+ 201 0012 FFF7FEFF 		bl	MCPWM_WriteToShadow
+ 202              	.LVL12:
+ 313:./src/motor/BLDC.c **** 
+ 314:./src/motor/BLDC.c ****     /* Disable LIM0 and MAT0 interrupt flag */
+ 315:./src/motor/BLDC.c ****     MCPWM_IntConfig(LPC_MCPWM, MCPWM_INTFLAG_LIM0, DISABLE);
+ 203              		.loc 1 315 0
+ 204 0016 2046     		mov	r0, r4
+ 205 0018 0121     		movs	r1, #1
+ 206 001a 0022     		movs	r2, #0
+ 207 001c FFF7FEFF 		bl	MCPWM_IntConfig
+ 208              	.LVL13:
+ 316:./src/motor/BLDC.c ****     MCPWM_IntConfig(LPC_MCPWM, MCPWM_INTFLAG_MAT0, DISABLE);
+ 209              		.loc 1 316 0
+ 210 0020 2046     		mov	r0, r4
+ 211 0022 0221     		movs	r1, #2
+ 212 0024 0022     		movs	r2, #0
+ 213 0026 FFF7FEFF 		bl	MCPWM_IntConfig
+ 214              	.LVL14:
+ 317:./src/motor/BLDC.c **** 
+ 318:./src/motor/BLDC.c ****     /* Disable LIM1 and MAT1 interrupt flag */
+ 319:./src/motor/BLDC.c ****     MCPWM_IntConfig(LPC_MCPWM, MCPWM_INTFLAG_LIM1, DISABLE);
+ 215              		.loc 1 319 0
+ 216 002a 2046     		mov	r0, r4
+ 217 002c 1021     		movs	r1, #16
+ 218 002e 0022     		movs	r2, #0
+ 219 0030 FFF7FEFF 		bl	MCPWM_IntConfig
+ 220              	.LVL15:
+ 320:./src/motor/BLDC.c ****     MCPWM_IntConfig(LPC_MCPWM, MCPWM_INTFLAG_MAT1, DISABLE);
+ 221              		.loc 1 320 0
+ 222 0034 2046     		mov	r0, r4
+ 223 0036 2021     		movs	r1, #32
+ 224 0038 0022     		movs	r2, #0
+ 225 003a FFF7FEFF 		bl	MCPWM_IntConfig
+ 226              	.LVL16:
+ 321:./src/motor/BLDC.c **** 
+ 322:./src/motor/BLDC.c ****     /* Disable LIM2 and MAT2 interrupt flag */
+ 323:./src/motor/BLDC.c ****     MCPWM_IntConfig(LPC_MCPWM, MCPWM_INTFLAG_LIM2, DISABLE);
+ 227              		.loc 1 323 0
+ 228 003e 2046     		mov	r0, r4
+ 229 0040 4FF48071 		mov	r1, #256
+ 230 0044 0022     		movs	r2, #0
+ 231 0046 FFF7FEFF 		bl	MCPWM_IntConfig
+ 232              	.LVL17:
+ 324:./src/motor/BLDC.c ****     MCPWM_IntConfig(LPC_MCPWM, MCPWM_INTFLAG_MAT2, DISABLE);
+ 233              		.loc 1 324 0
+ 234 004a 2046     		mov	r0, r4
+ 235 004c 4FF40071 		mov	r1, #512
+ 236 0050 0022     		movs	r2, #0
+ 237 0052 FFF7FEFF 		bl	MCPWM_IntConfig
+ 238              	.LVL18:
+ 325:./src/motor/BLDC.c **** 
+ 326:./src/motor/BLDC.c **** #if (USE_HALL == 1)
+ 327:./src/motor/BLDC.c **** #if (USE_MCPWM_FEEDBACK == 1)
+ 328:./src/motor/BLDC.c ****     /* Enable interrupt for capture event on MCI0 (MCFB0)  */
+ 329:./src/motor/BLDC.c ****     MCPWM_IntConfig(LPC_MCPWM, MCPWM_INTFLAG_CAP0, ENABLE);
+ 330:./src/motor/BLDC.c **** 
+ 331:./src/motor/BLDC.c ****     /* Enable interrupt for capture event on MCI0 (MCFB1) */
+ 332:./src/motor/BLDC.c ****     MCPWM_IntConfig(LPC_MCPWM, MCPWM_INTFLAG_CAP1, ENABLE);
+ 333:./src/motor/BLDC.c **** 
+ 334:./src/motor/BLDC.c ****     /* Enable interrupt for capture event on MCI0 (MCFB2) */
+ 335:./src/motor/BLDC.c ****     MCPWM_IntConfig(LPC_MCPWM, MCPWM_INTFLAG_CAP2, ENABLE);
+ 336:./src/motor/BLDC.c **** 	
+ 337:./src/motor/BLDC.c **** 	/* Enable interrupt for MCPWM  */
+ 338:./src/motor/BLDC.c ****     NVIC_EnableIRQ(MCPWM_IRQn);
+ 339:./src/motor/BLDC.c **** #else
+ 340:./src/motor/BLDC.c **** 	NVIC_EnableIRQ(EINT3_IRQn);
+ 341:./src/motor/BLDC.c **** #endif
+ 342:./src/motor/BLDC.c **** #endif
+ 343:./src/motor/BLDC.c **** 
+ 344:./src/motor/BLDC.c ****     /* Start up the MCPWM */
+ 345:./src/motor/BLDC.c ****     MCPWM_Start(LPC_MCPWM, ENABLE, ENABLE, ENABLE);
+ 239              		.loc 1 345 0
+ 240 0056 0121     		movs	r1, #1
+ 241 0058 0A46     		mov	r2, r1
+ 242 005a 0B46     		mov	r3, r1
+ 243 005c 2046     		mov	r0, r4
+ 244 005e FFF7FEFF 		bl	MCPWM_Start
+ 245              	.LVL19:
+ 346:./src/motor/BLDC.c **** 
+ 347:./src/motor/BLDC.c ****     /* Disable the brake */
+ 348:./src/motor/BLDC.c ****     PID_Motor.Brake = DISABLE;
+ 246              		.loc 1 348 0
+ 247 0062 064B     		ldr	r3, .L5+8
+ 248 0064 0021     		movs	r1, #0
+ 349:./src/motor/BLDC.c **** 
+ 350:./src/motor/BLDC.c ****     /* Enable the motor */
+ 351:./src/motor/BLDC.c ****     PID_Motor.Enable = ENABLE;
+ 249              		.loc 1 351 0
+ 250 0066 0122     		movs	r2, #1
+ 348:./src/motor/BLDC.c ****     PID_Motor.Brake = DISABLE;
+ 251              		.loc 1 348 0
+ 252 0068 83F84E10 		strb	r1, [r3, #78]
+ 253              		.loc 1 351 0
+ 254 006c 83F84C20 		strb	r2, [r3, #76]
+ 255 0070 10BD     		pop	{r4, pc}
+ 256              	.L6:
+ 257 0072 00BF     		.align	2
+ 258              	.L5:
+ 259 0074 00800B40 		.word	1074495488
+ 260 0078 00000000 		.word	channelsetup
+ 261 007c 00000000 		.word	.LANCHOR7
+ 262              		.cfi_endproc
+ 263              	.LFE56:
+ 265              		.section	.text.BLDC_setDuty,"ax",%progbits
+ 266              		.align	2
+ 267              		.global	BLDC_setDuty
+ 268              		.thumb
+ 269              		.thumb_func
+ 271              	BLDC_setDuty:
+ 272              	.LFB57:
+ 352:./src/motor/BLDC.c **** }
+ 353:./src/motor/BLDC.c **** 
+ 354:./src/motor/BLDC.c **** void BLDC_setDuty (S32 duty)
+ 355:./src/motor/BLDC.c **** {
+ 273              		.loc 1 355 0
+ 274              		.cfi_startproc
+ 275              		@ args = 0, pretend = 0, frame = 0
+ 276              		@ frame_needed = 0, uses_anonymous_args = 0
+ 277              	.LVL20:
+ 278 0000 70B5     		push	{r4, r5, r6, lr}
+ 279              		.cfi_def_cfa_offset 16
+ 280              		.cfi_offset 4, -16
+ 281              		.cfi_offset 5, -12
+ 282              		.cfi_offset 6, -8
+ 283              		.cfi_offset 14, -4
+ 356:./src/motor/BLDC.c **** 
+ 357:./src/motor/BLDC.c **** 	U32 duty1=0;
+ 358:./src/motor/BLDC.c **** 	U32 duty2=0;
+ 359:./src/motor/BLDC.c **** 
+ 360:./src/motor/BLDC.c **** 	if (duty>0)
+ 284              		.loc 1 360 0
+ 285 0002 051E     		subs	r5, r0, #0
+ 286 0004 20DD     		ble	.L8
+ 361:./src/motor/BLDC.c **** 	{
+ 362:./src/motor/BLDC.c **** 		duty1=duty+2000;
+ 287              		.loc 1 362 0
+ 288 0006 05F5FA63 		add	r3, r5, #2000
+ 289              	.LVL21:
+ 363:./src/motor/BLDC.c **** 		if (duty1>=23750)  duty1=23750;
+ 290              		.loc 1 363 0
+ 291 000a 45F6C541 		movw	r1, #23749
+ 292 000e 45F6C642 		movw	r2, #23750
+ 293 0012 8B42     		cmp	r3, r1
+ 294 0014 88BF     		it	hi
+ 295 0016 1346     		movhi	r3, r2
+ 296              	.LVL22:
+ 355:./src/motor/BLDC.c **** {
+ 297              		.loc 1 355 0
+ 298 0018 0026     		movs	r6, #0
+ 299              	.LVL23:
+ 300              	.L10:
+ 364:./src/motor/BLDC.c **** 		duty2=0;
+ 365:./src/motor/BLDC.c **** 	}
+ 366:./src/motor/BLDC.c **** 
+ 367:./src/motor/BLDC.c **** 	if (duty<0)
+ 368:./src/motor/BLDC.c **** 	{
+ 369:./src/motor/BLDC.c **** 		duty1=0;
+ 370:./src/motor/BLDC.c **** 		duty2=-duty;
+ 371:./src/motor/BLDC.c **** 		duty2=duty2+2000;
+ 372:./src/motor/BLDC.c **** 		if (duty2>=23750) duty2=23750;
+ 373:./src/motor/BLDC.c **** 
+ 374:./src/motor/BLDC.c **** 	}
+ 375:./src/motor/BLDC.c **** 
+ 376:./src/motor/BLDC.c **** 	if (duty==0)
+ 377:./src/motor/BLDC.c **** 	{
+ 378:./src/motor/BLDC.c **** 		duty1=0;
+ 379:./src/motor/BLDC.c **** 		duty2=0;
+ 380:./src/motor/BLDC.c **** 	}
+ 381:./src/motor/BLDC.c **** 		/* Set the PWM output value */
+ 382:./src/motor/BLDC.c **** 	channelsetup[0].channelPulsewidthValue = duty1;
+ 301              		.loc 1 382 0
+ 302 001a 134C     		ldr	r4, .L17
+ 383:./src/motor/BLDC.c ****     /* Write to the shadow register */
+ 384:./src/motor/BLDC.c **** 	MCPWM_WriteToShadow(LPC_MCPWM, 0, &channelsetup[0]);
+ 303              		.loc 1 384 0
+ 304 001c 1348     		ldr	r0, .L17+4
+ 305              	.LVL24:
+ 306 001e 2246     		mov	r2, r4
+ 307 0020 0021     		movs	r1, #0
+ 382:./src/motor/BLDC.c **** 	channelsetup[0].channelPulsewidthValue = duty1;
+ 308              		.loc 1 382 0
+ 309 0022 E361     		str	r3, [r4, #28]
+ 310              		.loc 1 384 0
+ 311 0024 FFF7FEFF 		bl	MCPWM_WriteToShadow
+ 312              	.LVL25:
+ 385:./src/motor/BLDC.c **** 
+ 386:./src/motor/BLDC.c **** 	/* Set the PWM output value */
+ 387:./src/motor/BLDC.c **** 	channelsetup[1].channelPulsewidthValue = duty2;
+ 388:./src/motor/BLDC.c ****     /* Write to the shadow register */
+ 389:./src/motor/BLDC.c **** 	MCPWM_WriteToShadow(LPC_MCPWM, 1, &channelsetup[1]);
+ 313              		.loc 1 389 0
+ 314 0028 04F12002 		add	r2, r4, #32
+ 315 002c 0F48     		ldr	r0, .L17+4
+ 316 002e 0121     		movs	r1, #1
+ 387:./src/motor/BLDC.c **** 	channelsetup[1].channelPulsewidthValue = duty2;
+ 317              		.loc 1 387 0
+ 318 0030 E663     		str	r6, [r4, #60]
+ 319              		.loc 1 389 0
+ 320 0032 FFF7FEFF 		bl	MCPWM_WriteToShadow
+ 321              	.LVL26:
+ 390:./src/motor/BLDC.c **** 
+ 391:./src/motor/BLDC.c **** 	/* Set the PWM output value */
+ 392:./src/motor/BLDC.c **** 	channelsetup[2].channelPulsewidthValue = duty;
+ 393:./src/motor/BLDC.c ****     /* Write to the shadow register */
+ 394:./src/motor/BLDC.c **** 	MCPWM_WriteToShadow(LPC_MCPWM, 2, &channelsetup[2]);
+ 322              		.loc 1 394 0
+ 323 0036 04F14002 		add	r2, r4, #64
+ 392:./src/motor/BLDC.c **** 	channelsetup[2].channelPulsewidthValue = duty;
+ 324              		.loc 1 392 0
+ 325 003a E565     		str	r5, [r4, #92]
+ 326              		.loc 1 394 0
+ 327 003c 0B48     		ldr	r0, .L17+4
+ 328 003e 0221     		movs	r1, #2
+ 395:./src/motor/BLDC.c **** }
+ 329              		.loc 1 395 0
+ 330 0040 BDE87040 		pop	{r4, r5, r6, lr}
+ 331              	.LVL27:
+ 394:./src/motor/BLDC.c **** 	MCPWM_WriteToShadow(LPC_MCPWM, 2, &channelsetup[2]);
+ 332              		.loc 1 394 0
+ 333 0044 FFF7FEBF 		b	MCPWM_WriteToShadow
+ 334              	.LVL28:
+ 335              	.L8:
+ 367:./src/motor/BLDC.c **** 	if (duty<0)
+ 336              		.loc 1 367 0
+ 337 0048 0AD0     		beq	.L14
+ 338              	.LVL29:
+ 372:./src/motor/BLDC.c **** 		if (duty2>=23750) duty2=23750;
+ 339              		.loc 1 372 0
+ 340 004a 45F6C643 		movw	r3, #23750
+ 371:./src/motor/BLDC.c **** 		duty2=duty2+2000;
+ 341              		.loc 1 371 0
+ 342 004e C5F5FA66 		rsb	r6, r5, #2000
+ 343              	.LVL30:
+ 372:./src/motor/BLDC.c **** 		if (duty2>=23750) duty2=23750;
+ 344              		.loc 1 372 0
+ 345 0052 45F6C542 		movw	r2, #23749
+ 346 0056 9642     		cmp	r6, r2
+ 347 0058 88BF     		it	hi
+ 348 005a 1E46     		movhi	r6, r3
+ 349              	.LVL31:
+ 355:./src/motor/BLDC.c **** {
+ 350              		.loc 1 355 0
+ 351 005c 0023     		movs	r3, #0
+ 352 005e DCE7     		b	.L10
+ 353              	.LVL32:
+ 354              	.L14:
+ 379:./src/motor/BLDC.c **** 		duty2=0;
+ 355              		.loc 1 379 0
+ 356 0060 2E46     		mov	r6, r5
+ 378:./src/motor/BLDC.c **** 		duty1=0;
+ 357              		.loc 1 378 0
+ 358 0062 2B46     		mov	r3, r5
+ 359 0064 D9E7     		b	.L10
+ 360              	.L18:
+ 361 0066 00BF     		.align	2
+ 362              	.L17:
+ 363 0068 00000000 		.word	channelsetup
+ 364 006c 00800B40 		.word	1074495488
+ 365              		.cfi_endproc
+ 366              	.LFE57:
+ 368              		.section	.text.BLDC_calcRPM,"ax",%progbits
+ 369              		.align	2
+ 370              		.global	BLDC_calcRPM
+ 371              		.thumb
+ 372              		.thumb_func
+ 374              	BLDC_calcRPM:
+ 375              	.LFB58:
+ 396:./src/motor/BLDC.c **** 
+ 397:./src/motor/BLDC.c **** void BLDC_calcRPM (PIDstr *ptr)
+ 398:./src/motor/BLDC.c **** {
+ 376              		.loc 1 398 0
+ 377              		.cfi_startproc
+ 378              		@ args = 0, pretend = 0, frame = 0
+ 379              		@ frame_needed = 0, uses_anonymous_args = 0
+ 380              		@ link register save eliminated.
+ 381              	.LVL33:
+ 382 0000 7047     		bx	lr
+ 383              		.cfi_endproc
+ 384              	.LFE58:
+ 386 0002 00BF     		.section	.text.BLDC_break,"ax",%progbits
+ 387              		.align	2
+ 388              		.global	BLDC_break
+ 389              		.thumb
+ 390              		.thumb_func
+ 392              	BLDC_break:
+ 393              	.LFB59:
+ 399:./src/motor/BLDC.c **** 
+ 400:./src/motor/BLDC.c **** //	ptr->Tick_new = SysTick->VAL;
+ 401:./src/motor/BLDC.c **** //
+ 402:./src/motor/BLDC.c **** //	/* RPM calculation */
+ 403:./src/motor/BLDC.c **** //	if (ptr->Tick_cur)
+ 404:./src/motor/BLDC.c **** //	{
+ 405:./src/motor/BLDC.c **** //		ptr->pv = (((DWORD)ptr->Tick_cur-1)*(DWORD)SysTick_VALUE)+
+ 406:./src/motor/BLDC.c **** //						((DWORD)SysTick_VALUE-(DWORD)ptr->Tick_new +
+ 407:./src/motor/BLDC.c **** //						((DWORD)ptr->Tick_old));
+ 408:./src/motor/BLDC.c **** //	}
+ 409:./src/motor/BLDC.c **** //	else
+ 410:./src/motor/BLDC.c **** //	{
+ 411:./src/motor/BLDC.c **** //		if ((DWORD)bldc_SySTickold > (DWORD)ptr->Tick_new)
+ 412:./src/motor/BLDC.c **** //			ptr->pv = (DWORD)ptr->Tick_old-(DWORD)ptr->Tick_new;
+ 413:./src/motor/BLDC.c **** //
+ 414:./src/motor/BLDC.c **** //	}
+ 415:./src/motor/BLDC.c **** //	/* Clear the 1 ms counter */
+ 416:./src/motor/BLDC.c **** //	ptr->Tick_cur = 0;
+ 417:./src/motor/BLDC.c **** //	ptr->Tick_old = ptr->Tick_new;
+ 418:./src/motor/BLDC.c **** 
+ 419:./src/motor/BLDC.c **** }
+ 420:./src/motor/BLDC.c **** 
+ 421:./src/motor/BLDC.c **** void BLDC_break (void)
+ 422:./src/motor/BLDC.c **** {
+ 394              		.loc 1 422 0
+ 395              		.cfi_startproc
+ 396              		@ args = 0, pretend = 0, frame = 0
+ 397              		@ frame_needed = 0, uses_anonymous_args = 0
+ 398              		.loc 1 422 0
+ 399 0000 70B5     		push	{r4, r5, r6, lr}
+ 400              		.cfi_def_cfa_offset 16
+ 401              		.cfi_offset 4, -16
+ 402              		.cfi_offset 5, -12
+ 403              		.cfi_offset 6, -8
+ 404              		.cfi_offset 14, -4
+ 423:./src/motor/BLDC.c **** 
+ 424:./src/motor/BLDC.c **** 	/* Set the PWM output value */
+ 425:./src/motor/BLDC.c **** 	channelsetup[0].channelPulsewidthValue = 900;
+ 405              		.loc 1 425 0
+ 406 0002 0D4C     		ldr	r4, .L21
+ 426:./src/motor/BLDC.c ****     /* Write to the shadow register */
+ 427:./src/motor/BLDC.c **** 	MCPWM_WriteToShadow(LPC_MCPWM, 0, &channelsetup[0]);
+ 407              		.loc 1 427 0
+ 408 0004 0D4E     		ldr	r6, .L21+4
+ 425:./src/motor/BLDC.c **** 	channelsetup[0].channelPulsewidthValue = 900;
+ 409              		.loc 1 425 0
+ 410 0006 4FF46175 		mov	r5, #900
+ 411              		.loc 1 427 0
+ 412 000a 2246     		mov	r2, r4
+ 413 000c 3046     		mov	r0, r6
+ 414 000e 0021     		movs	r1, #0
+ 425:./src/motor/BLDC.c **** 	channelsetup[0].channelPulsewidthValue = 900;
+ 415              		.loc 1 425 0
+ 416 0010 E561     		str	r5, [r4, #28]
+ 417              		.loc 1 427 0
+ 418 0012 FFF7FEFF 		bl	MCPWM_WriteToShadow
+ 419              	.LVL34:
+ 428:./src/motor/BLDC.c **** 
+ 429:./src/motor/BLDC.c **** 	/* Set the PWM output value */
+ 430:./src/motor/BLDC.c **** 	channelsetup[1].channelPulsewidthValue = 900;
+ 431:./src/motor/BLDC.c ****     /* Write to the shadow register */
+ 432:./src/motor/BLDC.c **** 	MCPWM_WriteToShadow(LPC_MCPWM, 0, &channelsetup[1]);
+ 420              		.loc 1 432 0
+ 421 0016 3046     		mov	r0, r6
+ 422 0018 04F12002 		add	r2, r4, #32
+ 423 001c 0021     		movs	r1, #0
+ 430:./src/motor/BLDC.c **** 	channelsetup[1].channelPulsewidthValue = 900;
+ 424              		.loc 1 430 0
+ 425 001e E563     		str	r5, [r4, #60]
+ 426              		.loc 1 432 0
+ 427 0020 FFF7FEFF 		bl	MCPWM_WriteToShadow
+ 428              	.LVL35:
+ 433:./src/motor/BLDC.c **** 
+ 434:./src/motor/BLDC.c **** 	/* Set the PWM output value */
+ 435:./src/motor/BLDC.c **** 	channelsetup[2].channelPulsewidthValue = 900;
+ 436:./src/motor/BLDC.c ****     /* Write to the shadow register */
+ 437:./src/motor/BLDC.c **** 	MCPWM_WriteToShadow(LPC_MCPWM, 0, &channelsetup[2]);
+ 429              		.loc 1 437 0
+ 430 0024 3046     		mov	r0, r6
+ 431 0026 04F14002 		add	r2, r4, #64
+ 435:./src/motor/BLDC.c **** 	channelsetup[2].channelPulsewidthValue = 900;
+ 432              		.loc 1 435 0
+ 433 002a E565     		str	r5, [r4, #92]
+ 434              		.loc 1 437 0
+ 435 002c 0021     		movs	r1, #0
+ 438:./src/motor/BLDC.c **** }
+ 436              		.loc 1 438 0
+ 437 002e BDE87040 		pop	{r4, r5, r6, lr}
+ 437:./src/motor/BLDC.c **** 	MCPWM_WriteToShadow(LPC_MCPWM, 0, &channelsetup[2]);
+ 438              		.loc 1 437 0
+ 439 0032 FFF7FEBF 		b	MCPWM_WriteToShadow
+ 440              	.LVL36:
+ 441              	.L22:
+ 442 0036 00BF     		.align	2
+ 443              	.L21:
+ 444 0038 00000000 		.word	channelsetup
+ 445 003c 00800B40 		.word	1074495488
+ 446              		.cfi_endproc
+ 447              	.LFE59:
+ 449              		.global	__aeabi_ui2d
+ 450              		.global	__aeabi_dmul
+ 451              		.global	__aeabi_d2iz
+ 452              		.section	.text.BLDC_commutate,"ax",%progbits
+ 453              		.align	2
+ 454              		.global	BLDC_commutate
+ 455              		.thumb
+ 456              		.thumb_func
+ 458              	BLDC_commutate:
+ 459              	.LFB60:
+ 439:./src/motor/BLDC.c **** 
+ 440:./src/motor/BLDC.c **** void BLDC_commutate (unsigned char step)
+ 441:./src/motor/BLDC.c **** {
+ 460              		.loc 1 441 0
+ 461              		.cfi_startproc
+ 462              		@ args = 0, pretend = 0, frame = 0
+ 463              		@ frame_needed = 0, uses_anonymous_args = 0
+ 464              	.LVL37:
+ 442:./src/motor/BLDC.c ****     unsigned char pattern = 0;
+ 443:./src/motor/BLDC.c **** 
+ 444:./src/motor/BLDC.c ****     /* Check whether there is a setpoint and an enable */
+ 445:./src/motor/BLDC.c ****     if((PID_Motor.sp == 0) || (PID_Motor.Enable == DISABLE))
+ 465              		.loc 1 445 0
+ 466 0000 394B     		ldr	r3, .L43+8
+ 441:./src/motor/BLDC.c **** {
+ 467              		.loc 1 441 0
+ 468 0002 10B5     		push	{r4, lr}
+ 469              		.cfi_def_cfa_offset 8
+ 470              		.cfi_offset 4, -8
+ 471              		.cfi_offset 14, -4
+ 472              		.loc 1 445 0
+ 473 0004 9A69     		ldr	r2, [r3, #24]
+ 441:./src/motor/BLDC.c **** {
+ 474              		.loc 1 441 0
+ 475 0006 0446     		mov	r4, r0
+ 476              		.loc 1 445 0
+ 477 0008 002A     		cmp	r2, #0
+ 478 000a 3AD0     		beq	.L24
+ 479              		.loc 1 445 0 is_stmt 0 discriminator 1
+ 480 000c 93F84C20 		ldrb	r2, [r3, #76]	@ zero_extendqisi2
+ 481 0010 002A     		cmp	r2, #0
+ 482 0012 36D0     		beq	.L24
+ 483              	.L25:
+ 484              	.LVL38:
+ 446:./src/motor/BLDC.c ****     {
+ 447:./src/motor/BLDC.c ****         /* If no setpoint and brake is enable BREAK! */
+ 448:./src/motor/BLDC.c ****         if(PID_Motor.Brake == ENABLE)
+ 449:./src/motor/BLDC.c ****         {
+ 450:./src/motor/BLDC.c ****             step = 'B';
+ 451:./src/motor/BLDC.c ****         }
+ 452:./src/motor/BLDC.c ****         /* Else let it run free */
+ 453:./src/motor/BLDC.c ****         else
+ 454:./src/motor/BLDC.c ****         {
+ 455:./src/motor/BLDC.c ****             step = 'C';
+ 456:./src/motor/BLDC.c ****         }
+ 457:./src/motor/BLDC.c ****     }
+ 458:./src/motor/BLDC.c **** 
+ 459:./src/motor/BLDC.c **** //	PID_Motor.mv = PID_Motor.Period/2;
+ 460:./src/motor/BLDC.c **** 
+ 461:./src/motor/BLDC.c ****     if(PID_Motor.mv > PID_Motor.Period)
+ 485              		.loc 1 461 0 is_stmt 1
+ 486 0014 996B     		ldr	r1, [r3, #56]
+ 487 0016 1A6D     		ldr	r2, [r3, #80]
+ 488 0018 334B     		ldr	r3, .L43+8
+ 489 001a 9142     		cmp	r1, r2
+ 462:./src/motor/BLDC.c ****     {
+ 463:./src/motor/BLDC.c ****     	BLDC_setDuty(PID_Motor.Period * 0.01);
+ 490              		.loc 1 463 0
+ 491 001c 186D     		ldr	r0, [r3, #80]
+ 461:./src/motor/BLDC.c ****     if(PID_Motor.mv > PID_Motor.Period)
+ 492              		.loc 1 461 0
+ 493 001e 37D9     		bls	.L26
+ 494              		.loc 1 463 0
+ 495 0020 FFF7FEFF 		bl	__aeabi_ui2d
+ 496              	.LVL39:
+ 497 0024 2EA3     		adr	r3, .L43
+ 498 0026 D3E90023 		ldrd	r2, [r3]
+ 499 002a FFF7FEFF 		bl	__aeabi_dmul
+ 500              	.LVL40:
+ 501 002e FFF7FEFF 		bl	__aeabi_d2iz
+ 502              	.LVL41:
+ 503 0032 FFF7FEFF 		bl	BLDC_setDuty
+ 504              	.LVL42:
+ 505              	.L27:
+ 464:./src/motor/BLDC.c ****     }
+ 465:./src/motor/BLDC.c ****     else
+ 466:./src/motor/BLDC.c ****     {
+ 467:./src/motor/BLDC.c ****     	BLDC_setDuty(PID_Motor.Period-PID_Motor.mv);
+ 468:./src/motor/BLDC.c ****     }
+ 469:./src/motor/BLDC.c **** 
+ 470:./src/motor/BLDC.c ****     switch (step)
+ 506              		.loc 1 470 0
+ 507 0036 432C     		cmp	r4, #67
+ 508 0038 2FD8     		bhi	.L28
+ 509 003a DFE804F0 		tbb	[pc, r4]
+ 510              	.L30:
+ 511 003e 3E       		.byte	(.L29-.L30)/2
+ 512 003f 32       		.byte	(.L39-.L30)/2
+ 513 0040 36       		.byte	(.L32-.L30)/2
+ 514 0041 3A       		.byte	(.L33-.L30)/2
+ 515 0042 49       		.byte	(.L34-.L30)/2
+ 516 0043 4D       		.byte	(.L35-.L30)/2
+ 517 0044 2E       		.byte	(.L28-.L30)/2
+ 518 0045 2E       		.byte	(.L28-.L30)/2
+ 519 0046 2E       		.byte	(.L28-.L30)/2
+ 520 0047 2E       		.byte	(.L28-.L30)/2
+ 521 0048 2E       		.byte	(.L28-.L30)/2
+ 522 0049 2E       		.byte	(.L28-.L30)/2
+ 523 004a 2E       		.byte	(.L28-.L30)/2
+ 524 004b 2E       		.byte	(.L28-.L30)/2
+ 525 004c 2E       		.byte	(.L28-.L30)/2
+ 526 004d 2E       		.byte	(.L28-.L30)/2
+ 527 004e 2E       		.byte	(.L28-.L30)/2
+ 528 004f 2E       		.byte	(.L28-.L30)/2
+ 529 0050 2E       		.byte	(.L28-.L30)/2
+ 530 0051 2E       		.byte	(.L28-.L30)/2
+ 531 0052 2E       		.byte	(.L28-.L30)/2
+ 532 0053 2E       		.byte	(.L28-.L30)/2
+ 533 0054 2E       		.byte	(.L28-.L30)/2
+ 534 0055 2E       		.byte	(.L28-.L30)/2
+ 535 0056 2E       		.byte	(.L28-.L30)/2
+ 536 0057 2E       		.byte	(.L28-.L30)/2
+ 537 0058 2E       		.byte	(.L28-.L30)/2
+ 538 0059 2E       		.byte	(.L28-.L30)/2
+ 539 005a 2E       		.byte	(.L28-.L30)/2
+ 540 005b 2E       		.byte	(.L28-.L30)/2
+ 541 005c 2E       		.byte	(.L28-.L30)/2
+ 542 005d 2E       		.byte	(.L28-.L30)/2
+ 543 005e 2E       		.byte	(.L28-.L30)/2
+ 544 005f 2E       		.byte	(.L28-.L30)/2
+ 545 0060 2E       		.byte	(.L28-.L30)/2
+ 546 0061 2E       		.byte	(.L28-.L30)/2
+ 547 0062 2E       		.byte	(.L28-.L30)/2
+ 548 0063 2E       		.byte	(.L28-.L30)/2
+ 549 0064 2E       		.byte	(.L28-.L30)/2
+ 550 0065 2E       		.byte	(.L28-.L30)/2
+ 551 0066 2E       		.byte	(.L28-.L30)/2
+ 552 0067 2E       		.byte	(.L28-.L30)/2
+ 553 0068 2E       		.byte	(.L28-.L30)/2
+ 554 0069 2E       		.byte	(.L28-.L30)/2
+ 555 006a 2E       		.byte	(.L28-.L30)/2
+ 556 006b 2E       		.byte	(.L28-.L30)/2
+ 557 006c 2E       		.byte	(.L28-.L30)/2
+ 558 006d 2E       		.byte	(.L28-.L30)/2
+ 559 006e 2E       		.byte	(.L28-.L30)/2
+ 560 006f 2E       		.byte	(.L28-.L30)/2
+ 561 0070 2E       		.byte	(.L28-.L30)/2
+ 562 0071 2E       		.byte	(.L28-.L30)/2
+ 563 0072 2E       		.byte	(.L28-.L30)/2
+ 564 0073 2E       		.byte	(.L28-.L30)/2
+ 565 0074 2E       		.byte	(.L28-.L30)/2
+ 566 0075 2E       		.byte	(.L28-.L30)/2
+ 567 0076 2E       		.byte	(.L28-.L30)/2
+ 568 0077 2E       		.byte	(.L28-.L30)/2
+ 569 0078 2E       		.byte	(.L28-.L30)/2
+ 570 0079 2E       		.byte	(.L28-.L30)/2
+ 571 007a 2E       		.byte	(.L28-.L30)/2
+ 572 007b 2E       		.byte	(.L28-.L30)/2
+ 573 007c 2E       		.byte	(.L28-.L30)/2
+ 574 007d 2E       		.byte	(.L28-.L30)/2
+ 575 007e 2E       		.byte	(.L28-.L30)/2
+ 576 007f 2E       		.byte	(.L28-.L30)/2
+ 577 0080 42       		.byte	(.L36-.L30)/2
+ 578 0081 2E       		.byte	(.L28-.L30)/2
+ 579              		.align	1
+ 580              	.LVL43:
+ 581              	.L24:
+ 448:./src/motor/BLDC.c ****         if(PID_Motor.Brake == ENABLE)
+ 582              		.loc 1 448 0
+ 583 0082 93F84E20 		ldrb	r2, [r3, #78]	@ zero_extendqisi2
+ 450:./src/motor/BLDC.c ****             step = 'B';
+ 584              		.loc 1 450 0
+ 585 0086 012A     		cmp	r2, #1
+ 586 0088 14BF     		ite	ne
+ 587 008a 4324     		movne	r4, #67
+ 588 008c 4224     		moveq	r4, #66
+ 589 008e C1E7     		b	.L25
+ 590              	.LVL44:
+ 591              	.L26:
+ 467:./src/motor/BLDC.c ****     	BLDC_setDuty(PID_Motor.Period-PID_Motor.mv);
+ 592              		.loc 1 467 0
+ 593 0090 9B6B     		ldr	r3, [r3, #56]
+ 594 0092 C01A     		subs	r0, r0, r3
+ 595 0094 FFF7FEFF 		bl	BLDC_setDuty
+ 596              	.LVL45:
+ 597 0098 CDE7     		b	.L27
+ 598              	.L28:
+ 471:./src/motor/BLDC.c **** 	{
+ 472:./src/motor/BLDC.c **** 		case 0:
+ 473:./src/motor/BLDC.c **** 			pattern = MCPWM_PATENT_A0 | MCPWM_PATENT_B1;
+ 474:./src/motor/BLDC.c **** 			break;
+ 475:./src/motor/BLDC.c **** 		case 1:
+ 476:./src/motor/BLDC.c **** 			pattern = MCPWM_PATENT_B1 | MCPWM_PATENT_A2;
+ 477:./src/motor/BLDC.c **** 			break;
+ 478:./src/motor/BLDC.c **** 		case 2:
+ 479:./src/motor/BLDC.c **** 			pattern = MCPWM_PATENT_B0 | MCPWM_PATENT_A2;
+ 480:./src/motor/BLDC.c **** 			break;
+ 481:./src/motor/BLDC.c **** 		case 3:
+ 482:./src/motor/BLDC.c **** 			pattern = MCPWM_PATENT_B0 | MCPWM_PATENT_A1;
+ 483:./src/motor/BLDC.c **** 			break;
+ 484:./src/motor/BLDC.c **** 		case 4:
+ 485:./src/motor/BLDC.c **** 			pattern = MCPWM_PATENT_A1 | MCPWM_PATENT_B2;
+ 486:./src/motor/BLDC.c **** 			break;
+ 487:./src/motor/BLDC.c **** 		case 5:
+ 488:./src/motor/BLDC.c **** 			pattern = MCPWM_PATENT_A0 | MCPWM_PATENT_B2;
+ 489:./src/motor/BLDC.c **** 			break;
+ 490:./src/motor/BLDC.c **** 		case 'B':
+ 491:./src/motor/BLDC.c **** 			BLDC_setDuty(0);
+ 492:./src/motor/BLDC.c **** 			pattern = MCPWM_PATENT_B0 | MCPWM_PATENT_B1 | MCPWM_PATENT_B2;
+ 493:./src/motor/BLDC.c **** 			break;
+ 494:./src/motor/BLDC.c **** 		case 'C':
+ 495:./src/motor/BLDC.c **** 			pattern = 0;
+ 496:./src/motor/BLDC.c **** 			break;
+ 497:./src/motor/BLDC.c **** 		default:
+ 498:./src/motor/BLDC.c **** 			pattern = 0;
+ 499:./src/motor/BLDC.c **** 			break;
+ 500:./src/motor/BLDC.c **** 	}
+ 501:./src/motor/BLDC.c **** 
+ 502:./src/motor/BLDC.c **** 
+ 503:./src/motor/BLDC.c ****     LPC_MCPWM->MCCCP = pattern;
+ 599              		.loc 1 503 0
+ 600 009a 144A     		ldr	r2, .L43+12
+ 499:./src/motor/BLDC.c **** 			break;
+ 601              		.loc 1 499 0
+ 602 009c 0023     		movs	r3, #0
+ 603              	.LVL46:
+ 604              		.loc 1 503 0
+ 605 009e 1364     		str	r3, [r2, #64]
+ 606 00a0 10BD     		pop	{r4, pc}
+ 607              	.LVL47:
+ 608              	.L39:
+ 609 00a2 124A     		ldr	r2, .L43+12
+ 470:./src/motor/BLDC.c ****     switch (step)
+ 610              		.loc 1 470 0
+ 611 00a4 1823     		movs	r3, #24
+ 612              	.LVL48:
+ 613              		.loc 1 503 0
+ 614 00a6 1364     		str	r3, [r2, #64]
+ 615 00a8 10BD     		pop	{r4, pc}
+ 616              	.LVL49:
+ 617              	.L32:
+ 618 00aa 104A     		ldr	r2, .L43+12
+ 480:./src/motor/BLDC.c **** 			break;
+ 619              		.loc 1 480 0
+ 620 00ac 1223     		movs	r3, #18
+ 621              	.LVL50:
+ 622              		.loc 1 503 0
+ 623 00ae 1364     		str	r3, [r2, #64]
+ 624 00b0 10BD     		pop	{r4, pc}
+ 625              	.LVL51:
+ 626              	.L33:
+ 627 00b2 0E4A     		ldr	r2, .L43+12
+ 483:./src/motor/BLDC.c **** 			break;
+ 628              		.loc 1 483 0
+ 629 00b4 0623     		movs	r3, #6
+ 630              	.LVL52:
+ 631              		.loc 1 503 0
+ 632 00b6 1364     		str	r3, [r2, #64]
+ 633 00b8 10BD     		pop	{r4, pc}
+ 634              	.LVL53:
+ 635              	.L29:
+ 636 00ba 0C4A     		ldr	r2, .L43+12
+ 470:./src/motor/BLDC.c ****     switch (step)
+ 637              		.loc 1 470 0
+ 638 00bc 0923     		movs	r3, #9
+ 639              	.LVL54:
+ 640              		.loc 1 503 0
+ 641 00be 1364     		str	r3, [r2, #64]
+ 642 00c0 10BD     		pop	{r4, pc}
+ 643              	.LVL55:
+ 644              	.L36:
+ 491:./src/motor/BLDC.c **** 			BLDC_setDuty(0);
+ 645              		.loc 1 491 0
+ 646 00c2 0020     		movs	r0, #0
+ 647 00c4 FFF7FEFF 		bl	BLDC_setDuty
+ 648              	.LVL56:
+ 649              		.loc 1 503 0
+ 650 00c8 084A     		ldr	r2, .L43+12
+ 493:./src/motor/BLDC.c **** 			break;
+ 651              		.loc 1 493 0
+ 652 00ca 2A23     		movs	r3, #42
+ 653              	.LVL57:
+ 654              		.loc 1 503 0
+ 655 00cc 1364     		str	r3, [r2, #64]
+ 656 00ce 10BD     		pop	{r4, pc}
+ 657              	.LVL58:
+ 658              	.L34:
+ 659 00d0 064A     		ldr	r2, .L43+12
+ 486:./src/motor/BLDC.c **** 			break;
+ 660              		.loc 1 486 0
+ 661 00d2 2423     		movs	r3, #36
+ 662              	.LVL59:
+ 663              		.loc 1 503 0
+ 664 00d4 1364     		str	r3, [r2, #64]
+ 665 00d6 10BD     		pop	{r4, pc}
+ 666              	.LVL60:
+ 667              	.L35:
+ 668 00d8 044A     		ldr	r2, .L43+12
+ 489:./src/motor/BLDC.c **** 			break;
+ 669              		.loc 1 489 0
+ 670 00da 2123     		movs	r3, #33
+ 671              	.LVL61:
+ 672              		.loc 1 503 0
+ 673 00dc 1364     		str	r3, [r2, #64]
+ 674 00de 10BD     		pop	{r4, pc}
+ 675              	.LVL62:
+ 676              	.L44:
+ 677              		.align	3
+ 678              	.L43:
+ 679 00e0 7B14AE47 		.word	1202590843
+ 680 00e4 E17A843F 		.word	1065646817
+ 681 00e8 00000000 		.word	.LANCHOR7
+ 682 00ec 00800B40 		.word	1074495488
+ 683              		.cfi_endproc
+ 684              	.LFE60:
+ 686              		.global	bldc_SySTicknew
+ 687              		.global	bldc_SySTickold
+ 688              		.global	QEI_POS_tbl
+ 689              		.global	CMT_tbl
+ 690              		.global	PID_Motor
+ 691              		.comm	captureCfg,20,4
+ 692              		.comm	channelsetup,96,4
+ 693              		.global	mcpwm_mcabort_pin
+ 694              		.global	mcpwm_mco2b_pin
+ 695              		.global	mcpwm_mco2a_pin
+ 696              		.global	mcpwm_mco1b_pin
+ 697              		.global	mcpwm_mco1a_pin
+ 698              		.global	mcpwm_mco0b_pin
+ 699              		.global	mcpwm_mco0a_pin
+ 700              		.global	test
+ 701              		.section	.rodata.mcpwm_mco0b_pin,"a",%progbits
+ 702              		.align	2
+ 703              		.set	.LANCHOR1,. + 0
+ 706              	mcpwm_mco0b_pin:
+ 707 0000 01       		.byte	1
+ 708 0001 16       		.byte	22
+ 709 0002 01       		.byte	1
+ 710 0003 00       		.byte	0
+ 711 0004 00       		.byte	0
+ 712 0005 000000   		.section	.bss.bldc_SySTickold,"aw",%nobits
+ 713              		.align	2
+ 716              	bldc_SySTickold:
+ 717 0000 00000000 		.space	4
+ 718              		.section	.data.PID_Motor,"aw",%progbits
+ 719              		.align	3
+ 720              		.set	.LANCHOR7,. + 0
+ 723              	PID_Motor:
+ 724 0000 00000000 		.word	0
+ 725 0004 00001040 		.word	1074790400
+ 726 0008 00000000 		.word	0
+ 727 000c 00002440 		.word	1076101120
+ 728 0010 00000000 		.word	0
+ 729 0014 00000000 		.word	0
+ 730 0018 DC050000 		.word	1500
+ 731 001c 00000000 		.word	0
+ 732 0020 00000000 		.word	0
+ 733 0024 00000000 		.word	0
+ 734 0028 00000000 		.word	0
+ 735 002c 00000000 		.word	0
+ 736 0030 00000000 		.word	0
+ 737 0034 00000000 		.word	0
+ 738 0038 00000000 		.word	0
+ 739 003c 00       		.byte	0
+ 740 003d 000000   		.space	3
+ 741 0040 00000000 		.word	0
+ 742 0044 00000000 		.word	0
+ 743 0048 00000000 		.word	0
+ 744 004c 00       		.byte	0
+ 745 004d 00       		.byte	0
+ 746 004e 01       		.byte	1
+ 747 004f 00       		.space	1
+ 748 0050 A8610000 		.word	25000
+ 749 0054 01       		.byte	1
+ 750 0055 000000   		.space	3
+ 751 0058 00000000 		.word	0
+ 752 005c 00000000 		.word	0
+ 753 0060 00000000 		.word	0
+ 754 0064 00000000 		.space	4
+ 755              		.section	.bss.bldc_SySTicknew,"aw",%nobits
+ 756              		.align	2
+ 759              	bldc_SySTicknew:
+ 760 0000 00000000 		.space	4
+ 761              		.section	.rodata.mcpwm_mcabort_pin,"a",%progbits
+ 762              		.align	2
+ 763              		.set	.LANCHOR6,. + 0
+ 766              	mcpwm_mcabort_pin:
+ 767 0000 01       		.byte	1
+ 768 0001 15       		.byte	21
+ 769 0002 01       		.byte	1
+ 770 0003 00       		.byte	0
+ 771 0004 00       		.byte	0
+ 772 0005 000000   		.section	.data.QEI_POS_tbl,"aw",%progbits
+ 773              		.align	2
+ 776              	QEI_POS_tbl:
+ 777 0000 48040000 		.word	1096
+ 778 0004 95050000 		.word	1429
+ 779 0008 E3060000 		.word	1763
+ 780 000c 60000000 		.word	96
+ 781 0010 AD010000 		.word	429
+ 782 0014 FB020000 		.word	763
+ 783 0018 AD010000 		.word	429
+ 784 001c 60000000 		.word	96
+ 785 0020 E3060000 		.word	1763
+ 786 0024 95050000 		.word	1429
+ 787 0028 48040000 		.word	1096
+ 788 002c FB020000 		.word	763
+ 789              		.section	.rodata.mcpwm_mco2a_pin,"a",%progbits
+ 790              		.align	2
+ 791              		.set	.LANCHOR4,. + 0
+ 794              	mcpwm_mco2a_pin:
+ 795 0000 01       		.byte	1
+ 796 0001 1C       		.byte	28
+ 797 0002 01       		.byte	1
+ 798 0003 00       		.byte	0
+ 799 0004 00       		.byte	0
+ 800 0005 000000   		.section	.rodata.mcpwm_mco2b_pin,"a",%progbits
+ 801              		.align	2
+ 802              		.set	.LANCHOR5,. + 0
+ 805              	mcpwm_mco2b_pin:
+ 806 0000 01       		.byte	1
+ 807 0001 1D       		.byte	29
+ 808 0002 01       		.byte	1
+ 809 0003 00       		.byte	0
+ 810 0004 00       		.byte	0
+ 811 0005 000000   		.section	.rodata.mcpwm_mco1a_pin,"a",%progbits
+ 812              		.align	2
+ 813              		.set	.LANCHOR2,. + 0
+ 816              	mcpwm_mco1a_pin:
+ 817 0000 01       		.byte	1
+ 818 0001 19       		.byte	25
+ 819 0002 01       		.byte	1
+ 820 0003 00       		.byte	0
+ 821 0004 00       		.byte	0
+ 822 0005 000000   		.section	.data.CMT_tbl,"aw",%progbits
+ 823              		.align	2
+ 826              	CMT_tbl:
+ 827 0000 0F       		.byte	15
+ 828 0001 02       		.byte	2
+ 829 0002 00       		.byte	0
+ 830 0003 01       		.byte	1
+ 831 0004 04       		.byte	4
+ 832 0005 03       		.byte	3
+ 833 0006 05       		.byte	5
+ 834 0007 0F       		.byte	15
+ 835 0008 0F       		.byte	15
+ 836 0009 05       		.byte	5
+ 837 000a 03       		.byte	3
+ 838 000b 04       		.byte	4
+ 839 000c 01       		.byte	1
+ 840 000d 00       		.byte	0
+ 841 000e 02       		.byte	2
+ 842 000f 0F       		.byte	15
+ 843              		.section	.bss.test,"aw",%nobits
+ 846              	test:
+ 847 0000 00       		.space	1
+ 848              		.section	.rodata.mcpwm_mco1b_pin,"a",%progbits
+ 849              		.align	2
+ 850              		.set	.LANCHOR3,. + 0
+ 853              	mcpwm_mco1b_pin:
+ 854 0000 01       		.byte	1
+ 855 0001 1A       		.byte	26
+ 856 0002 01       		.byte	1
+ 857 0003 00       		.byte	0
+ 858 0004 00       		.byte	0
+ 859 0005 000000   		.section	.rodata.mcpwm_mco0a_pin,"a",%progbits
+ 860              		.align	2
+ 861              		.set	.LANCHOR0,. + 0
+ 864              	mcpwm_mco0a_pin:
+ 865 0000 01       		.byte	1
+ 866 0001 13       		.byte	19
+ 867 0002 01       		.byte	1
+ 868 0003 00       		.byte	0
+ 869 0004 00       		.byte	0
+ 870 0005 000000   		.text
+ 871              	.Letext0:
+ 872              		.file 2 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 873              		.file 3 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+ 874              		.file 4 "./LPC17xx/LPC17xx.h"
+ 875              		.file 5 "./Drivers/include/vkv_compiler.h"
+ 876              		.file 6 "./Drivers/include/lpc_types.h"
+ 877              		.file 7 "./Drivers/include/lpc17xx_pinsel.h"
+ 878              		.file 8 "./Drivers/include/lpc17xx_mcpwm.h"
+ 879              		.file 9 "./src/motor/type.h"
+ 880              		.file 10 "./src/motor/BLDC.h"
+ 881              		.file 11 "./Core/core_cm3.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 BLDC.c
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:19     .text.BLDC_Init:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:24     .text.BLDC_Init:00000000 BLDC_Init
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:162    .text.BLDC_Init:000000a4 $d
+                            *COM*:00000060 channelsetup
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:176    .text.BLDC_Enable:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:181    .text.BLDC_Enable:00000000 BLDC_Enable
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:259    .text.BLDC_Enable:00000074 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:266    .text.BLDC_setDuty:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:271    .text.BLDC_setDuty:00000000 BLDC_setDuty
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:363    .text.BLDC_setDuty:00000068 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:369    .text.BLDC_calcRPM:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:374    .text.BLDC_calcRPM:00000000 BLDC_calcRPM
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:387    .text.BLDC_break:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:392    .text.BLDC_break:00000000 BLDC_break
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:444    .text.BLDC_break:00000038 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:453    .text.BLDC_commutate:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:458    .text.BLDC_commutate:00000000 BLDC_commutate
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:511    .text.BLDC_commutate:0000003e $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:579    .text.BLDC_commutate:00000082 $t
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:679    .text.BLDC_commutate:000000e0 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:759    .bss.bldc_SySTicknew:00000000 bldc_SySTicknew
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:716    .bss.bldc_SySTickold:00000000 bldc_SySTickold
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:776    .data.QEI_POS_tbl:00000000 QEI_POS_tbl
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:826    .data.CMT_tbl:00000000 CMT_tbl
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:723    .data.PID_Motor:00000000 PID_Motor
+                            *COM*:00000014 captureCfg
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:766    .rodata.mcpwm_mcabort_pin:00000000 mcpwm_mcabort_pin
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:805    .rodata.mcpwm_mco2b_pin:00000000 mcpwm_mco2b_pin
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:794    .rodata.mcpwm_mco2a_pin:00000000 mcpwm_mco2a_pin
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:853    .rodata.mcpwm_mco1b_pin:00000000 mcpwm_mco1b_pin
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:816    .rodata.mcpwm_mco1a_pin:00000000 mcpwm_mco1a_pin
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:706    .rodata.mcpwm_mco0b_pin:00000000 mcpwm_mco0b_pin
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:864    .rodata.mcpwm_mco0a_pin:00000000 mcpwm_mco0a_pin
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:846    .bss.test:00000000 test
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:702    .rodata.mcpwm_mco0b_pin:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:713    .bss.bldc_SySTickold:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:719    .data.PID_Motor:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:756    .bss.bldc_SySTicknew:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:762    .rodata.mcpwm_mcabort_pin:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:773    .data.QEI_POS_tbl:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:790    .rodata.mcpwm_mco2a_pin:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:801    .rodata.mcpwm_mco2b_pin:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:812    .rodata.mcpwm_mco1a_pin:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:823    .data.CMT_tbl:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:847    .bss.test:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:849    .rodata.mcpwm_mco1b_pin:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cckkqz5u.s:860    .rodata.mcpwm_mco0a_pin:00000000 $d
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+PINSEL_ConfigPin
+MCPWM_Init
+MCPWM_ConfigChannel
+MCPWM_ACMode
+MCPWM_WriteToShadow
+MCPWM_IntConfig
+MCPWM_Start
+__aeabi_ui2d
+__aeabi_dmul
+__aeabi_d2iz

@@ -1,0 +1,3457 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"usbcore.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.USB_ResetCore,"ax",%progbits
+  19              		.align	2
+  20              		.global	USB_ResetCore
+  21              		.thumb
+  22              		.thumb_func
+  24              	USB_ResetCore:
+  25              	.LFB0:
+  26              		.file 1 "./src/usb/usbcore.c"
+   1:./src/usb/usbcore.c **** /*----------------------------------------------------------------------------
+   2:./src/usb/usbcore.c ****  *      U S B  -  K e r n e l
+   3:./src/usb/usbcore.c ****  *----------------------------------------------------------------------------
+   4:./src/usb/usbcore.c ****  * Name:    usbcore.c
+   5:./src/usb/usbcore.c ****  * Purpose: USB Core Module
+   6:./src/usb/usbcore.c ****  * Version: V1.20
+   7:./src/usb/usbcore.c ****  *----------------------------------------------------------------------------
+   8:./src/usb/usbcore.c ****  *      This software is supplied "AS IS" without any warranties, express,
+   9:./src/usb/usbcore.c ****  *      implied or statutory, including but not limited to the implied
+  10:./src/usb/usbcore.c ****  *      warranties of fitness for purpose, satisfactory quality and
+  11:./src/usb/usbcore.c ****  *      noninfringement. Keil extends you a royalty-free right to reproduce
+  12:./src/usb/usbcore.c ****  *      and distribute executable files created using this software for use
+  13:./src/usb/usbcore.c ****  *      on NXP Semiconductors LPC family microcontroller devices only. Nothing
+  14:./src/usb/usbcore.c ****  *      else gives you the right to use this software.
+  15:./src/usb/usbcore.c ****  *
+  16:./src/usb/usbcore.c ****  * Copyright (c) 2009 Keil - An ARM Company. All rights reserved.
+  17:./src/usb/usbcore.c ****  *----------------------------------------------------------------------------
+  18:./src/usb/usbcore.c ****  * History:
+  19:./src/usb/usbcore.c ****  *          V1.20 Added vendor specific requests
+  20:./src/usb/usbcore.c ****  *                Changed string descriptor handling
+  21:./src/usb/usbcore.c ****  *                Reworked Endpoint0
+  22:./src/usb/usbcore.c ****  *          V1.00 Initial Version
+  23:./src/usb/usbcore.c ****  *----------------------------------------------------------------------------*/
+  24:./src/usb/usbcore.c **** #include "lpc_types.h"
+  25:./src/usb/usbcore.c **** 
+  26:./src/usb/usbcore.c **** #include "usb.h"
+  27:./src/usb/usbcore.c **** #include "usbcfg.h"
+  28:./src/usb/usbcore.c **** #include "usbhw.h"
+  29:./src/usb/usbcore.c **** #include "usbcore.h"
+  30:./src/usb/usbcore.c **** #include "usbdesc.h"
+  31:./src/usb/usbcore.c **** #include "usbuser.h"
+  32:./src/usb/usbcore.c **** 
+  33:./src/usb/usbcore.c **** #if (USB_CLASS)
+  34:./src/usb/usbcore.c **** 
+  35:./src/usb/usbcore.c **** #if (USB_AUDIO)
+  36:./src/usb/usbcore.c **** #include "audio.h"
+  37:./src/usb/usbcore.c **** #include "adcuser.h"
+  38:./src/usb/usbcore.c **** #endif
+  39:./src/usb/usbcore.c **** 
+  40:./src/usb/usbcore.c **** #if (USB_HID)
+  41:./src/usb/usbcore.c **** #include "hid.h"
+  42:./src/usb/usbcore.c **** #include "hiduser.h"
+  43:./src/usb/usbcore.c **** #endif
+  44:./src/usb/usbcore.c **** 
+  45:./src/usb/usbcore.c **** #if (USB_MSC)
+  46:./src/usb/usbcore.c **** #include "msc.h"
+  47:./src/usb/usbcore.c **** #include "mscuser.h"
+  48:./src/usb/usbcore.c **** extern MSC_CSW CSW;
+  49:./src/usb/usbcore.c **** #endif
+  50:./src/usb/usbcore.c **** 
+  51:./src/usb/usbcore.c **** #if (USB_CDC)
+  52:./src/usb/usbcore.c **** #include "cdc.h"
+  53:./src/usb/usbcore.c **** #include "cdcuser.h"
+  54:./src/usb/usbcore.c **** #endif
+  55:./src/usb/usbcore.c **** 
+  56:./src/usb/usbcore.c **** #endif
+  57:./src/usb/usbcore.c **** 
+  58:./src/usb/usbcore.c **** #if (USB_VENDOR)
+  59:./src/usb/usbcore.c **** #include "vendor.h"
+  60:./src/usb/usbcore.c **** #endif
+  61:./src/usb/usbcore.c **** 
+  62:./src/usb/usbcore.c **** #if defined   (  __CC_ARM  )
+  63:./src/usb/usbcore.c **** #pragma diag_suppress 111,1441
+  64:./src/usb/usbcore.c **** #endif
+  65:./src/usb/usbcore.c **** 
+  66:./src/usb/usbcore.c **** #if defined   (  __GNUC__  )
+  67:./src/usb/usbcore.c **** #define __packed __attribute__((__packed__))
+  68:./src/usb/usbcore.c **** #endif
+  69:./src/usb/usbcore.c **** 
+  70:./src/usb/usbcore.c **** volatile uint16_t USB_DeviceStatus;
+  71:./src/usb/usbcore.c **** volatile uint8_t USB_DeviceAddress;
+  72:./src/usb/usbcore.c **** volatile uint8_t USB_Configuration;
+  73:./src/usb/usbcore.c **** volatile uint32_t USB_EndPointMask;
+  74:./src/usb/usbcore.c **** volatile uint32_t USB_EndPointHalt;
+  75:./src/usb/usbcore.c **** volatile uint32_t USB_EndPointStall; /* EP must stay stalled */
+  76:./src/usb/usbcore.c **** volatile uint8_t USB_NumInterfaces;
+  77:./src/usb/usbcore.c **** volatile uint8_t USB_AltSetting[USB_IF_NUM];
+  78:./src/usb/usbcore.c **** 
+  79:./src/usb/usbcore.c **** union _uEP0 uEP0 __attribute__((aligned(4)));
+  80:./src/usb/usbcore.c **** 
+  81:./src/usb/usbcore.c **** USB_EP_DATA EP0Data;
+  82:./src/usb/usbcore.c **** 
+  83:./src/usb/usbcore.c **** USB_SETUP_PACKET SetupPacket;
+  84:./src/usb/usbcore.c **** 
+  85:./src/usb/usbcore.c **** /*
+  86:./src/usb/usbcore.c ****  *  Reset USB Core
+  87:./src/usb/usbcore.c ****  *    Parameters:      None
+  88:./src/usb/usbcore.c ****  *    Return Value:    None
+  89:./src/usb/usbcore.c ****  */
+  90:./src/usb/usbcore.c **** 
+  91:./src/usb/usbcore.c **** void USB_ResetCore(void)
+  92:./src/usb/usbcore.c **** {
+  27              		.loc 1 92 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  32 0000 F0B4     		push	{r4, r5, r6, r7}
+  33              		.cfi_def_cfa_offset 16
+  34              		.cfi_offset 4, -16
+  35              		.cfi_offset 5, -12
+  36              		.cfi_offset 6, -8
+  37              		.cfi_offset 7, -4
+  93:./src/usb/usbcore.c **** 
+  94:./src/usb/usbcore.c **** 	USB_DeviceStatus = USB_POWER;
+  95:./src/usb/usbcore.c **** 	USB_DeviceAddress = 0;
+  96:./src/usb/usbcore.c **** 	USB_Configuration = 0;
+  97:./src/usb/usbcore.c **** 	USB_EndPointMask = 0x00010001;
+  38              		.loc 1 97 0
+  39 0002 0848     		ldr	r0, .L2
+  94:./src/usb/usbcore.c **** 	USB_DeviceStatus = USB_POWER;
+  40              		.loc 1 94 0
+  41 0004 084F     		ldr	r7, .L2+4
+  95:./src/usb/usbcore.c **** 	USB_DeviceAddress = 0;
+  42              		.loc 1 95 0
+  43 0006 094E     		ldr	r6, .L2+8
+  96:./src/usb/usbcore.c **** 	USB_Configuration = 0;
+  44              		.loc 1 96 0
+  45 0008 094D     		ldr	r5, .L2+12
+  98:./src/usb/usbcore.c **** 	USB_EndPointHalt = 0x00000000;
+  46              		.loc 1 98 0
+  47 000a 0A49     		ldr	r1, .L2+16
+  99:./src/usb/usbcore.c **** 	USB_EndPointStall = 0x00000000;
+  48              		.loc 1 99 0
+  49 000c 0A4A     		ldr	r2, .L2+20
+  94:./src/usb/usbcore.c **** 	USB_DeviceStatus = USB_POWER;
+  50              		.loc 1 94 0
+  51 000e 0023     		movs	r3, #0
+  97:./src/usb/usbcore.c **** 	USB_EndPointMask = 0x00010001;
+  52              		.loc 1 97 0
+  53 0010 4FF00114 		mov	r4, #65537
+  94:./src/usb/usbcore.c **** 	USB_DeviceStatus = USB_POWER;
+  54              		.loc 1 94 0
+  55 0014 3B80     		strh	r3, [r7]	@ movhi
+  95:./src/usb/usbcore.c **** 	USB_DeviceAddress = 0;
+  56              		.loc 1 95 0
+  57 0016 3370     		strb	r3, [r6]
+  96:./src/usb/usbcore.c **** 	USB_Configuration = 0;
+  58              		.loc 1 96 0
+  59 0018 2B70     		strb	r3, [r5]
+  97:./src/usb/usbcore.c **** 	USB_EndPointMask = 0x00010001;
+  60              		.loc 1 97 0
+  61 001a 0460     		str	r4, [r0]
+  98:./src/usb/usbcore.c **** 	USB_EndPointHalt = 0x00000000;
+  62              		.loc 1 98 0
+  63 001c 0B60     		str	r3, [r1]
+ 100:./src/usb/usbcore.c **** }
+  64              		.loc 1 100 0
+  65 001e F0BC     		pop	{r4, r5, r6, r7}
+  99:./src/usb/usbcore.c **** 	USB_EndPointStall = 0x00000000;
+  66              		.loc 1 99 0
+  67 0020 1360     		str	r3, [r2]
+  68              		.loc 1 100 0
+  69 0022 7047     		bx	lr
+  70              	.L3:
+  71              		.align	2
+  72              	.L2:
+  73 0024 00000000 		.word	USB_EndPointMask
+  74 0028 00000000 		.word	USB_DeviceStatus
+  75 002c 00000000 		.word	USB_DeviceAddress
+  76 0030 00000000 		.word	USB_Configuration
+  77 0034 00000000 		.word	USB_EndPointHalt
+  78 0038 00000000 		.word	USB_EndPointStall
+  79              		.cfi_endproc
+  80              	.LFE0:
+  82              		.section	.text.USB_SetupStage,"ax",%progbits
+  83              		.align	2
+  84              		.global	USB_SetupStage
+  85              		.thumb
+  86              		.thumb_func
+  88              	USB_SetupStage:
+  89              	.LFB1:
+ 101:./src/usb/usbcore.c **** 
+ 102:./src/usb/usbcore.c **** /*
+ 103:./src/usb/usbcore.c ****  *  USB Request - Setup Stage
+ 104:./src/usb/usbcore.c ****  *    Parameters:      None (global SetupPacket)
+ 105:./src/usb/usbcore.c ****  *    Return Value:    None
+ 106:./src/usb/usbcore.c ****  */
+ 107:./src/usb/usbcore.c **** 
+ 108:./src/usb/usbcore.c **** void USB_SetupStage(void)
+ 109:./src/usb/usbcore.c **** {
+  90              		.loc 1 109 0
+  91              		.cfi_startproc
+  92              		@ args = 0, pretend = 0, frame = 0
+  93              		@ frame_needed = 0, uses_anonymous_args = 0
+  94              		@ link register save eliminated.
+ 110:./src/usb/usbcore.c **** 	USB_ReadEP(0x00, (uint8_t *) &SetupPacket);
+  95              		.loc 1 110 0
+  96 0000 0020     		movs	r0, #0
+  97 0002 0149     		ldr	r1, .L5
+  98 0004 FFF7FEBF 		b	USB_ReadEP
+  99              	.LVL0:
+ 100              	.L6:
+ 101              		.align	2
+ 102              	.L5:
+ 103 0008 00000000 		.word	SetupPacket
+ 104              		.cfi_endproc
+ 105              	.LFE1:
+ 107              		.section	.text.USB_DataInStage,"ax",%progbits
+ 108              		.align	2
+ 109              		.global	USB_DataInStage
+ 110              		.thumb
+ 111              		.thumb_func
+ 113              	USB_DataInStage:
+ 114              	.LFB2:
+ 111:./src/usb/usbcore.c **** }
+ 112:./src/usb/usbcore.c **** 
+ 113:./src/usb/usbcore.c **** /*
+ 114:./src/usb/usbcore.c ****  *  USB Request - Data In Stage
+ 115:./src/usb/usbcore.c ****  *    Parameters:      None (global EP0Data)
+ 116:./src/usb/usbcore.c ****  *    Return Value:    None
+ 117:./src/usb/usbcore.c ****  */
+ 118:./src/usb/usbcore.c **** 
+ 119:./src/usb/usbcore.c **** void USB_DataInStage(void)
+ 120:./src/usb/usbcore.c **** {
+ 115              		.loc 1 120 0
+ 116              		.cfi_startproc
+ 117              		@ args = 0, pretend = 0, frame = 0
+ 118              		@ frame_needed = 0, uses_anonymous_args = 0
+ 119 0000 10B5     		push	{r4, lr}
+ 120              		.cfi_def_cfa_offset 8
+ 121              		.cfi_offset 4, -8
+ 122              		.cfi_offset 14, -4
+ 121:./src/usb/usbcore.c **** 	uint32_t cnt;
+ 122:./src/usb/usbcore.c **** 
+ 123:./src/usb/usbcore.c **** 	if (EP0Data.Count > USB_MAX_PACKET0)
+ 123              		.loc 1 123 0
+ 124 0002 0A4C     		ldr	r4, .L10
+ 124:./src/usb/usbcore.c **** 	{
+ 125:./src/usb/usbcore.c **** 		cnt = USB_MAX_PACKET0;
+ 126:./src/usb/usbcore.c **** 	}
+ 127:./src/usb/usbcore.c **** 	else
+ 128:./src/usb/usbcore.c **** 	{
+ 129:./src/usb/usbcore.c **** 		cnt = EP0Data.Count;
+ 130:./src/usb/usbcore.c **** 	}
+ 131:./src/usb/usbcore.c **** 	cnt = USB_WriteEP(0x80, EP0Data.pData, cnt);
+ 125              		.loc 1 131 0
+ 126 0004 8020     		movs	r0, #128
+ 123:./src/usb/usbcore.c **** 	if (EP0Data.Count > USB_MAX_PACKET0)
+ 127              		.loc 1 123 0
+ 128 0006 A388     		ldrh	r3, [r4, #4]
+ 129              		.loc 1 131 0
+ 130 0008 2168     		ldr	r1, [r4]
+ 123:./src/usb/usbcore.c **** 	if (EP0Data.Count > USB_MAX_PACKET0)
+ 131              		.loc 1 123 0
+ 132 000a 9BB2     		uxth	r3, r3
+ 133 000c 082B     		cmp	r3, #8
+ 129:./src/usb/usbcore.c **** 		cnt = EP0Data.Count;
+ 134              		.loc 1 129 0
+ 135 000e 96BF     		itet	ls
+ 136 0010 A288     		ldrhls	r2, [r4, #4]
+ 125:./src/usb/usbcore.c **** 		cnt = USB_MAX_PACKET0;
+ 137              		.loc 1 125 0
+ 138 0012 0822     		movhi	r2, #8
+ 129:./src/usb/usbcore.c **** 		cnt = EP0Data.Count;
+ 139              		.loc 1 129 0
+ 140 0014 92B2     		uxthls	r2, r2
+ 141              	.LVL1:
+ 142              		.loc 1 131 0
+ 143 0016 FFF7FEFF 		bl	USB_WriteEP
+ 144              	.LVL2:
+ 132:./src/usb/usbcore.c **** 	EP0Data.pData += cnt;
+ 133:./src/usb/usbcore.c **** 	EP0Data.Count -= cnt;
+ 145              		.loc 1 133 0
+ 146 001a A288     		ldrh	r2, [r4, #4]
+ 132:./src/usb/usbcore.c **** 	EP0Data.pData += cnt;
+ 147              		.loc 1 132 0
+ 148 001c 2368     		ldr	r3, [r4]
+ 149              		.loc 1 133 0
+ 150 001e 121A     		subs	r2, r2, r0
+ 151 0020 92B2     		uxth	r2, r2
+ 132:./src/usb/usbcore.c **** 	EP0Data.pData += cnt;
+ 152              		.loc 1 132 0
+ 153 0022 1844     		add	r0, r0, r3
+ 154              	.LVL3:
+ 155              		.loc 1 133 0
+ 156 0024 A280     		strh	r2, [r4, #4]	@ movhi
+ 132:./src/usb/usbcore.c **** 	EP0Data.pData += cnt;
+ 157              		.loc 1 132 0
+ 158 0026 2060     		str	r0, [r4]
+ 159 0028 10BD     		pop	{r4, pc}
+ 160              	.L11:
+ 161 002a 00BF     		.align	2
+ 162              	.L10:
+ 163 002c 00000000 		.word	EP0Data
+ 164              		.cfi_endproc
+ 165              	.LFE2:
+ 167              		.section	.text.USB_DataOutStage,"ax",%progbits
+ 168              		.align	2
+ 169              		.global	USB_DataOutStage
+ 170              		.thumb
+ 171              		.thumb_func
+ 173              	USB_DataOutStage:
+ 174              	.LFB3:
+ 134:./src/usb/usbcore.c **** }
+ 135:./src/usb/usbcore.c **** 
+ 136:./src/usb/usbcore.c **** /*
+ 137:./src/usb/usbcore.c ****  *  USB Request - Data Out Stage
+ 138:./src/usb/usbcore.c ****  *    Parameters:      None (global EP0Data)
+ 139:./src/usb/usbcore.c ****  *    Return Value:    None
+ 140:./src/usb/usbcore.c ****  */
+ 141:./src/usb/usbcore.c **** 
+ 142:./src/usb/usbcore.c **** void USB_DataOutStage(void)
+ 143:./src/usb/usbcore.c **** {
+ 175              		.loc 1 143 0
+ 176              		.cfi_startproc
+ 177              		@ args = 0, pretend = 0, frame = 0
+ 178              		@ frame_needed = 0, uses_anonymous_args = 0
+ 179 0000 10B5     		push	{r4, lr}
+ 180              		.cfi_def_cfa_offset 8
+ 181              		.cfi_offset 4, -8
+ 182              		.cfi_offset 14, -4
+ 144:./src/usb/usbcore.c **** 	uint32_t cnt;
+ 145:./src/usb/usbcore.c **** 
+ 146:./src/usb/usbcore.c **** 	cnt = USB_ReadEP(0x00, EP0Data.pData);
+ 183              		.loc 1 146 0
+ 184 0002 064C     		ldr	r4, .L13
+ 185 0004 0020     		movs	r0, #0
+ 186 0006 2168     		ldr	r1, [r4]
+ 187 0008 FFF7FEFF 		bl	USB_ReadEP
+ 188              	.LVL4:
+ 147:./src/usb/usbcore.c **** 	EP0Data.pData += cnt;
+ 148:./src/usb/usbcore.c **** 	EP0Data.Count -= cnt;
+ 189              		.loc 1 148 0
+ 190 000c A288     		ldrh	r2, [r4, #4]
+ 147:./src/usb/usbcore.c **** 	EP0Data.pData += cnt;
+ 191              		.loc 1 147 0
+ 192 000e 2368     		ldr	r3, [r4]
+ 193              		.loc 1 148 0
+ 194 0010 121A     		subs	r2, r2, r0
+ 195 0012 92B2     		uxth	r2, r2
+ 147:./src/usb/usbcore.c **** 	EP0Data.pData += cnt;
+ 196              		.loc 1 147 0
+ 197 0014 1844     		add	r0, r0, r3
+ 198              	.LVL5:
+ 199 0016 2060     		str	r0, [r4]
+ 200              		.loc 1 148 0
+ 201 0018 A280     		strh	r2, [r4, #4]	@ movhi
+ 202 001a 10BD     		pop	{r4, pc}
+ 203              	.L14:
+ 204              		.align	2
+ 205              	.L13:
+ 206 001c 00000000 		.word	EP0Data
+ 207              		.cfi_endproc
+ 208              	.LFE3:
+ 210              		.section	.text.USB_StatusInStage,"ax",%progbits
+ 211              		.align	2
+ 212              		.global	USB_StatusInStage
+ 213              		.thumb
+ 214              		.thumb_func
+ 216              	USB_StatusInStage:
+ 217              	.LFB4:
+ 149:./src/usb/usbcore.c **** }
+ 150:./src/usb/usbcore.c **** 
+ 151:./src/usb/usbcore.c **** /*
+ 152:./src/usb/usbcore.c ****  *  USB Request - Status In Stage
+ 153:./src/usb/usbcore.c ****  *    Parameters:      None
+ 154:./src/usb/usbcore.c ****  *    Return Value:    None
+ 155:./src/usb/usbcore.c ****  */
+ 156:./src/usb/usbcore.c **** 
+ 157:./src/usb/usbcore.c **** void USB_StatusInStage(void)
+ 158:./src/usb/usbcore.c **** {
+ 218              		.loc 1 158 0
+ 219              		.cfi_startproc
+ 220              		@ args = 0, pretend = 0, frame = 0
+ 221              		@ frame_needed = 0, uses_anonymous_args = 0
+ 222              		@ link register save eliminated.
+ 159:./src/usb/usbcore.c **** 	USB_WriteEP(0x80, NULL, 0);
+ 223              		.loc 1 159 0
+ 224 0000 0021     		movs	r1, #0
+ 225 0002 0A46     		mov	r2, r1
+ 226 0004 8020     		movs	r0, #128
+ 227 0006 FFF7FEBF 		b	USB_WriteEP
+ 228              	.LVL6:
+ 229              		.cfi_endproc
+ 230              	.LFE4:
+ 232 000a 00BF     		.section	.text.USB_StatusOutStage,"ax",%progbits
+ 233              		.align	2
+ 234              		.global	USB_StatusOutStage
+ 235              		.thumb
+ 236              		.thumb_func
+ 238              	USB_StatusOutStage:
+ 239              	.LFB5:
+ 160:./src/usb/usbcore.c **** }
+ 161:./src/usb/usbcore.c **** 
+ 162:./src/usb/usbcore.c **** /*
+ 163:./src/usb/usbcore.c ****  *  USB Request - Status Out Stage
+ 164:./src/usb/usbcore.c ****  *    Parameters:      None
+ 165:./src/usb/usbcore.c ****  *    Return Value:    None
+ 166:./src/usb/usbcore.c ****  */
+ 167:./src/usb/usbcore.c **** 
+ 168:./src/usb/usbcore.c **** void USB_StatusOutStage(void)
+ 169:./src/usb/usbcore.c **** {
+ 240              		.loc 1 169 0
+ 241              		.cfi_startproc
+ 242              		@ args = 0, pretend = 0, frame = 0
+ 243              		@ frame_needed = 0, uses_anonymous_args = 0
+ 244              		@ link register save eliminated.
+ 170:./src/usb/usbcore.c **** 	USB_ReadEP(0x00, uEP0.EP0Buf);
+ 245              		.loc 1 170 0
+ 246 0000 0020     		movs	r0, #0
+ 247 0002 0149     		ldr	r1, .L17
+ 248 0004 FFF7FEBF 		b	USB_ReadEP
+ 249              	.LVL7:
+ 250              	.L18:
+ 251              		.align	2
+ 252              	.L17:
+ 253 0008 00000000 		.word	uEP0
+ 254              		.cfi_endproc
+ 255              	.LFE5:
+ 257              		.section	.text.USB_ReqSetClrFeature,"ax",%progbits
+ 258              		.align	2
+ 259              		.global	USB_ReqSetClrFeature
+ 260              		.thumb
+ 261              		.thumb_func
+ 263              	USB_ReqSetClrFeature:
+ 264              	.LFB7:
+ 171:./src/usb/usbcore.c **** }
+ 172:./src/usb/usbcore.c **** 
+ 173:./src/usb/usbcore.c **** /*
+ 174:./src/usb/usbcore.c ****  *  Get Status USB Request
+ 175:./src/usb/usbcore.c ****  *    Parameters:      None (global SetupPacket)
+ 176:./src/usb/usbcore.c ****  *    Return Value:    TRUE - Success, FALSE - Error
+ 177:./src/usb/usbcore.c ****  */
+ 178:./src/usb/usbcore.c **** 
+ 179:./src/usb/usbcore.c **** #if defined (  __IAR_SYSTEMS_ICC__  )
+ 180:./src/usb/usbcore.c **** inline uint32_t USB_ReqGetStatus (void)
+ 181:./src/usb/usbcore.c **** {
+ 182:./src/usb/usbcore.c **** #else  
+ 183:./src/usb/usbcore.c **** __inline uint32_t USB_ReqGetStatus(void)
+ 184:./src/usb/usbcore.c **** {
+ 185:./src/usb/usbcore.c **** #endif
+ 186:./src/usb/usbcore.c **** 	uint32_t n, m;
+ 187:./src/usb/usbcore.c **** 
+ 188:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 189:./src/usb/usbcore.c **** 	{
+ 190:./src/usb/usbcore.c **** 	case REQUEST_TO_DEVICE:
+ 191:./src/usb/usbcore.c **** 		EP0Data.pData = (uint8_t *) &USB_DeviceStatus;
+ 192:./src/usb/usbcore.c **** 		break;
+ 193:./src/usb/usbcore.c **** 	case REQUEST_TO_INTERFACE:
+ 194:./src/usb/usbcore.c **** 		if ((USB_Configuration != 0)
+ 195:./src/usb/usbcore.c **** 				&& (SetupPacket.wIndex.WB.L < USB_NumInterfaces))
+ 196:./src/usb/usbcore.c **** 		{
+ 197:./src/usb/usbcore.c **** 			uEP0.EP0Buf16[0] = 0;
+ 198:./src/usb/usbcore.c **** 			EP0Data.pData = uEP0.EP0Buf;
+ 199:./src/usb/usbcore.c **** 		}
+ 200:./src/usb/usbcore.c **** 		else
+ 201:./src/usb/usbcore.c **** 		{
+ 202:./src/usb/usbcore.c **** 			return (FALSE);
+ 203:./src/usb/usbcore.c **** 		}
+ 204:./src/usb/usbcore.c **** 		break;
+ 205:./src/usb/usbcore.c **** 	case REQUEST_TO_ENDPOINT:
+ 206:./src/usb/usbcore.c **** 		n = SetupPacket.wIndex.WB.L & 0x8F;
+ 207:./src/usb/usbcore.c **** 		m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 208:./src/usb/usbcore.c **** 		if (((USB_Configuration != 0) || ((n & 0x0F) == 0))
+ 209:./src/usb/usbcore.c **** 				&& (USB_EndPointMask & m))
+ 210:./src/usb/usbcore.c **** 		{
+ 211:./src/usb/usbcore.c **** 			uEP0.EP0Buf16[0] = (USB_EndPointHalt & m) ? 1 : 0;
+ 212:./src/usb/usbcore.c **** 			EP0Data.pData = uEP0.EP0Buf;
+ 213:./src/usb/usbcore.c **** 		}
+ 214:./src/usb/usbcore.c **** 		else
+ 215:./src/usb/usbcore.c **** 		{
+ 216:./src/usb/usbcore.c **** 			return (FALSE);
+ 217:./src/usb/usbcore.c **** 		}
+ 218:./src/usb/usbcore.c **** 		break;
+ 219:./src/usb/usbcore.c **** 	default:
+ 220:./src/usb/usbcore.c **** 		return (FALSE);
+ 221:./src/usb/usbcore.c **** 	}
+ 222:./src/usb/usbcore.c **** 	return (TRUE);
+ 223:./src/usb/usbcore.c **** }
+ 224:./src/usb/usbcore.c **** 
+ 225:./src/usb/usbcore.c **** /*
+ 226:./src/usb/usbcore.c ****  *  Set/Clear Feature USB Request
+ 227:./src/usb/usbcore.c ****  *    Parameters:      sc:    0 - Clear, 1 - Set
+ 228:./src/usb/usbcore.c ****  *                            (global SetupPacket)
+ 229:./src/usb/usbcore.c ****  *    Return Value:    TRUE - Success, FALSE - Error
+ 230:./src/usb/usbcore.c ****  */
+ 231:./src/usb/usbcore.c **** 
+ 232:./src/usb/usbcore.c **** #if defined (  __IAR_SYSTEMS_ICC__  )
+ 233:./src/usb/usbcore.c **** inline uint32_t USB_ReqSetClrFeature (uint32_t sc)
+ 234:./src/usb/usbcore.c **** {
+ 235:./src/usb/usbcore.c **** #else
+ 236:./src/usb/usbcore.c **** /*__inline*/uint32_t USB_ReqSetClrFeature(uint32_t sc)
+ 237:./src/usb/usbcore.c **** {
+ 265              		.loc 1 237 0
+ 266              		.cfi_startproc
+ 267              		@ args = 0, pretend = 0, frame = 0
+ 268              		@ frame_needed = 0, uses_anonymous_args = 0
+ 269              	.LVL8:
+ 270 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 271              		.cfi_def_cfa_offset 24
+ 272              		.cfi_offset 3, -24
+ 273              		.cfi_offset 4, -20
+ 274              		.cfi_offset 5, -16
+ 275              		.cfi_offset 6, -12
+ 276              		.cfi_offset 7, -8
+ 277              		.cfi_offset 14, -4
+ 238:./src/usb/usbcore.c **** #endif
+ 239:./src/usb/usbcore.c **** 	uint32_t n, m;
+ 240:./src/usb/usbcore.c **** 
+ 241:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 278              		.loc 1 241 0
+ 279 0002 2E4A     		ldr	r2, .L43
+ 237:./src/usb/usbcore.c **** {
+ 280              		.loc 1 237 0
+ 281 0004 0446     		mov	r4, r0
+ 282              		.loc 1 241 0
+ 283 0006 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 284 0008 13F01F03 		ands	r3, r3, #31
+ 285 000c 20D0     		beq	.L21
+ 286 000e 022B     		cmp	r3, #2
+ 287 0010 1CD1     		bne	.L37
+ 288              	.LVL9:
+ 289              	.LBB40:
+ 290              	.LBB41:
+ 242:./src/usb/usbcore.c **** 	{
+ 243:./src/usb/usbcore.c **** 	case REQUEST_TO_DEVICE:
+ 244:./src/usb/usbcore.c **** 		if (SetupPacket.wValue.W == USB_FEATURE_REMOTE_WAKEUP)
+ 245:./src/usb/usbcore.c **** 		{
+ 246:./src/usb/usbcore.c **** 			if (sc)
+ 247:./src/usb/usbcore.c **** 			{
+ 248:./src/usb/usbcore.c **** 				USB_WakeUpCfg(TRUE);
+ 249:./src/usb/usbcore.c **** 				USB_DeviceStatus |= USB_GETSTATUS_REMOTE_WAKEUP;
+ 250:./src/usb/usbcore.c **** 			}
+ 251:./src/usb/usbcore.c **** 			else
+ 252:./src/usb/usbcore.c **** 			{
+ 253:./src/usb/usbcore.c **** 				USB_WakeUpCfg(FALSE);
+ 254:./src/usb/usbcore.c **** 				USB_DeviceStatus &= ~USB_GETSTATUS_REMOTE_WAKEUP;
+ 255:./src/usb/usbcore.c **** 			}
+ 256:./src/usb/usbcore.c **** 		}
+ 257:./src/usb/usbcore.c **** 		else
+ 258:./src/usb/usbcore.c **** 		{
+ 259:./src/usb/usbcore.c **** 			return (FALSE);
+ 260:./src/usb/usbcore.c **** 		}
+ 261:./src/usb/usbcore.c **** 		break;
+ 262:./src/usb/usbcore.c **** 	case REQUEST_TO_INTERFACE:
+ 263:./src/usb/usbcore.c **** 		return (FALSE);
+ 264:./src/usb/usbcore.c **** 	case REQUEST_TO_ENDPOINT:
+ 265:./src/usb/usbcore.c **** 		n = SetupPacket.wIndex.WB.L & 0x8F;
+ 291              		.loc 1 265 0
+ 292 0012 1179     		ldrb	r1, [r2, #4]	@ zero_extendqisi2
+ 266:./src/usb/usbcore.c **** 		m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 293              		.loc 1 266 0
+ 294 0014 0B06     		lsls	r3, r1, #24
+ 265:./src/usb/usbcore.c **** 		n = SetupPacket.wIndex.WB.L & 0x8F;
+ 295              		.loc 1 265 0
+ 296 0016 01F08F07 		and	r7, r1, #143
+ 297              	.LVL10:
+ 298              		.loc 1 266 0
+ 299 001a 1ED4     		bmi	.L39
+ 300 001c 0126     		movs	r6, #1
+ 301 001e BE40     		lsls	r6, r6, r7
+ 302              	.L25:
+ 303              	.LVL11:
+ 267:./src/usb/usbcore.c **** 		if ((USB_Configuration != 0) && ((n & 0x0F) != 0)
+ 304              		.loc 1 267 0
+ 305 0020 274B     		ldr	r3, .L43+4
+ 306 0022 1D78     		ldrb	r5, [r3]	@ zero_extendqisi2
+ 307 0024 05F0FF00 		and	r0, r5, #255
+ 308              	.LVL12:
+ 309 0028 B5B1     		cbz	r5, .L20
+ 310 002a 11F00F00 		ands	r0, r1, #15
+ 311 002e 13D0     		beq	.L20
+ 268:./src/usb/usbcore.c **** 				&& (USB_EndPointMask & m))
+ 312              		.loc 1 268 0
+ 313 0030 244B     		ldr	r3, .L43+8
+ 314 0032 1868     		ldr	r0, [r3]
+ 315 0034 3040     		ands	r0, r6, r0
+ 316 0036 0FD0     		beq	.L20
+ 269:./src/usb/usbcore.c **** 		{
+ 270:./src/usb/usbcore.c **** 			if (SetupPacket.wValue.W == USB_FEATURE_ENDPOINT_STALL)
+ 317              		.loc 1 270 0
+ 318 0038 5388     		ldrh	r3, [r2, #2]
+ 319 003a 3BB9     		cbnz	r3, .L37
+ 271:./src/usb/usbcore.c **** 			{
+ 272:./src/usb/usbcore.c **** 				if (sc)
+ 320              		.loc 1 272 0
+ 321 003c 002C     		cmp	r4, #0
+ 322 003e 33D1     		bne	.L40
+ 273:./src/usb/usbcore.c **** 				{
+ 274:./src/usb/usbcore.c **** 					USB_SetStallEP(n);
+ 275:./src/usb/usbcore.c **** 					USB_EndPointHalt |= m;
+ 276:./src/usb/usbcore.c **** 				}
+ 277:./src/usb/usbcore.c **** 				else
+ 278:./src/usb/usbcore.c **** 				{
+ 279:./src/usb/usbcore.c **** 					if ((USB_EndPointStall & m) != 0)
+ 323              		.loc 1 279 0
+ 324 0040 214B     		ldr	r3, .L43+12
+ 325 0042 1B68     		ldr	r3, [r3]
+ 326 0044 1E42     		tst	r6, r3
+ 327 0046 25D0     		beq	.L41
+ 280:./src/usb/usbcore.c **** 					{
+ 281:./src/usb/usbcore.c **** 						return (TRUE);
+ 328              		.loc 1 281 0
+ 329 0048 0120     		movs	r0, #1
+ 330 004a F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 331              	.LVL13:
+ 332              	.L37:
+ 333              	.LBE41:
+ 334              	.LBE40:
+ 263:./src/usb/usbcore.c **** 		return (FALSE);
+ 335              		.loc 1 263 0
+ 336 004c 0020     		movs	r0, #0
+ 337 004e F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 338              	.LVL14:
+ 339              	.L21:
+ 244:./src/usb/usbcore.c **** 		if (SetupPacket.wValue.W == USB_FEATURE_REMOTE_WAKEUP)
+ 340              		.loc 1 244 0
+ 341 0050 5588     		ldrh	r5, [r2, #2]
+ 342 0052 012D     		cmp	r5, #1
+ 343 0054 07D0     		beq	.L42
+ 259:./src/usb/usbcore.c **** 			return (FALSE);
+ 344              		.loc 1 259 0
+ 345 0056 1846     		mov	r0, r3
+ 346              	.LVL15:
+ 347              	.L20:
+ 282:./src/usb/usbcore.c **** 					}
+ 283:./src/usb/usbcore.c **** 					USB_ClrStallEP(n);
+ 284:./src/usb/usbcore.c **** #if (USB_MSC)
+ 285:./src/usb/usbcore.c **** 					if ((n == MSC_EP_IN) && ((USB_EndPointHalt & m) != 0))
+ 286:./src/usb/usbcore.c **** 					{
+ 287:./src/usb/usbcore.c **** 						/* Compliance Test: rewrite CSW after unstall */
+ 288:./src/usb/usbcore.c **** 						if (CSW.dSignature == MSC_CSW_Signature)
+ 289:./src/usb/usbcore.c **** 						{
+ 290:./src/usb/usbcore.c **** 							USB_WriteEP(MSC_EP_IN, (uint8_t *)&CSW, sizeof(CSW));
+ 291:./src/usb/usbcore.c **** 						}
+ 292:./src/usb/usbcore.c **** 					}
+ 293:./src/usb/usbcore.c **** #endif
+ 294:./src/usb/usbcore.c **** 					USB_EndPointHalt &= ~m;
+ 295:./src/usb/usbcore.c **** 				}
+ 296:./src/usb/usbcore.c **** 			}
+ 297:./src/usb/usbcore.c **** 			else
+ 298:./src/usb/usbcore.c **** 			{
+ 299:./src/usb/usbcore.c **** 				return (FALSE);
+ 300:./src/usb/usbcore.c **** 			}
+ 301:./src/usb/usbcore.c **** 		}
+ 302:./src/usb/usbcore.c **** 		else
+ 303:./src/usb/usbcore.c **** 		{
+ 304:./src/usb/usbcore.c **** 			return (FALSE);
+ 305:./src/usb/usbcore.c **** 		}
+ 306:./src/usb/usbcore.c **** 		break;
+ 307:./src/usb/usbcore.c **** 	default:
+ 308:./src/usb/usbcore.c **** 		return (FALSE);
+ 309:./src/usb/usbcore.c **** 	}
+ 310:./src/usb/usbcore.c **** 	return (TRUE);
+ 311:./src/usb/usbcore.c **** }
+ 348              		.loc 1 311 0
+ 349 0058 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 350              	.LVL16:
+ 351              	.L39:
+ 352              	.LBB44:
+ 353              	.LBB42:
+ 266:./src/usb/usbcore.c **** 		m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 354              		.loc 1 266 0
+ 355 005a 01F00F03 		and	r3, r1, #15
+ 356 005e 4FF48036 		mov	r6, #65536
+ 357 0062 9E40     		lsls	r6, r6, r3
+ 358 0064 DCE7     		b	.L25
+ 359              	.LVL17:
+ 360              	.L42:
+ 361              	.LBE42:
+ 362              	.LBE44:
+ 246:./src/usb/usbcore.c **** 			if (sc)
+ 363              		.loc 1 246 0
+ 364 0066 50B1     		cbz	r0, .L23
+ 248:./src/usb/usbcore.c **** 				USB_WakeUpCfg(TRUE);
+ 365              		.loc 1 248 0
+ 366 0068 2846     		mov	r0, r5
+ 367              	.LVL18:
+ 368 006a FFF7FEFF 		bl	USB_WakeUpCfg
+ 369              	.LVL19:
+ 249:./src/usb/usbcore.c **** 				USB_DeviceStatus |= USB_GETSTATUS_REMOTE_WAKEUP;
+ 370              		.loc 1 249 0
+ 371 006e 174B     		ldr	r3, .L43+16
+ 310:./src/usb/usbcore.c **** 	return (TRUE);
+ 372              		.loc 1 310 0
+ 373 0070 2846     		mov	r0, r5
+ 249:./src/usb/usbcore.c **** 				USB_DeviceStatus |= USB_GETSTATUS_REMOTE_WAKEUP;
+ 374              		.loc 1 249 0
+ 375 0072 1A88     		ldrh	r2, [r3]
+ 376 0074 92B2     		uxth	r2, r2
+ 377 0076 42F00202 		orr	r2, r2, #2
+ 378 007a 1A80     		strh	r2, [r3]	@ movhi
+ 379 007c F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 380              	.LVL20:
+ 381              	.L23:
+ 253:./src/usb/usbcore.c **** 				USB_WakeUpCfg(FALSE);
+ 382              		.loc 1 253 0
+ 383 007e FFF7FEFF 		bl	USB_WakeUpCfg
+ 384              	.LVL21:
+ 254:./src/usb/usbcore.c **** 				USB_DeviceStatus &= ~USB_GETSTATUS_REMOTE_WAKEUP;
+ 385              		.loc 1 254 0
+ 386 0082 124A     		ldr	r2, .L43+16
+ 310:./src/usb/usbcore.c **** 	return (TRUE);
+ 387              		.loc 1 310 0
+ 388 0084 2846     		mov	r0, r5
+ 254:./src/usb/usbcore.c **** 				USB_DeviceStatus &= ~USB_GETSTATUS_REMOTE_WAKEUP;
+ 389              		.loc 1 254 0
+ 390 0086 1388     		ldrh	r3, [r2]
+ 391 0088 23F00203 		bic	r3, r3, #2
+ 392 008c 1B04     		lsls	r3, r3, #16
+ 393 008e 1B0C     		lsrs	r3, r3, #16
+ 394 0090 1380     		strh	r3, [r2]	@ movhi
+ 395 0092 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 396              	.LVL22:
+ 397              	.L41:
+ 398              	.LBB45:
+ 399              	.LBB43:
+ 283:./src/usb/usbcore.c **** 					USB_ClrStallEP(n);
+ 400              		.loc 1 283 0
+ 401 0094 3846     		mov	r0, r7
+ 402 0096 FFF7FEFF 		bl	USB_ClrStallEP
+ 403              	.LVL23:
+ 294:./src/usb/usbcore.c **** 					USB_EndPointHalt &= ~m;
+ 404              		.loc 1 294 0
+ 405 009a 0D4B     		ldr	r3, .L43+20
+ 310:./src/usb/usbcore.c **** 	return (TRUE);
+ 406              		.loc 1 310 0
+ 407 009c 0120     		movs	r0, #1
+ 294:./src/usb/usbcore.c **** 					USB_EndPointHalt &= ~m;
+ 408              		.loc 1 294 0
+ 409 009e 1A68     		ldr	r2, [r3]
+ 410 00a0 22EA0606 		bic	r6, r2, r6
+ 411              	.LVL24:
+ 412 00a4 1E60     		str	r6, [r3]
+ 413 00a6 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 414              	.LVL25:
+ 415              	.L40:
+ 274:./src/usb/usbcore.c **** 					USB_SetStallEP(n);
+ 416              		.loc 1 274 0
+ 417 00a8 3846     		mov	r0, r7
+ 418 00aa FFF7FEFF 		bl	USB_SetStallEP
+ 419              	.LVL26:
+ 275:./src/usb/usbcore.c **** 					USB_EndPointHalt |= m;
+ 420              		.loc 1 275 0
+ 421 00ae 084B     		ldr	r3, .L43+20
+ 310:./src/usb/usbcore.c **** 	return (TRUE);
+ 422              		.loc 1 310 0
+ 423 00b0 0120     		movs	r0, #1
+ 275:./src/usb/usbcore.c **** 					USB_EndPointHalt |= m;
+ 424              		.loc 1 275 0
+ 425 00b2 1A68     		ldr	r2, [r3]
+ 426 00b4 1643     		orrs	r6, r6, r2
+ 427              	.LVL27:
+ 428 00b6 1E60     		str	r6, [r3]
+ 429 00b8 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 430              	.LVL28:
+ 431              	.L44:
+ 432 00ba 00BF     		.align	2
+ 433              	.L43:
+ 434 00bc 00000000 		.word	SetupPacket
+ 435 00c0 00000000 		.word	USB_Configuration
+ 436 00c4 00000000 		.word	USB_EndPointMask
+ 437 00c8 00000000 		.word	USB_EndPointStall
+ 438 00cc 00000000 		.word	USB_DeviceStatus
+ 439 00d0 00000000 		.word	USB_EndPointHalt
+ 440              	.LBE43:
+ 441              	.LBE45:
+ 442              		.cfi_endproc
+ 443              	.LFE7:
+ 445              		.section	.text.USB_ReqSetConfiguration,"ax",%progbits
+ 446              		.align	2
+ 447              		.global	USB_ReqSetConfiguration
+ 448              		.thumb
+ 449              		.thumb_func
+ 451              	USB_ReqSetConfiguration:
+ 452              	.LFB11:
+ 312:./src/usb/usbcore.c **** 
+ 313:./src/usb/usbcore.c **** /*
+ 314:./src/usb/usbcore.c ****  *  Set Address USB Request
+ 315:./src/usb/usbcore.c ****  *    Parameters:      None (global SetupPacket)
+ 316:./src/usb/usbcore.c ****  *    Return Value:    TRUE - Success, FALSE - Error
+ 317:./src/usb/usbcore.c ****  */
+ 318:./src/usb/usbcore.c **** 
+ 319:./src/usb/usbcore.c **** #if defined (  __IAR_SYSTEMS_ICC__  )
+ 320:./src/usb/usbcore.c **** inline uint32_t USB_ReqSetAddress (void)
+ 321:./src/usb/usbcore.c **** {
+ 322:./src/usb/usbcore.c **** #else
+ 323:./src/usb/usbcore.c **** __inline uint32_t USB_ReqSetAddress(void)
+ 324:./src/usb/usbcore.c **** {
+ 325:./src/usb/usbcore.c **** #endif
+ 326:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 327:./src/usb/usbcore.c **** 	{
+ 328:./src/usb/usbcore.c **** 	case REQUEST_TO_DEVICE:
+ 329:./src/usb/usbcore.c **** 		USB_DeviceAddress = 0x80 | SetupPacket.wValue.WB.L;
+ 330:./src/usb/usbcore.c **** 		break;
+ 331:./src/usb/usbcore.c **** 	default:
+ 332:./src/usb/usbcore.c **** 		return (FALSE);
+ 333:./src/usb/usbcore.c **** 	}
+ 334:./src/usb/usbcore.c **** 	return (TRUE);
+ 335:./src/usb/usbcore.c **** }
+ 336:./src/usb/usbcore.c **** 
+ 337:./src/usb/usbcore.c **** /*
+ 338:./src/usb/usbcore.c ****  *  Get Descriptor USB Request
+ 339:./src/usb/usbcore.c ****  *    Parameters:      None (global SetupPacket)
+ 340:./src/usb/usbcore.c ****  *    Return Value:    TRUE - Success, FALSE - Error
+ 341:./src/usb/usbcore.c ****  */
+ 342:./src/usb/usbcore.c **** 
+ 343:./src/usb/usbcore.c **** #if defined (  __IAR_SYSTEMS_ICC__  )
+ 344:./src/usb/usbcore.c **** inline uint32_t USB_ReqGetDescriptor (void)
+ 345:./src/usb/usbcore.c **** {
+ 346:./src/usb/usbcore.c **** #else
+ 347:./src/usb/usbcore.c **** __inline uint32_t USB_ReqGetDescriptor(void)
+ 348:./src/usb/usbcore.c **** {
+ 349:./src/usb/usbcore.c **** #endif
+ 350:./src/usb/usbcore.c **** 	uint8_t *pD;
+ 351:./src/usb/usbcore.c **** 	uint32_t len, n;
+ 352:./src/usb/usbcore.c **** 
+ 353:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 354:./src/usb/usbcore.c **** 	{
+ 355:./src/usb/usbcore.c **** 	case REQUEST_TO_DEVICE:
+ 356:./src/usb/usbcore.c **** 		switch (SetupPacket.wValue.WB.H)
+ 357:./src/usb/usbcore.c **** 		{
+ 358:./src/usb/usbcore.c **** 		case USB_DEVICE_DESCRIPTOR_TYPE:
+ 359:./src/usb/usbcore.c **** 			EP0Data.pData = (uint8_t *) USB_DeviceDescriptor;
+ 360:./src/usb/usbcore.c **** 			len = USB_DEVICE_DESC_SIZE;
+ 361:./src/usb/usbcore.c **** 			break;
+ 362:./src/usb/usbcore.c **** 		case USB_CONFIGURATION_DESCRIPTOR_TYPE:
+ 363:./src/usb/usbcore.c **** 			pD = (uint8_t *) USB_ConfigDescriptor;
+ 364:./src/usb/usbcore.c **** 			for (n = 0; n != SetupPacket.wValue.WB.L; n++)
+ 365:./src/usb/usbcore.c **** 			{
+ 366:./src/usb/usbcore.c **** 				if (((USB_CONFIGURATION_DESCRIPTOR *) pD)->bLength != 0)
+ 367:./src/usb/usbcore.c **** 				{
+ 368:./src/usb/usbcore.c **** 					pD += ((USB_CONFIGURATION_DESCRIPTOR *) pD)->wTotalLength;
+ 369:./src/usb/usbcore.c **** 				}
+ 370:./src/usb/usbcore.c **** 			}
+ 371:./src/usb/usbcore.c **** 			if (((USB_CONFIGURATION_DESCRIPTOR *) pD)->bLength == 0)
+ 372:./src/usb/usbcore.c **** 			{
+ 373:./src/usb/usbcore.c **** 				return (FALSE);
+ 374:./src/usb/usbcore.c **** 			}
+ 375:./src/usb/usbcore.c **** 			EP0Data.pData = pD;
+ 376:./src/usb/usbcore.c **** 			len = ((USB_CONFIGURATION_DESCRIPTOR *) pD)->wTotalLength;
+ 377:./src/usb/usbcore.c **** 			break;
+ 378:./src/usb/usbcore.c **** 		case USB_STRING_DESCRIPTOR_TYPE:
+ 379:./src/usb/usbcore.c **** 			pD = (uint8_t *) USB_StringDescriptor;
+ 380:./src/usb/usbcore.c **** 			for (n = 0; n != SetupPacket.wValue.WB.L; n++)
+ 381:./src/usb/usbcore.c **** 			{
+ 382:./src/usb/usbcore.c **** 				if (((USB_STRING_DESCRIPTOR *) pD)->bLength != 0)
+ 383:./src/usb/usbcore.c **** 				{
+ 384:./src/usb/usbcore.c **** 					pD += ((USB_STRING_DESCRIPTOR *) pD)->bLength;
+ 385:./src/usb/usbcore.c **** 				}
+ 386:./src/usb/usbcore.c **** 			}
+ 387:./src/usb/usbcore.c **** 			if (((USB_STRING_DESCRIPTOR *) pD)->bLength == 0)
+ 388:./src/usb/usbcore.c **** 			{
+ 389:./src/usb/usbcore.c **** 				return (FALSE);
+ 390:./src/usb/usbcore.c **** 			}
+ 391:./src/usb/usbcore.c **** 			EP0Data.pData = pD;
+ 392:./src/usb/usbcore.c **** //          len = ((USB_STRING_DESCRIPTOR *)EP0Data.pData)->bLength;
+ 393:./src/usb/usbcore.c **** 			len = ((USB_STRING_DESCRIPTOR *) pD)->bLength;
+ 394:./src/usb/usbcore.c **** 			break;
+ 395:./src/usb/usbcore.c **** 		default:
+ 396:./src/usb/usbcore.c **** 			return (FALSE);
+ 397:./src/usb/usbcore.c **** 		}
+ 398:./src/usb/usbcore.c **** 		break;
+ 399:./src/usb/usbcore.c **** 	case REQUEST_TO_INTERFACE:
+ 400:./src/usb/usbcore.c **** 		switch (SetupPacket.wValue.WB.H)
+ 401:./src/usb/usbcore.c **** 		{
+ 402:./src/usb/usbcore.c **** #if USB_HID
+ 403:./src/usb/usbcore.c **** 		case HID_HID_DESCRIPTOR_TYPE:
+ 404:./src/usb/usbcore.c **** 		if (SetupPacket.wIndex.WB.L != USB_HID_IF_NUM)
+ 405:./src/usb/usbcore.c **** 		{
+ 406:./src/usb/usbcore.c **** 			return (FALSE); /* Only Single HID Interface is supported */
+ 407:./src/usb/usbcore.c **** 		}
+ 408:./src/usb/usbcore.c **** 		EP0Data.pData = (uint8_t *)USB_ConfigDescriptor + HID_DESC_OFFSET;
+ 409:./src/usb/usbcore.c **** 		len = HID_DESC_SIZE;
+ 410:./src/usb/usbcore.c **** 		break;
+ 411:./src/usb/usbcore.c **** 		case HID_REPORT_DESCRIPTOR_TYPE:
+ 412:./src/usb/usbcore.c **** 		if (SetupPacket.wIndex.WB.L != USB_HID_IF_NUM)
+ 413:./src/usb/usbcore.c **** 		{
+ 414:./src/usb/usbcore.c **** 			return (FALSE); /* Only Single HID Interface is supported */
+ 415:./src/usb/usbcore.c **** 		}
+ 416:./src/usb/usbcore.c **** 		EP0Data.pData = (uint8_t *)HID_ReportDescriptor;
+ 417:./src/usb/usbcore.c **** 		len = HID_ReportDescSize;
+ 418:./src/usb/usbcore.c **** 		break;
+ 419:./src/usb/usbcore.c **** 		case HID_PHYSICAL_DESCRIPTOR_TYPE:
+ 420:./src/usb/usbcore.c **** 		return (FALSE); /* HID Physical Descriptor is not supported */
+ 421:./src/usb/usbcore.c **** #endif
+ 422:./src/usb/usbcore.c **** 		default:
+ 423:./src/usb/usbcore.c **** 			return (FALSE);
+ 424:./src/usb/usbcore.c **** 		}
+ 425:./src/usb/usbcore.c **** 		break;
+ 426:./src/usb/usbcore.c **** 	default:
+ 427:./src/usb/usbcore.c **** 		return (FALSE);
+ 428:./src/usb/usbcore.c **** 	}
+ 429:./src/usb/usbcore.c **** 
+ 430:./src/usb/usbcore.c **** 	if (EP0Data.Count > len)
+ 431:./src/usb/usbcore.c **** 	{
+ 432:./src/usb/usbcore.c **** 		EP0Data.Count = len;
+ 433:./src/usb/usbcore.c **** 	}
+ 434:./src/usb/usbcore.c **** 
+ 435:./src/usb/usbcore.c **** 	return (TRUE);
+ 436:./src/usb/usbcore.c **** }
+ 437:./src/usb/usbcore.c **** 
+ 438:./src/usb/usbcore.c **** /*
+ 439:./src/usb/usbcore.c ****  *  Get Configuration USB Request
+ 440:./src/usb/usbcore.c ****  *    Parameters:      None (global SetupPacket)
+ 441:./src/usb/usbcore.c ****  *    Return Value:    TRUE - Success, FALSE - Error
+ 442:./src/usb/usbcore.c ****  */
+ 443:./src/usb/usbcore.c **** 
+ 444:./src/usb/usbcore.c **** #if defined (  __IAR_SYSTEMS_ICC__  )
+ 445:./src/usb/usbcore.c **** inline uint32_t USB_ReqGetConfiguration (void)
+ 446:./src/usb/usbcore.c **** {
+ 447:./src/usb/usbcore.c **** #else
+ 448:./src/usb/usbcore.c **** __inline uint32_t USB_ReqGetConfiguration(void)
+ 449:./src/usb/usbcore.c **** {
+ 450:./src/usb/usbcore.c **** #endif
+ 451:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 452:./src/usb/usbcore.c **** 	{
+ 453:./src/usb/usbcore.c **** 	case REQUEST_TO_DEVICE:
+ 454:./src/usb/usbcore.c **** 		EP0Data.pData = &USB_Configuration;
+ 455:./src/usb/usbcore.c **** 		break;
+ 456:./src/usb/usbcore.c **** 	default:
+ 457:./src/usb/usbcore.c **** 		return (FALSE);
+ 458:./src/usb/usbcore.c **** 	}
+ 459:./src/usb/usbcore.c **** 	return (TRUE);
+ 460:./src/usb/usbcore.c **** }
+ 461:./src/usb/usbcore.c **** 
+ 462:./src/usb/usbcore.c **** /*
+ 463:./src/usb/usbcore.c ****  *  Set Configuration USB Request
+ 464:./src/usb/usbcore.c ****  *    Parameters:      None (global SetupPacket)
+ 465:./src/usb/usbcore.c ****  *    Return Value:    TRUE - Success, FALSE - Error
+ 466:./src/usb/usbcore.c ****  */
+ 467:./src/usb/usbcore.c **** 
+ 468:./src/usb/usbcore.c **** #if defined (  __IAR_SYSTEMS_ICC__  )
+ 469:./src/usb/usbcore.c **** inline uint32_t USB_ReqSetConfiguration (void)
+ 470:./src/usb/usbcore.c **** {
+ 471:./src/usb/usbcore.c **** #else
+ 472:./src/usb/usbcore.c **** /*__inline*/uint32_t USB_ReqSetConfiguration(void)
+ 473:./src/usb/usbcore.c **** {
+ 453              		.loc 1 473 0
+ 454              		.cfi_startproc
+ 455              		@ args = 0, pretend = 0, frame = 0
+ 456              		@ frame_needed = 0, uses_anonymous_args = 0
+ 457              	.LVL29:
+ 458 0000 2DE9F84F 		push	{r3, r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 459              		.cfi_def_cfa_offset 40
+ 460              		.cfi_offset 3, -40
+ 461              		.cfi_offset 4, -36
+ 462              		.cfi_offset 5, -32
+ 463              		.cfi_offset 6, -28
+ 464              		.cfi_offset 7, -24
+ 465              		.cfi_offset 8, -20
+ 466              		.cfi_offset 9, -16
+ 467              		.cfi_offset 10, -12
+ 468              		.cfi_offset 11, -8
+ 469              		.cfi_offset 14, -4
+ 474:./src/usb/usbcore.c **** #endif
+ 475:./src/usb/usbcore.c **** 	USB_COMMON_DESCRIPTOR *pD;
+ 476:./src/usb/usbcore.c **** 	uint32_t alt = 0;
+ 477:./src/usb/usbcore.c **** 	uint32_t n, m;
+ 478:./src/usb/usbcore.c **** 	uint32_t tmp;
+ 479:./src/usb/usbcore.c **** 
+ 480:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 470              		.loc 1 480 0
+ 471 0004 704D     		ldr	r5, .L91
+ 472 0006 95F80080 		ldrb	r8, [r5]	@ zero_extendqisi2
+ 473 000a 18F01F08 		ands	r8, r8, #31
+ 474 000e 7BD1     		bne	.L82
+ 481:./src/usb/usbcore.c **** 	{
+ 482:./src/usb/usbcore.c **** 	case REQUEST_TO_DEVICE:
+ 483:./src/usb/usbcore.c **** 
+ 484:./src/usb/usbcore.c **** 		if (SetupPacket.wValue.WB.L)
+ 475              		.loc 1 484 0
+ 476 0010 AB78     		ldrb	r3, [r5, #2]	@ zero_extendqisi2
+ 477 0012 EBB1     		cbz	r3, .L48
+ 478 0014 DFF8CCA1 		ldr	r10, .L91+28
+ 479 0018 DFF8CC91 		ldr	r9, .L91+32
+ 485:./src/usb/usbcore.c **** 		{
+ 486:./src/usb/usbcore.c **** 			pD = (USB_COMMON_DESCRIPTOR *) USB_ConfigDescriptor;
+ 487:./src/usb/usbcore.c **** 			while (pD->bLength)
+ 488:./src/usb/usbcore.c **** 			{
+ 489:./src/usb/usbcore.c **** 				switch (pD->bDescriptorType)
+ 490:./src/usb/usbcore.c **** 				{
+ 491:./src/usb/usbcore.c **** 				case USB_CONFIGURATION_DESCRIPTOR_TYPE:
+ 492:./src/usb/usbcore.c **** 					if (((USB_CONFIGURATION_DESCRIPTOR *) pD)->bConfigurationValue
+ 493:./src/usb/usbcore.c **** 							== SetupPacket.wValue.WB.L)
+ 494:./src/usb/usbcore.c **** 					{
+ 495:./src/usb/usbcore.c **** 						USB_Configuration = SetupPacket.wValue.WB.L;
+ 496:./src/usb/usbcore.c **** 						USB_NumInterfaces =
+ 497:./src/usb/usbcore.c **** 								((USB_CONFIGURATION_DESCRIPTOR *) pD)->bNumInterfaces;
+ 498:./src/usb/usbcore.c **** 						for (n = 0; n < USB_IF_NUM; n++)
+ 499:./src/usb/usbcore.c **** 						{
+ 500:./src/usb/usbcore.c **** 							USB_AltSetting[n] = 0;
+ 501:./src/usb/usbcore.c **** 						}
+ 502:./src/usb/usbcore.c **** 						for (n = 1; n < 16; n++)
+ 503:./src/usb/usbcore.c **** 						{
+ 504:./src/usb/usbcore.c **** 							if (USB_EndPointMask & (1 << n))
+ 505:./src/usb/usbcore.c **** 							{
+ 506:./src/usb/usbcore.c **** 								USB_DisableEP(n);
+ 507:./src/usb/usbcore.c **** 							}
+ 508:./src/usb/usbcore.c **** 							if (USB_EndPointMask & ((1 << 16) << n))
+ 509:./src/usb/usbcore.c **** 							{
+ 510:./src/usb/usbcore.c **** 								USB_DisableEP(n | 0x80);
+ 511:./src/usb/usbcore.c **** 							}
+ 512:./src/usb/usbcore.c **** 						}
+ 513:./src/usb/usbcore.c **** 						USB_EndPointMask = 0x00010001;
+ 514:./src/usb/usbcore.c **** 						USB_EndPointHalt = 0x00000000;
+ 515:./src/usb/usbcore.c **** 						USB_EndPointStall = 0x00000000;
+ 516:./src/usb/usbcore.c **** 						USB_Configure(TRUE);
+ 517:./src/usb/usbcore.c **** 						if (((USB_CONFIGURATION_DESCRIPTOR *) pD)->bmAttributes
+ 518:./src/usb/usbcore.c **** 								& USB_CONFIG_POWERED_MASK)
+ 519:./src/usb/usbcore.c **** 						{
+ 520:./src/usb/usbcore.c **** 							USB_DeviceStatus |= USB_GETSTATUS_SELF_POWERED;
+ 521:./src/usb/usbcore.c **** 						}
+ 522:./src/usb/usbcore.c **** 						else
+ 523:./src/usb/usbcore.c **** 						{
+ 524:./src/usb/usbcore.c **** 							USB_DeviceStatus &= ~USB_GETSTATUS_SELF_POWERED;
+ 525:./src/usb/usbcore.c **** 						}
+ 526:./src/usb/usbcore.c **** 					}
+ 527:./src/usb/usbcore.c **** 					else
+ 528:./src/usb/usbcore.c **** 					{
+ 529:./src/usb/usbcore.c **** //                (uint8_t *)pD += ((USB_CONFIGURATION_DESCRIPTOR *)pD)->wTotalLength;
+ 530:./src/usb/usbcore.c **** 						tmp = (uint32_t) pD;
+ 531:./src/usb/usbcore.c **** 						tmp +=
+ 532:./src/usb/usbcore.c **** 								((USB_CONFIGURATION_DESCRIPTOR *) pD)->wTotalLength;
+ 533:./src/usb/usbcore.c **** 						pD = (USB_COMMON_DESCRIPTOR *) tmp;
+ 534:./src/usb/usbcore.c **** 						continue;
+ 535:./src/usb/usbcore.c **** 					}
+ 536:./src/usb/usbcore.c **** 					break;
+ 537:./src/usb/usbcore.c **** 				case USB_INTERFACE_DESCRIPTOR_TYPE:
+ 538:./src/usb/usbcore.c **** 					alt = ((USB_INTERFACE_DESCRIPTOR *) pD)->bAlternateSetting;
+ 539:./src/usb/usbcore.c **** 					break;
+ 540:./src/usb/usbcore.c **** 				case USB_ENDPOINT_DESCRIPTOR_TYPE:
+ 541:./src/usb/usbcore.c **** 					if (alt == 0)
+ 542:./src/usb/usbcore.c **** 					{
+ 543:./src/usb/usbcore.c **** 						n = ((USB_ENDPOINT_DESCRIPTOR *) pD)->bEndpointAddress
+ 544:./src/usb/usbcore.c **** 								& 0x8F;
+ 545:./src/usb/usbcore.c **** 						m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 546:./src/usb/usbcore.c **** 						USB_EndPointMask |= m;
+ 480              		.loc 1 546 0
+ 481 001c DFF8ACB1 		ldr	fp, .L91+4
+ 482              	.LVL30:
+ 483              	.L49:
+ 487:./src/usb/usbcore.c **** 			while (pD->bLength)
+ 484              		.loc 1 487 0 discriminator 1
+ 485 0020 9AF80010 		ldrb	r1, [r10]	@ zero_extendqisi2
+ 486 0024 61B1     		cbz	r1, .L64
+ 487              	.L63:
+ 489:./src/usb/usbcore.c **** 				switch (pD->bDescriptorType)
+ 488              		.loc 1 489 0
+ 489 0026 9AF80120 		ldrb	r2, [r10, #1]	@ zero_extendqisi2
+ 490 002a 042A     		cmp	r2, #4
+ 491 002c 68D0     		beq	.L51
+ 492 002e 052A     		cmp	r2, #5
+ 493 0030 49D0     		beq	.L52
+ 494 0032 022A     		cmp	r2, #2
+ 495 0034 3ED0     		beq	.L83
+ 496              	.L50:
+ 497              	.LVL31:
+ 547:./src/usb/usbcore.c **** 						USB_ConfigEP((USB_ENDPOINT_DESCRIPTOR *) pD);
+ 548:./src/usb/usbcore.c **** 						USB_EnableEP(n);
+ 549:./src/usb/usbcore.c **** 						USB_ResetEP(n);
+ 550:./src/usb/usbcore.c **** 					}
+ 551:./src/usb/usbcore.c **** 					break;
+ 552:./src/usb/usbcore.c **** 				}
+ 553:./src/usb/usbcore.c **** //          (uint8_t *)pD += pD->bLength;
+ 554:./src/usb/usbcore.c **** 				tmp = (uint32_t) pD;
+ 555:./src/usb/usbcore.c **** 				tmp += pD->bLength;
+ 498              		.loc 1 555 0
+ 499 0036 8A44     		add	r10, r10, r1
+ 500              	.LVL32:
+ 501              	.L88:
+ 487:./src/usb/usbcore.c **** 			while (pD->bLength)
+ 502              		.loc 1 487 0
+ 503 0038 9AF80010 		ldrb	r1, [r10]	@ zero_extendqisi2
+ 504 003c 0029     		cmp	r1, #0
+ 505 003e F2D1     		bne	.L63
+ 506              	.LVL33:
+ 507              	.L64:
+ 556:./src/usb/usbcore.c **** 				pD = (USB_COMMON_DESCRIPTOR *) tmp;
+ 557:./src/usb/usbcore.c **** 			}
+ 558:./src/usb/usbcore.c **** 		}
+ 559:./src/usb/usbcore.c **** 		else
+ 560:./src/usb/usbcore.c **** 		{
+ 561:./src/usb/usbcore.c **** 			USB_Configuration = 0;
+ 562:./src/usb/usbcore.c **** 			for (n = 1; n < 16; n++)
+ 563:./src/usb/usbcore.c **** 			{
+ 564:./src/usb/usbcore.c **** 				if (USB_EndPointMask & (1 << n))
+ 565:./src/usb/usbcore.c **** 				{
+ 566:./src/usb/usbcore.c **** 					USB_DisableEP(n);
+ 567:./src/usb/usbcore.c **** 				}
+ 568:./src/usb/usbcore.c **** 				if (USB_EndPointMask & ((1 << 16) << n))
+ 569:./src/usb/usbcore.c **** 				{
+ 570:./src/usb/usbcore.c **** 					USB_DisableEP(n | 0x80);
+ 571:./src/usb/usbcore.c **** 				}
+ 572:./src/usb/usbcore.c **** 			}
+ 573:./src/usb/usbcore.c **** 			USB_EndPointMask = 0x00010001;
+ 574:./src/usb/usbcore.c **** 			USB_EndPointHalt = 0x00000000;
+ 575:./src/usb/usbcore.c **** 			USB_EndPointStall = 0x00000000;
+ 576:./src/usb/usbcore.c **** 			USB_Configure(FALSE);
+ 577:./src/usb/usbcore.c **** 		}
+ 578:./src/usb/usbcore.c **** 
+ 579:./src/usb/usbcore.c **** 		if (USB_Configuration != SetupPacket.wValue.WB.L)
+ 508              		.loc 1 579 0
+ 509 0040 A878     		ldrb	r0, [r5, #2]	@ zero_extendqisi2
+ 510 0042 99F80030 		ldrb	r3, [r9]	@ zero_extendqisi2
+ 511 0046 C31A     		subs	r3, r0, r3
+ 512 0048 5842     		rsbs	r0, r3, #0
+ 513 004a 5841     		adcs	r0, r0, r3
+ 514 004c BDE8F88F 		pop	{r3, r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 515              	.LVL34:
+ 516              	.L48:
+ 561:./src/usb/usbcore.c **** 			USB_Configuration = 0;
+ 517              		.loc 1 561 0
+ 518 0050 DFF89491 		ldr	r9, .L91+32
+ 562:./src/usb/usbcore.c **** 			for (n = 1; n < 16; n++)
+ 519              		.loc 1 562 0
+ 520 0054 0124     		movs	r4, #1
+ 521 0056 5D4E     		ldr	r6, .L91+4
+ 561:./src/usb/usbcore.c **** 			USB_Configuration = 0;
+ 522              		.loc 1 561 0
+ 523 0058 89F80030 		strb	r3, [r9]
+ 524              	.LVL35:
+ 564:./src/usb/usbcore.c **** 				if (USB_EndPointMask & (1 << n))
+ 525              		.loc 1 564 0
+ 526 005c A046     		mov	r8, r4
+ 568:./src/usb/usbcore.c **** 				if (USB_EndPointMask & ((1 << 16) << n))
+ 527              		.loc 1 568 0
+ 528 005e 4FF48037 		mov	r7, #65536
+ 529 0062 07E0     		b	.L68
+ 530              	.LVL36:
+ 531              	.L65:
+ 532 0064 07FA04F2 		lsl	r2, r7, r4
+ 533 0068 3368     		ldr	r3, [r6]
+ 534 006a 1A42     		tst	r2, r3
+ 535 006c 0FD1     		bne	.L84
+ 536              	.L66:
+ 562:./src/usb/usbcore.c **** 			for (n = 1; n < 16; n++)
+ 537              		.loc 1 562 0
+ 538 006e 0134     		adds	r4, r4, #1
+ 539              	.LVL37:
+ 540 0070 102C     		cmp	r4, #16
+ 541 0072 13D0     		beq	.L85
+ 542              	.LVL38:
+ 543              	.L68:
+ 564:./src/usb/usbcore.c **** 				if (USB_EndPointMask & (1 << n))
+ 544              		.loc 1 564 0
+ 545 0074 08FA04F2 		lsl	r2, r8, r4
+ 546 0078 3368     		ldr	r3, [r6]
+ 547 007a 1A42     		tst	r2, r3
+ 548 007c F2D0     		beq	.L65
+ 566:./src/usb/usbcore.c **** 					USB_DisableEP(n);
+ 549              		.loc 1 566 0
+ 550 007e 2046     		mov	r0, r4
+ 551 0080 FFF7FEFF 		bl	USB_DisableEP
+ 552              	.LVL39:
+ 568:./src/usb/usbcore.c **** 				if (USB_EndPointMask & ((1 << 16) << n))
+ 553              		.loc 1 568 0
+ 554 0084 07FA04F2 		lsl	r2, r7, r4
+ 555 0088 3368     		ldr	r3, [r6]
+ 556 008a 1A42     		tst	r2, r3
+ 557 008c EFD0     		beq	.L66
+ 558              	.L84:
+ 570:./src/usb/usbcore.c **** 					USB_DisableEP(n | 0x80);
+ 559              		.loc 1 570 0
+ 560 008e 44F08000 		orr	r0, r4, #128
+ 562:./src/usb/usbcore.c **** 			for (n = 1; n < 16; n++)
+ 561              		.loc 1 562 0
+ 562 0092 0134     		adds	r4, r4, #1
+ 563              	.LVL40:
+ 570:./src/usb/usbcore.c **** 					USB_DisableEP(n | 0x80);
+ 564              		.loc 1 570 0
+ 565 0094 FFF7FEFF 		bl	USB_DisableEP
+ 566              	.LVL41:
+ 562:./src/usb/usbcore.c **** 			for (n = 1; n < 16; n++)
+ 567              		.loc 1 562 0
+ 568 0098 102C     		cmp	r4, #16
+ 569 009a EBD1     		bne	.L68
+ 570              	.L85:
+ 574:./src/usb/usbcore.c **** 			USB_EndPointHalt = 0x00000000;
+ 571              		.loc 1 574 0
+ 572 009c 0023     		movs	r3, #0
+ 573 009e 4C49     		ldr	r1, .L91+8
+ 575:./src/usb/usbcore.c **** 			USB_EndPointStall = 0x00000000;
+ 574              		.loc 1 575 0
+ 575 00a0 4C4A     		ldr	r2, .L91+12
+ 573:./src/usb/usbcore.c **** 			USB_EndPointMask = 0x00010001;
+ 576              		.loc 1 573 0
+ 577 00a2 4FF00114 		mov	r4, #65537
+ 578              	.LVL42:
+ 576:./src/usb/usbcore.c **** 			USB_Configure(FALSE);
+ 579              		.loc 1 576 0
+ 580 00a6 1846     		mov	r0, r3
+ 573:./src/usb/usbcore.c **** 			USB_EndPointMask = 0x00010001;
+ 581              		.loc 1 573 0
+ 582 00a8 3460     		str	r4, [r6]
+ 574:./src/usb/usbcore.c **** 			USB_EndPointHalt = 0x00000000;
+ 583              		.loc 1 574 0
+ 584 00aa 0B60     		str	r3, [r1]
+ 575:./src/usb/usbcore.c **** 			USB_EndPointStall = 0x00000000;
+ 585              		.loc 1 575 0
+ 586 00ac 1360     		str	r3, [r2]
+ 576:./src/usb/usbcore.c **** 			USB_Configure(FALSE);
+ 587              		.loc 1 576 0
+ 588 00ae FFF7FEFF 		bl	USB_Configure
+ 589              	.LVL43:
+ 590 00b2 C5E7     		b	.L64
+ 591              	.LVL44:
+ 592              	.L83:
+ 492:./src/usb/usbcore.c **** 					if (((USB_CONFIGURATION_DESCRIPTOR *) pD)->bConfigurationValue
+ 593              		.loc 1 492 0
+ 594 00b4 9AF80510 		ldrb	r1, [r10, #5]	@ zero_extendqisi2
+ 595 00b8 AA78     		ldrb	r2, [r5, #2]	@ zero_extendqisi2
+ 596 00ba 8A42     		cmp	r2, r1
+ 597 00bc 27D0     		beq	.L86
+ 598              	.LVL45:
+ 531:./src/usb/usbcore.c **** 						tmp +=
+ 599              		.loc 1 531 0
+ 600 00be BAF80220 		ldrh	r2, [r10, #2]	@ unaligned
+ 601 00c2 9244     		add	r10, r10, r2
+ 602              	.LVL46:
+ 534:./src/usb/usbcore.c **** 						continue;
+ 603              		.loc 1 534 0
+ 604 00c4 ACE7     		b	.L49
+ 605              	.L52:
+ 541:./src/usb/usbcore.c **** 					if (alt == 0)
+ 606              		.loc 1 541 0
+ 607 00c6 B8F1000F 		cmp	r8, #0
+ 608 00ca B4D1     		bne	.L50
+ 543:./src/usb/usbcore.c **** 						n = ((USB_ENDPOINT_DESCRIPTOR *) pD)->bEndpointAddress
+ 609              		.loc 1 543 0
+ 610 00cc 9AF80220 		ldrb	r2, [r10, #2]	@ zero_extendqisi2
+ 545:./src/usb/usbcore.c **** 						m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 611              		.loc 1 545 0
+ 612 00d0 1106     		lsls	r1, r2, #24
+ 543:./src/usb/usbcore.c **** 						n = ((USB_ENDPOINT_DESCRIPTOR *) pD)->bEndpointAddress
+ 613              		.loc 1 543 0
+ 614 00d2 02F08F04 		and	r4, r2, #143
+ 615              	.LVL47:
+ 545:./src/usb/usbcore.c **** 						m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 616              		.loc 1 545 0
+ 617 00d6 64D4     		bmi	.L87
+ 545:./src/usb/usbcore.c **** 						m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 618              		.loc 1 545 0 is_stmt 0 discriminator 2
+ 619 00d8 0122     		movs	r2, #1
+ 620 00da A240     		lsls	r2, r2, r4
+ 621              	.L62:
+ 622              	.LVL48:
+ 546:./src/usb/usbcore.c **** 						USB_EndPointMask |= m;
+ 623              		.loc 1 546 0 is_stmt 1 discriminator 3
+ 624 00dc DBF80010 		ldr	r1, [fp]
+ 547:./src/usb/usbcore.c **** 						USB_ConfigEP((USB_ENDPOINT_DESCRIPTOR *) pD);
+ 625              		.loc 1 547 0 discriminator 3
+ 626 00e0 5046     		mov	r0, r10
+ 546:./src/usb/usbcore.c **** 						USB_EndPointMask |= m;
+ 627              		.loc 1 546 0 discriminator 3
+ 628 00e2 0A43     		orrs	r2, r2, r1
+ 629              	.LVL49:
+ 630 00e4 CBF80020 		str	r2, [fp]
+ 547:./src/usb/usbcore.c **** 						USB_ConfigEP((USB_ENDPOINT_DESCRIPTOR *) pD);
+ 631              		.loc 1 547 0 discriminator 3
+ 632 00e8 FFF7FEFF 		bl	USB_ConfigEP
+ 633              	.LVL50:
+ 548:./src/usb/usbcore.c **** 						USB_EnableEP(n);
+ 634              		.loc 1 548 0 discriminator 3
+ 635 00ec 2046     		mov	r0, r4
+ 636 00ee FFF7FEFF 		bl	USB_EnableEP
+ 637              	.LVL51:
+ 549:./src/usb/usbcore.c **** 						USB_ResetEP(n);
+ 638              		.loc 1 549 0 discriminator 3
+ 639 00f2 2046     		mov	r0, r4
+ 640 00f4 FFF7FEFF 		bl	USB_ResetEP
+ 641              	.LVL52:
+ 642 00f8 9AF80010 		ldrb	r1, [r10]	@ zero_extendqisi2
+ 643              	.LVL53:
+ 555:./src/usb/usbcore.c **** 				tmp += pD->bLength;
+ 644              		.loc 1 555 0 discriminator 3
+ 645 00fc 8A44     		add	r10, r10, r1
+ 646              	.LVL54:
+ 647 00fe 9BE7     		b	.L88
+ 648              	.LVL55:
+ 649              	.L51:
+ 538:./src/usb/usbcore.c **** 					alt = ((USB_INTERFACE_DESCRIPTOR *) pD)->bAlternateSetting;
+ 650              		.loc 1 538 0
+ 651 0100 9AF80380 		ldrb	r8, [r10, #3]	@ zero_extendqisi2
+ 652              	.LVL56:
+ 555:./src/usb/usbcore.c **** 				tmp += pD->bLength;
+ 653              		.loc 1 555 0
+ 654 0104 8A44     		add	r10, r10, r1
+ 655              	.LVL57:
+ 656 0106 97E7     		b	.L88
+ 657              	.LVL58:
+ 658              	.L82:
+ 580:./src/usb/usbcore.c **** 		{
+ 581:./src/usb/usbcore.c **** 			return (FALSE);
+ 582:./src/usb/usbcore.c **** 		}
+ 583:./src/usb/usbcore.c **** 		break;
+ 584:./src/usb/usbcore.c **** 	default:
+ 585:./src/usb/usbcore.c **** 		return (FALSE);
+ 659              		.loc 1 585 0
+ 660 0108 0020     		movs	r0, #0
+ 586:./src/usb/usbcore.c **** 	}
+ 587:./src/usb/usbcore.c **** 	return (TRUE);
+ 588:./src/usb/usbcore.c **** }
+ 661              		.loc 1 588 0
+ 662 010a BDE8F88F 		pop	{r3, r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 663              	.LVL59:
+ 664              	.L86:
+ 497:./src/usb/usbcore.c **** 								((USB_CONFIGURATION_DESCRIPTOR *) pD)->bNumInterfaces;
+ 665              		.loc 1 497 0
+ 666 010e 9AF80400 		ldrb	r0, [r10, #4]	@ zero_extendqisi2
+ 496:./src/usb/usbcore.c **** 						USB_NumInterfaces =
+ 667              		.loc 1 496 0
+ 668 0112 314B     		ldr	r3, .L91+16
+ 495:./src/usb/usbcore.c **** 						USB_Configuration = SetupPacket.wValue.WB.L;
+ 669              		.loc 1 495 0
+ 670 0114 89F80020 		strb	r2, [r9]
+ 496:./src/usb/usbcore.c **** 						USB_NumInterfaces =
+ 671              		.loc 1 496 0
+ 672 0118 1870     		strb	r0, [r3]
+ 673              	.LVL60:
+ 500:./src/usb/usbcore.c **** 							USB_AltSetting[n] = 0;
+ 674              		.loc 1 500 0
+ 675 011a 304B     		ldr	r3, .L91+20
+ 676 011c 0021     		movs	r1, #0
+ 677 011e 0124     		movs	r4, #1
+ 678 0120 1970     		strb	r1, [r3]
+ 679              	.LVL61:
+ 504:./src/usb/usbcore.c **** 							if (USB_EndPointMask & (1 << n))
+ 680              		.loc 1 504 0
+ 681 0122 2746     		mov	r7, r4
+ 500:./src/usb/usbcore.c **** 							USB_AltSetting[n] = 0;
+ 682              		.loc 1 500 0
+ 683 0124 5970     		strb	r1, [r3, #1]
+ 684              	.LVL62:
+ 508:./src/usb/usbcore.c **** 							if (USB_EndPointMask & ((1 << 16) << n))
+ 685              		.loc 1 508 0
+ 686 0126 4FF48036 		mov	r6, #65536
+ 500:./src/usb/usbcore.c **** 							USB_AltSetting[n] = 0;
+ 687              		.loc 1 500 0
+ 688 012a 9970     		strb	r1, [r3, #2]
+ 689              	.LVL63:
+ 690 012c D970     		strb	r1, [r3, #3]
+ 691              	.LVL64:
+ 692 012e 08E0     		b	.L58
+ 693              	.LVL65:
+ 694              	.L55:
+ 508:./src/usb/usbcore.c **** 							if (USB_EndPointMask & ((1 << 16) << n))
+ 695              		.loc 1 508 0
+ 696 0130 06FA04F1 		lsl	r1, r6, r4
+ 697 0134 DBF80020 		ldr	r2, [fp]
+ 698 0138 1142     		tst	r1, r2
+ 699 013a 11D1     		bne	.L89
+ 700              	.L56:
+ 502:./src/usb/usbcore.c **** 						for (n = 1; n < 16; n++)
+ 701              		.loc 1 502 0
+ 702 013c 0134     		adds	r4, r4, #1
+ 703              	.LVL66:
+ 704 013e 102C     		cmp	r4, #16
+ 705 0140 15D0     		beq	.L90
+ 706              	.LVL67:
+ 707              	.L58:
+ 504:./src/usb/usbcore.c **** 							if (USB_EndPointMask & (1 << n))
+ 708              		.loc 1 504 0
+ 709 0142 07FA04F1 		lsl	r1, r7, r4
+ 710 0146 DBF80020 		ldr	r2, [fp]
+ 711 014a 1142     		tst	r1, r2
+ 712 014c F0D0     		beq	.L55
+ 506:./src/usb/usbcore.c **** 								USB_DisableEP(n);
+ 713              		.loc 1 506 0
+ 714 014e 2046     		mov	r0, r4
+ 715 0150 FFF7FEFF 		bl	USB_DisableEP
+ 716              	.LVL68:
+ 508:./src/usb/usbcore.c **** 							if (USB_EndPointMask & ((1 << 16) << n))
+ 717              		.loc 1 508 0
+ 718 0154 06FA04F1 		lsl	r1, r6, r4
+ 719 0158 DBF80020 		ldr	r2, [fp]
+ 720 015c 1142     		tst	r1, r2
+ 721 015e EDD0     		beq	.L56
+ 722              	.L89:
+ 510:./src/usb/usbcore.c **** 								USB_DisableEP(n | 0x80);
+ 723              		.loc 1 510 0
+ 724 0160 44F08000 		orr	r0, r4, #128
+ 502:./src/usb/usbcore.c **** 						for (n = 1; n < 16; n++)
+ 725              		.loc 1 502 0
+ 726 0164 0134     		adds	r4, r4, #1
+ 727              	.LVL69:
+ 510:./src/usb/usbcore.c **** 								USB_DisableEP(n | 0x80);
+ 728              		.loc 1 510 0
+ 729 0166 FFF7FEFF 		bl	USB_DisableEP
+ 730              	.LVL70:
+ 502:./src/usb/usbcore.c **** 						for (n = 1; n < 16; n++)
+ 731              		.loc 1 502 0
+ 732 016a 102C     		cmp	r4, #16
+ 733 016c E9D1     		bne	.L58
+ 734              	.L90:
+ 515:./src/usb/usbcore.c **** 						USB_EndPointStall = 0x00000000;
+ 735              		.loc 1 515 0
+ 736 016e 1949     		ldr	r1, .L91+12
+ 514:./src/usb/usbcore.c **** 						USB_EndPointHalt = 0x00000000;
+ 737              		.loc 1 514 0
+ 738 0170 174C     		ldr	r4, .L91+8
+ 739              	.LVL71:
+ 740 0172 0022     		movs	r2, #0
+ 516:./src/usb/usbcore.c **** 						USB_Configure(TRUE);
+ 741              		.loc 1 516 0
+ 742 0174 0120     		movs	r0, #1
+ 513:./src/usb/usbcore.c **** 						USB_EndPointMask = 0x00010001;
+ 743              		.loc 1 513 0
+ 744 0176 4FF00116 		mov	r6, #65537
+ 745 017a CBF80060 		str	r6, [fp]
+ 514:./src/usb/usbcore.c **** 						USB_EndPointHalt = 0x00000000;
+ 746              		.loc 1 514 0
+ 747 017e 2260     		str	r2, [r4]
+ 515:./src/usb/usbcore.c **** 						USB_EndPointStall = 0x00000000;
+ 748              		.loc 1 515 0
+ 749 0180 0A60     		str	r2, [r1]
+ 516:./src/usb/usbcore.c **** 						USB_Configure(TRUE);
+ 750              		.loc 1 516 0
+ 751 0182 FFF7FEFF 		bl	USB_Configure
+ 752              	.LVL72:
+ 518:./src/usb/usbcore.c **** 								& USB_CONFIG_POWERED_MASK)
+ 753              		.loc 1 518 0
+ 754 0186 9AF80720 		ldrb	r2, [r10, #7]	@ zero_extendqisi2
+ 517:./src/usb/usbcore.c **** 						if (((USB_CONFIGURATION_DESCRIPTOR *) pD)->bmAttributes
+ 755              		.loc 1 517 0
+ 756 018a 5006     		lsls	r0, r2, #25
+ 757 018c 10D5     		bpl	.L59
+ 520:./src/usb/usbcore.c **** 							USB_DeviceStatus |= USB_GETSTATUS_SELF_POWERED;
+ 758              		.loc 1 520 0
+ 759 018e 144A     		ldr	r2, .L91+24
+ 760 0190 9AF80010 		ldrb	r1, [r10]	@ zero_extendqisi2
+ 761 0194 1088     		ldrh	r0, [r2]
+ 555:./src/usb/usbcore.c **** 				tmp += pD->bLength;
+ 762              		.loc 1 555 0
+ 763 0196 8A44     		add	r10, r10, r1
+ 764              	.LVL73:
+ 520:./src/usb/usbcore.c **** 							USB_DeviceStatus |= USB_GETSTATUS_SELF_POWERED;
+ 765              		.loc 1 520 0
+ 766 0198 80B2     		uxth	r0, r0
+ 767 019a 40F00100 		orr	r0, r0, #1
+ 768 019e 1080     		strh	r0, [r2]	@ movhi
+ 769              	.LVL74:
+ 770 01a0 4AE7     		b	.L88
+ 771              	.LVL75:
+ 772              	.L87:
+ 545:./src/usb/usbcore.c **** 						m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 773              		.loc 1 545 0 discriminator 1
+ 774 01a2 02F00F02 		and	r2, r2, #15
+ 775 01a6 4FF48031 		mov	r1, #65536
+ 776 01aa 01FA02F2 		lsl	r2, r1, r2
+ 777 01ae 95E7     		b	.L62
+ 778              	.LVL76:
+ 779              	.L59:
+ 524:./src/usb/usbcore.c **** 							USB_DeviceStatus &= ~USB_GETSTATUS_SELF_POWERED;
+ 780              		.loc 1 524 0
+ 781 01b0 0B48     		ldr	r0, .L91+24
+ 782 01b2 9AF80010 		ldrb	r1, [r10]	@ zero_extendqisi2
+ 783 01b6 0288     		ldrh	r2, [r0]
+ 555:./src/usb/usbcore.c **** 				tmp += pD->bLength;
+ 784              		.loc 1 555 0
+ 785 01b8 8A44     		add	r10, r10, r1
+ 786              	.LVL77:
+ 524:./src/usb/usbcore.c **** 							USB_DeviceStatus &= ~USB_GETSTATUS_SELF_POWERED;
+ 787              		.loc 1 524 0
+ 788 01ba 22F00102 		bic	r2, r2, #1
+ 789 01be 1204     		lsls	r2, r2, #16
+ 790 01c0 120C     		lsrs	r2, r2, #16
+ 791 01c2 0280     		strh	r2, [r0]	@ movhi
+ 792              	.LVL78:
+ 793 01c4 38E7     		b	.L88
+ 794              	.L92:
+ 795 01c6 00BF     		.align	2
+ 796              	.L91:
+ 797 01c8 00000000 		.word	SetupPacket
+ 798 01cc 00000000 		.word	USB_EndPointMask
+ 799 01d0 00000000 		.word	USB_EndPointHalt
+ 800 01d4 00000000 		.word	USB_EndPointStall
+ 801 01d8 00000000 		.word	USB_NumInterfaces
+ 802 01dc 00000000 		.word	USB_AltSetting
+ 803 01e0 00000000 		.word	USB_DeviceStatus
+ 804 01e4 00000000 		.word	USB_ConfigDescriptor
+ 805 01e8 00000000 		.word	USB_Configuration
+ 806              		.cfi_endproc
+ 807              	.LFE11:
+ 809              		.section	.text.USB_ReqSetInterface,"ax",%progbits
+ 810              		.align	2
+ 811              		.global	USB_ReqSetInterface
+ 812              		.thumb
+ 813              		.thumb_func
+ 815              	USB_ReqSetInterface:
+ 816              	.LFB13:
+ 589:./src/usb/usbcore.c **** 
+ 590:./src/usb/usbcore.c **** /*
+ 591:./src/usb/usbcore.c ****  *  Get Interface USB Request
+ 592:./src/usb/usbcore.c ****  *    Parameters:      None (global SetupPacket)
+ 593:./src/usb/usbcore.c ****  *    Return Value:    TRUE - Success, FALSE - Error
+ 594:./src/usb/usbcore.c ****  */
+ 595:./src/usb/usbcore.c **** 
+ 596:./src/usb/usbcore.c **** #if defined (  __IAR_SYSTEMS_ICC__  )
+ 597:./src/usb/usbcore.c **** inline uint32_t USB_ReqGetInterface (void)
+ 598:./src/usb/usbcore.c **** {
+ 599:./src/usb/usbcore.c **** #else
+ 600:./src/usb/usbcore.c **** __inline uint32_t USB_ReqGetInterface(void)
+ 601:./src/usb/usbcore.c **** {
+ 602:./src/usb/usbcore.c **** #endif
+ 603:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 604:./src/usb/usbcore.c **** 	{
+ 605:./src/usb/usbcore.c **** 	case REQUEST_TO_INTERFACE:
+ 606:./src/usb/usbcore.c **** 		if ((USB_Configuration != 0)
+ 607:./src/usb/usbcore.c **** 				&& (SetupPacket.wIndex.WB.L < USB_NumInterfaces))
+ 608:./src/usb/usbcore.c **** 		{
+ 609:./src/usb/usbcore.c **** 			EP0Data.pData = USB_AltSetting + SetupPacket.wIndex.WB.L;
+ 610:./src/usb/usbcore.c **** 		}
+ 611:./src/usb/usbcore.c **** 		else
+ 612:./src/usb/usbcore.c **** 		{
+ 613:./src/usb/usbcore.c **** 			return (FALSE);
+ 614:./src/usb/usbcore.c **** 		}
+ 615:./src/usb/usbcore.c **** 		break;
+ 616:./src/usb/usbcore.c **** 	default:
+ 617:./src/usb/usbcore.c **** 		return (FALSE);
+ 618:./src/usb/usbcore.c **** 	}
+ 619:./src/usb/usbcore.c **** 	return (TRUE);
+ 620:./src/usb/usbcore.c **** }
+ 621:./src/usb/usbcore.c **** 
+ 622:./src/usb/usbcore.c **** /*
+ 623:./src/usb/usbcore.c ****  *  Set Interface USB Request
+ 624:./src/usb/usbcore.c ****  *    Parameters:      None (global SetupPacket)
+ 625:./src/usb/usbcore.c ****  *    Return Value:    TRUE - Success, FALSE - Error
+ 626:./src/usb/usbcore.c ****  */
+ 627:./src/usb/usbcore.c **** #if defined (  __IAR_SYSTEMS_ICC__  )
+ 628:./src/usb/usbcore.c **** inline uint32_t USB_ReqSetInterface (void)
+ 629:./src/usb/usbcore.c **** {
+ 630:./src/usb/usbcore.c **** #else
+ 631:./src/usb/usbcore.c **** /*__inline*/uint32_t USB_ReqSetInterface(void)
+ 632:./src/usb/usbcore.c **** {
+ 817              		.loc 1 632 0
+ 818              		.cfi_startproc
+ 819              		@ args = 0, pretend = 0, frame = 16
+ 820              		@ frame_needed = 0, uses_anonymous_args = 0
+ 821              	.LVL79:
+ 822 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 823              		.cfi_def_cfa_offset 36
+ 824              		.cfi_offset 4, -36
+ 825              		.cfi_offset 5, -32
+ 826              		.cfi_offset 6, -28
+ 827              		.cfi_offset 7, -24
+ 828              		.cfi_offset 8, -20
+ 829              		.cfi_offset 9, -16
+ 830              		.cfi_offset 10, -12
+ 831              		.cfi_offset 11, -8
+ 832              		.cfi_offset 14, -4
+ 633:./src/usb/usbcore.c **** #endif
+ 634:./src/usb/usbcore.c **** 	USB_COMMON_DESCRIPTOR *pD;
+ 635:./src/usb/usbcore.c **** 	uint32_t ifn = 0, alt = 0, old = 0, msk = 0;
+ 636:./src/usb/usbcore.c **** 	uint32_t n, m;
+ 637:./src/usb/usbcore.c **** 	uint32_t set;
+ 638:./src/usb/usbcore.c **** 	uint32_t tmp;
+ 639:./src/usb/usbcore.c **** 
+ 640:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 833              		.loc 1 640 0
+ 834 0004 554D     		ldr	r5, .L121
+ 632:./src/usb/usbcore.c **** {
+ 835              		.loc 1 632 0
+ 836 0006 85B0     		sub	sp, sp, #20
+ 837              		.cfi_def_cfa_offset 56
+ 838              		.loc 1 640 0
+ 839 0008 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 840 000a 03F01F03 		and	r3, r3, #31
+ 841 000e 012B     		cmp	r3, #1
+ 842 0010 42D1     		bne	.L112
+ 641:./src/usb/usbcore.c **** 	{
+ 642:./src/usb/usbcore.c **** 	case REQUEST_TO_INTERFACE:
+ 643:./src/usb/usbcore.c **** 		if (USB_Configuration == 0)
+ 843              		.loc 1 643 0
+ 844 0012 534A     		ldr	r2, .L121+4
+ 845 0014 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 846 0016 03F0FF00 		and	r0, r3, #255
+ 847 001a A3B1     		cbz	r3, .L94
+ 848 001c 0026     		movs	r6, #0
+ 849 001e 514C     		ldr	r4, .L121+8
+ 850 0020 B146     		mov	r9, r6
+ 851 0022 B246     		mov	r10, r6
+ 852 0024 3746     		mov	r7, r6
+ 853 0026 3146     		mov	r1, r6
+ 644:./src/usb/usbcore.c **** 			return (FALSE);
+ 645:./src/usb/usbcore.c **** 		set = FALSE;
+ 646:./src/usb/usbcore.c **** 		pD = (USB_COMMON_DESCRIPTOR *) USB_ConfigDescriptor;
+ 647:./src/usb/usbcore.c **** 		while (pD->bLength)
+ 648:./src/usb/usbcore.c **** 		{
+ 649:./src/usb/usbcore.c **** 			switch (pD->bDescriptorType)
+ 650:./src/usb/usbcore.c **** 			{
+ 651:./src/usb/usbcore.c **** 			case USB_CONFIGURATION_DESCRIPTOR_TYPE:
+ 652:./src/usb/usbcore.c **** 				if (((USB_CONFIGURATION_DESCRIPTOR *) pD)->bConfigurationValue
+ 653:./src/usb/usbcore.c **** 						!= USB_Configuration)
+ 654:./src/usb/usbcore.c **** 				{
+ 655:./src/usb/usbcore.c **** //              (uint8_t *)pD += ((USB_CONFIGURATION_DESCRIPTOR *)pD)->wTotalLength;
+ 656:./src/usb/usbcore.c **** 					tmp = (uint32_t) pD;
+ 657:./src/usb/usbcore.c **** 					tmp += ((USB_CONFIGURATION_DESCRIPTOR *) pD)->wTotalLength;
+ 658:./src/usb/usbcore.c **** 					pD = (USB_COMMON_DESCRIPTOR *) tmp;
+ 659:./src/usb/usbcore.c **** 
+ 660:./src/usb/usbcore.c **** 					continue;
+ 661:./src/usb/usbcore.c **** 				}
+ 662:./src/usb/usbcore.c **** 				break;
+ 663:./src/usb/usbcore.c **** 			case USB_INTERFACE_DESCRIPTOR_TYPE:
+ 664:./src/usb/usbcore.c **** 				ifn = ((USB_INTERFACE_DESCRIPTOR *) pD)->bInterfaceNumber;
+ 665:./src/usb/usbcore.c **** 				alt = ((USB_INTERFACE_DESCRIPTOR *) pD)->bAlternateSetting;
+ 666:./src/usb/usbcore.c **** 				msk = 0;
+ 667:./src/usb/usbcore.c **** 				if ((ifn == SetupPacket.wIndex.WB.L)
+ 854              		.loc 1 667 0
+ 855 0028 AB46     		mov	fp, r5
+ 856              	.LVL80:
+ 857              	.L96:
+ 647:./src/usb/usbcore.c **** 		while (pD->bLength)
+ 858              		.loc 1 647 0 discriminator 1
+ 859 002a 2078     		ldrb	r0, [r4]	@ zero_extendqisi2
+ 860 002c 50B1     		cbz	r0, .L113
+ 861              	.L105:
+ 649:./src/usb/usbcore.c **** 			switch (pD->bDescriptorType)
+ 862              		.loc 1 649 0
+ 863 002e 6378     		ldrb	r3, [r4, #1]	@ zero_extendqisi2
+ 864 0030 042B     		cmp	r3, #4
+ 865 0032 28D0     		beq	.L98
+ 866 0034 052B     		cmp	r3, #5
+ 867 0036 11D0     		beq	.L99
+ 868 0038 022B     		cmp	r3, #2
+ 869 003a 07D0     		beq	.L114
+ 870              	.L97:
+ 871              	.LVL81:
+ 668:./src/usb/usbcore.c **** 						&& (alt == SetupPacket.wValue.WB.L))
+ 669:./src/usb/usbcore.c **** 				{
+ 670:./src/usb/usbcore.c **** 					set = TRUE;
+ 671:./src/usb/usbcore.c **** 					old = USB_AltSetting[ifn];
+ 672:./src/usb/usbcore.c **** 					USB_AltSetting[ifn] = (uint8_t) alt;
+ 673:./src/usb/usbcore.c **** 				}
+ 674:./src/usb/usbcore.c **** 				break;
+ 675:./src/usb/usbcore.c **** 			case USB_ENDPOINT_DESCRIPTOR_TYPE:
+ 676:./src/usb/usbcore.c **** 				if (ifn == SetupPacket.wIndex.WB.L)
+ 677:./src/usb/usbcore.c **** 				{
+ 678:./src/usb/usbcore.c **** 					n = ((USB_ENDPOINT_DESCRIPTOR *) pD)->bEndpointAddress
+ 679:./src/usb/usbcore.c **** 							& 0x8F;
+ 680:./src/usb/usbcore.c **** 					m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 681:./src/usb/usbcore.c **** 					if (alt == SetupPacket.wValue.WB.L)
+ 682:./src/usb/usbcore.c **** 					{
+ 683:./src/usb/usbcore.c **** 						USB_EndPointMask |= m;
+ 684:./src/usb/usbcore.c **** 						USB_EndPointHalt &= ~m;
+ 685:./src/usb/usbcore.c **** 						USB_ConfigEP((USB_ENDPOINT_DESCRIPTOR *) pD);
+ 686:./src/usb/usbcore.c **** 						USB_EnableEP(n);
+ 687:./src/usb/usbcore.c **** 						USB_ResetEP(n);
+ 688:./src/usb/usbcore.c **** 						msk |= m;
+ 689:./src/usb/usbcore.c **** 					}
+ 690:./src/usb/usbcore.c **** 					else if ((alt == old) && ((msk & m) == 0))
+ 691:./src/usb/usbcore.c **** 					{
+ 692:./src/usb/usbcore.c **** 						USB_EndPointMask &= ~m;
+ 693:./src/usb/usbcore.c **** 						USB_EndPointHalt &= ~m;
+ 694:./src/usb/usbcore.c **** 						USB_DisableEP(n);
+ 695:./src/usb/usbcore.c **** 					}
+ 696:./src/usb/usbcore.c **** 				}
+ 697:./src/usb/usbcore.c **** 				break;
+ 698:./src/usb/usbcore.c **** 			}
+ 699:./src/usb/usbcore.c **** //        (uint8_t *)pD += pD->bLength;
+ 700:./src/usb/usbcore.c **** 			tmp = (uint32_t) pD;
+ 701:./src/usb/usbcore.c **** 			tmp += pD->bLength;
+ 872              		.loc 1 701 0
+ 873 003c 0444     		add	r4, r4, r0
+ 874              	.LVL82:
+ 875              	.L118:
+ 647:./src/usb/usbcore.c **** 		while (pD->bLength)
+ 876              		.loc 1 647 0
+ 877 003e 2078     		ldrb	r0, [r4]	@ zero_extendqisi2
+ 878 0040 0028     		cmp	r0, #0
+ 879 0042 F4D1     		bne	.L105
+ 880              	.L113:
+ 881 0044 3046     		mov	r0, r6
+ 882              	.LVL83:
+ 883              	.L94:
+ 702:./src/usb/usbcore.c **** 			pD = (USB_COMMON_DESCRIPTOR *) tmp;
+ 703:./src/usb/usbcore.c **** 		}
+ 704:./src/usb/usbcore.c **** 		break;
+ 705:./src/usb/usbcore.c **** 	default:
+ 706:./src/usb/usbcore.c **** 		return (FALSE);
+ 707:./src/usb/usbcore.c **** 	}
+ 708:./src/usb/usbcore.c **** 
+ 709:./src/usb/usbcore.c **** 	return (set);
+ 710:./src/usb/usbcore.c **** }
+ 884              		.loc 1 710 0
+ 885 0046 05B0     		add	sp, sp, #20
+ 886              		@ sp needed
+ 887 0048 BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 888              	.LVL84:
+ 889              	.L114:
+ 653:./src/usb/usbcore.c **** 						!= USB_Configuration)
+ 890              		.loc 1 653 0
+ 891 004c 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 652:./src/usb/usbcore.c **** 				if (((USB_CONFIGURATION_DESCRIPTOR *) pD)->bConfigurationValue
+ 892              		.loc 1 652 0
+ 893 004e 94F805C0 		ldrb	ip, [r4, #5]	@ zero_extendqisi2
+ 894 0052 9C45     		cmp	ip, r3
+ 895 0054 F2D0     		beq	.L97
+ 896              	.LVL85:
+ 657:./src/usb/usbcore.c **** 					tmp += ((USB_CONFIGURATION_DESCRIPTOR *) pD)->wTotalLength;
+ 897              		.loc 1 657 0
+ 898 0056 6388     		ldrh	r3, [r4, #2]	@ unaligned
+ 899 0058 1C44     		add	r4, r4, r3
+ 900              	.LVL86:
+ 660:./src/usb/usbcore.c **** 					continue;
+ 901              		.loc 1 660 0
+ 902 005a E6E7     		b	.L96
+ 903              	.L99:
+ 676:./src/usb/usbcore.c **** 				if (ifn == SetupPacket.wIndex.WB.L)
+ 904              		.loc 1 676 0
+ 905 005c 95F80480 		ldrb	r8, [r5, #4]	@ zero_extendqisi2
+ 906 0060 8845     		cmp	r8, r1
+ 907 0062 EBD1     		bne	.L97
+ 678:./src/usb/usbcore.c **** 					n = ((USB_ENDPOINT_DESCRIPTOR *) pD)->bEndpointAddress
+ 908              		.loc 1 678 0
+ 909 0064 A378     		ldrb	r3, [r4, #2]	@ zero_extendqisi2
+ 680:./src/usb/usbcore.c **** 					m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 910              		.loc 1 680 0
+ 911 0066 13F0800F 		tst	r3, #128
+ 678:./src/usb/usbcore.c **** 					n = ((USB_ENDPOINT_DESCRIPTOR *) pD)->bEndpointAddress
+ 912              		.loc 1 678 0
+ 913 006a 03F08F01 		and	r1, r3, #143
+ 914              	.LVL87:
+ 680:./src/usb/usbcore.c **** 					m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 915              		.loc 1 680 0
+ 916 006e 26D1     		bne	.L115
+ 680:./src/usb/usbcore.c **** 					m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 917              		.loc 1 680 0 is_stmt 0 discriminator 2
+ 918 0070 0123     		movs	r3, #1
+ 919 0072 8B40     		lsls	r3, r3, r1
+ 920              	.L103:
+ 921              	.LVL88:
+ 681:./src/usb/usbcore.c **** 					if (alt == SetupPacket.wValue.WB.L)
+ 922              		.loc 1 681 0 is_stmt 1 discriminator 3
+ 923 0074 95F802C0 		ldrb	ip, [r5, #2]	@ zero_extendqisi2
+ 924 0078 BC45     		cmp	ip, r7
+ 925 007a 4AD0     		beq	.L116
+ 690:./src/usb/usbcore.c **** 					else if ((alt == old) && ((msk & m) == 0))
+ 926              		.loc 1 690 0
+ 927 007c 5745     		cmp	r7, r10
+ 928 007e 25D0     		beq	.L117
+ 929 0080 4146     		mov	r1, r8
+ 930              	.LVL89:
+ 701:./src/usb/usbcore.c **** 			tmp += pD->bLength;
+ 931              		.loc 1 701 0
+ 932 0082 0444     		add	r4, r4, r0
+ 933              	.LVL90:
+ 934 0084 DBE7     		b	.L118
+ 935              	.LVL91:
+ 936              	.L98:
+ 664:./src/usb/usbcore.c **** 				ifn = ((USB_INTERFACE_DESCRIPTOR *) pD)->bInterfaceNumber;
+ 937              		.loc 1 664 0
+ 938 0086 A178     		ldrb	r1, [r4, #2]	@ zero_extendqisi2
+ 939              	.LVL92:
+ 667:./src/usb/usbcore.c **** 				if ((ifn == SetupPacket.wIndex.WB.L)
+ 940              		.loc 1 667 0
+ 941 0088 2B79     		ldrb	r3, [r5, #4]	@ zero_extendqisi2
+ 665:./src/usb/usbcore.c **** 				alt = ((USB_INTERFACE_DESCRIPTOR *) pD)->bAlternateSetting;
+ 942              		.loc 1 665 0
+ 943 008a E778     		ldrb	r7, [r4, #3]	@ zero_extendqisi2
+ 944              	.LVL93:
+ 667:./src/usb/usbcore.c **** 				if ((ifn == SetupPacket.wIndex.WB.L)
+ 945              		.loc 1 667 0
+ 946 008c 8B42     		cmp	r3, r1
+ 947 008e 07D0     		beq	.L119
+ 948              	.L109:
+ 666:./src/usb/usbcore.c **** 				msk = 0;
+ 949              		.loc 1 666 0
+ 950 0090 4FF00009 		mov	r9, #0
+ 951              	.LVL94:
+ 701:./src/usb/usbcore.c **** 			tmp += pD->bLength;
+ 952              		.loc 1 701 0
+ 953 0094 0444     		add	r4, r4, r0
+ 954              	.LVL95:
+ 955 0096 D2E7     		b	.L118
+ 956              	.LVL96:
+ 957              	.L112:
+ 706:./src/usb/usbcore.c **** 		return (FALSE);
+ 958              		.loc 1 706 0
+ 959 0098 0020     		movs	r0, #0
+ 960              		.loc 1 710 0
+ 961 009a 05B0     		add	sp, sp, #20
+ 962              		@ sp needed
+ 963 009c BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 964              	.LVL97:
+ 965              	.L119:
+ 668:./src/usb/usbcore.c **** 						&& (alt == SetupPacket.wValue.WB.L))
+ 966              		.loc 1 668 0
+ 967 00a0 9BF80230 		ldrb	r3, [fp, #2]	@ zero_extendqisi2
+ 968 00a4 BB42     		cmp	r3, r7
+ 969 00a6 F3D1     		bne	.L109
+ 970              	.LVL98:
+ 671:./src/usb/usbcore.c **** 					old = USB_AltSetting[ifn];
+ 971              		.loc 1 671 0
+ 972 00a8 2F4B     		ldr	r3, .L121+12
+ 670:./src/usb/usbcore.c **** 					set = TRUE;
+ 973              		.loc 1 670 0
+ 974 00aa 0126     		movs	r6, #1
+ 671:./src/usb/usbcore.c **** 					old = USB_AltSetting[ifn];
+ 975              		.loc 1 671 0
+ 976 00ac 13F801A0 		ldrb	r10, [r3, r1]	@ zero_extendqisi2
+ 977              	.LVL99:
+ 666:./src/usb/usbcore.c **** 				msk = 0;
+ 978              		.loc 1 666 0
+ 979 00b0 4FF00009 		mov	r9, #0
+ 671:./src/usb/usbcore.c **** 					old = USB_AltSetting[ifn];
+ 980              		.loc 1 671 0
+ 981 00b4 5FFA8AFA 		uxtb	r10, r10
+ 982              	.LVL100:
+ 672:./src/usb/usbcore.c **** 					USB_AltSetting[ifn] = (uint8_t) alt;
+ 983              		.loc 1 672 0
+ 984 00b8 5F54     		strb	r7, [r3, r1]
+ 701:./src/usb/usbcore.c **** 			tmp += pD->bLength;
+ 985              		.loc 1 701 0
+ 986 00ba 0444     		add	r4, r4, r0
+ 987              	.LVL101:
+ 988 00bc BFE7     		b	.L118
+ 989              	.LVL102:
+ 990              	.L115:
+ 680:./src/usb/usbcore.c **** 					m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 991              		.loc 1 680 0 discriminator 1
+ 992 00be 03F00F03 		and	r3, r3, #15
+ 993 00c2 4FF4803C 		mov	ip, #65536
+ 994 00c6 0CFA03F3 		lsl	r3, ip, r3
+ 995 00ca D3E7     		b	.L103
+ 996              	.LVL103:
+ 997              	.L117:
+ 690:./src/usb/usbcore.c **** 					else if ((alt == old) && ((msk & m) == 0))
+ 998              		.loc 1 690 0 discriminator 1
+ 999 00cc 13EA090F 		tst	r3, r9
+ 1000 00d0 03D0     		beq	.L120
+ 1001 00d2 4146     		mov	r1, r8
+ 1002              	.LVL104:
+ 1003 00d4 BA46     		mov	r10, r7
+ 1004              	.LVL105:
+ 701:./src/usb/usbcore.c **** 			tmp += pD->bLength;
+ 1005              		.loc 1 701 0
+ 1006 00d6 0444     		add	r4, r4, r0
+ 1007              	.LVL106:
+ 1008 00d8 B1E7     		b	.L118
+ 1009              	.LVL107:
+ 1010              	.L120:
+ 692:./src/usb/usbcore.c **** 						USB_EndPointMask &= ~m;
+ 1011              		.loc 1 692 0
+ 1012 00da DFF894E0 		ldr	lr, .L121+20
+ 1013 00de DFF890C0 		ldr	ip, .L121+20
+ 1014 00e2 DEF80000 		ldr	r0, [lr]
+ 1015 00e6 6FEA030E 		mvn	lr, r3
+ 1016 00ea 0EEA0000 		and	r0, lr, r0
+ 693:./src/usb/usbcore.c **** 						USB_EndPointHalt &= ~m;
+ 1017              		.loc 1 693 0
+ 1018 00ee 1F4B     		ldr	r3, .L121+16
+ 1019              	.LVL108:
+ 692:./src/usb/usbcore.c **** 						USB_EndPointMask &= ~m;
+ 1020              		.loc 1 692 0
+ 1021 00f0 CCF80000 		str	r0, [ip]
+ 693:./src/usb/usbcore.c **** 						USB_EndPointHalt &= ~m;
+ 1022              		.loc 1 693 0
+ 1023 00f4 D3F800C0 		ldr	ip, [r3]
+ 694:./src/usb/usbcore.c **** 						USB_DisableEP(n);
+ 1024              		.loc 1 694 0
+ 1025 00f8 0846     		mov	r0, r1
+ 693:./src/usb/usbcore.c **** 						USB_EndPointHalt &= ~m;
+ 1026              		.loc 1 693 0
+ 1027 00fa 0EEA0C01 		and	r1, lr, ip
+ 1028              	.LVL109:
+ 1029 00fe 1960     		str	r1, [r3]
+ 694:./src/usb/usbcore.c **** 						USB_DisableEP(n);
+ 1030              		.loc 1 694 0
+ 1031 0100 0192     		str	r2, [sp, #4]
+ 1032 0102 FFF7FEFF 		bl	USB_DisableEP
+ 1033              	.LVL110:
+ 1034 0106 2078     		ldrb	r0, [r4]	@ zero_extendqisi2
+ 1035 0108 BA46     		mov	r10, r7
+ 1036              	.LVL111:
+ 1037 010a 4146     		mov	r1, r8
+ 1038 010c 019A     		ldr	r2, [sp, #4]
+ 1039              	.LVL112:
+ 701:./src/usb/usbcore.c **** 			tmp += pD->bLength;
+ 1040              		.loc 1 701 0
+ 1041 010e 0444     		add	r4, r4, r0
+ 1042              	.LVL113:
+ 1043 0110 95E7     		b	.L118
+ 1044              	.LVL114:
+ 1045              	.L116:
+ 683:./src/usb/usbcore.c **** 						USB_EndPointMask |= m;
+ 1046              		.loc 1 683 0
+ 1047 0112 DFF85CC0 		ldr	ip, .L121+20
+ 684:./src/usb/usbcore.c **** 						USB_EndPointHalt &= ~m;
+ 1048              		.loc 1 684 0
+ 1049 0116 DFF854E0 		ldr	lr, .L121+16
+ 683:./src/usb/usbcore.c **** 						USB_EndPointMask |= m;
+ 1050              		.loc 1 683 0
+ 1051 011a DCF80000 		ldr	r0, [ip]
+ 1052 011e 1843     		orrs	r0, r0, r3
+ 1053 0120 CCF80000 		str	r0, [ip]
+ 684:./src/usb/usbcore.c **** 						USB_EndPointHalt &= ~m;
+ 1054              		.loc 1 684 0
+ 1055 0124 DEF800C0 		ldr	ip, [lr]
+ 685:./src/usb/usbcore.c **** 						USB_ConfigEP((USB_ENDPOINT_DESCRIPTOR *) pD);
+ 1056              		.loc 1 685 0
+ 1057 0128 2046     		mov	r0, r4
+ 684:./src/usb/usbcore.c **** 						USB_EndPointHalt &= ~m;
+ 1058              		.loc 1 684 0
+ 1059 012a 2CEA030C 		bic	ip, ip, r3
+ 1060 012e CEF800C0 		str	ip, [lr]
+ 685:./src/usb/usbcore.c **** 						USB_ConfigEP((USB_ENDPOINT_DESCRIPTOR *) pD);
+ 1061              		.loc 1 685 0
+ 1062 0132 0192     		str	r2, [sp, #4]
+ 1063 0134 0393     		str	r3, [sp, #12]
+ 1064 0136 0291     		str	r1, [sp, #8]
+ 1065 0138 FFF7FEFF 		bl	USB_ConfigEP
+ 1066              	.LVL115:
+ 686:./src/usb/usbcore.c **** 						USB_EnableEP(n);
+ 1067              		.loc 1 686 0
+ 1068 013c 0299     		ldr	r1, [sp, #8]
+ 1069 013e 0846     		mov	r0, r1
+ 1070 0140 FFF7FEFF 		bl	USB_EnableEP
+ 1071              	.LVL116:
+ 687:./src/usb/usbcore.c **** 						USB_ResetEP(n);
+ 1072              		.loc 1 687 0
+ 1073 0144 0299     		ldr	r1, [sp, #8]
+ 688:./src/usb/usbcore.c **** 						msk |= m;
+ 1074              		.loc 1 688 0
+ 1075 0146 039B     		ldr	r3, [sp, #12]
+ 687:./src/usb/usbcore.c **** 						USB_ResetEP(n);
+ 1076              		.loc 1 687 0
+ 1077 0148 0846     		mov	r0, r1
+ 688:./src/usb/usbcore.c **** 						msk |= m;
+ 1078              		.loc 1 688 0
+ 1079 014a 49EA0309 		orr	r9, r9, r3
+ 1080              	.LVL117:
+ 687:./src/usb/usbcore.c **** 						USB_ResetEP(n);
+ 1081              		.loc 1 687 0
+ 1082 014e FFF7FEFF 		bl	USB_ResetEP
+ 1083              	.LVL118:
+ 1084 0152 2078     		ldrb	r0, [r4]	@ zero_extendqisi2
+ 1085 0154 4146     		mov	r1, r8
+ 1086 0156 019A     		ldr	r2, [sp, #4]
+ 1087              	.LVL119:
+ 701:./src/usb/usbcore.c **** 			tmp += pD->bLength;
+ 1088              		.loc 1 701 0
+ 1089 0158 0444     		add	r4, r4, r0
+ 1090              	.LVL120:
+ 1091 015a 70E7     		b	.L118
+ 1092              	.L122:
+ 1093              		.align	2
+ 1094              	.L121:
+ 1095 015c 00000000 		.word	SetupPacket
+ 1096 0160 00000000 		.word	USB_Configuration
+ 1097 0164 00000000 		.word	USB_ConfigDescriptor
+ 1098 0168 00000000 		.word	USB_AltSetting
+ 1099 016c 00000000 		.word	USB_EndPointHalt
+ 1100 0170 00000000 		.word	USB_EndPointMask
+ 1101              		.cfi_endproc
+ 1102              	.LFE13:
+ 1104              		.section	.text.USB_EndPoint0,"ax",%progbits
+ 1105              		.align	2
+ 1106              		.global	USB_EndPoint0
+ 1107              		.thumb
+ 1108              		.thumb_func
+ 1110              	USB_EndPoint0:
+ 1111              	.LFB14:
+ 711:./src/usb/usbcore.c **** 
+ 712:./src/usb/usbcore.c **** /*
+ 713:./src/usb/usbcore.c ****  *  USB Endpoint 0 Event Callback
+ 714:./src/usb/usbcore.c ****  *    Parameters:      event
+ 715:./src/usb/usbcore.c ****  *    Return Value:    none
+ 716:./src/usb/usbcore.c ****  */
+ 717:./src/usb/usbcore.c **** 
+ 718:./src/usb/usbcore.c **** void USB_EndPoint0(uint32_t event)
+ 719:./src/usb/usbcore.c **** {
+ 1112              		.loc 1 719 0
+ 1113              		.cfi_startproc
+ 1114              		@ args = 0, pretend = 0, frame = 0
+ 1115              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1116              	.LVL121:
+ 720:./src/usb/usbcore.c **** 
+ 721:./src/usb/usbcore.c **** 	switch (event)
+ 1117              		.loc 1 721 0
+ 1118 0000 0138     		subs	r0, r0, #1
+ 1119              	.LVL122:
+ 719:./src/usb/usbcore.c **** {
+ 1120              		.loc 1 719 0
+ 1121 0002 38B5     		push	{r3, r4, r5, lr}
+ 1122              		.cfi_def_cfa_offset 16
+ 1123              		.cfi_offset 3, -16
+ 1124              		.cfi_offset 4, -12
+ 1125              		.cfi_offset 5, -8
+ 1126              		.cfi_offset 14, -4
+ 1127              		.loc 1 721 0
+ 1128 0004 0628     		cmp	r0, #6
+ 1129 0006 0FD8     		bhi	.L123
+ 1130 0008 DFE800F0 		tbb	[pc, r0]
+ 1131              	.L126:
+ 1132 000c 14       		.byte	(.L125-.L126)/2
+ 1133 000d 57       		.byte	(.L127-.L126)/2
+ 1134 000e 04       		.byte	(.L128-.L126)/2
+ 1135 000f 0E       		.byte	(.L123-.L126)/2
+ 1136 0010 0E       		.byte	(.L123-.L126)/2
+ 1137 0011 84       		.byte	(.L129-.L126)/2
+ 1138 0012 0F       		.byte	(.L130-.L126)/2
+ 1139 0013 00       		.align	1
+ 1140              	.L128:
+ 722:./src/usb/usbcore.c **** 	{
+ 723:./src/usb/usbcore.c **** 	case USB_EVT_SETUP:
+ 724:./src/usb/usbcore.c **** 		USB_SetupStage();
+ 725:./src/usb/usbcore.c **** 		USB_DirCtrlEP(SetupPacket.bmRequestType.BM.Dir);
+ 726:./src/usb/usbcore.c **** 		EP0Data.Count = SetupPacket.wLength; /* Number of bytes to transfer */
+ 727:./src/usb/usbcore.c **** 		switch (SetupPacket.bmRequestType.BM.Type)
+ 728:./src/usb/usbcore.c **** 		{
+ 729:./src/usb/usbcore.c **** 
+ 730:./src/usb/usbcore.c **** 		case REQUEST_STANDARD:
+ 731:./src/usb/usbcore.c **** 			switch (SetupPacket.bRequest)
+ 732:./src/usb/usbcore.c **** 			{
+ 733:./src/usb/usbcore.c **** 			case USB_REQUEST_GET_STATUS:
+ 734:./src/usb/usbcore.c **** 				if (!USB_ReqGetStatus())
+ 735:./src/usb/usbcore.c **** 				{
+ 736:./src/usb/usbcore.c **** 					goto stall_i;
+ 737:./src/usb/usbcore.c **** 				}
+ 738:./src/usb/usbcore.c **** 				USB_DataInStage();
+ 739:./src/usb/usbcore.c **** 				break;
+ 740:./src/usb/usbcore.c **** 
+ 741:./src/usb/usbcore.c **** 			case USB_REQUEST_CLEAR_FEATURE:
+ 742:./src/usb/usbcore.c **** 				if (!USB_ReqSetClrFeature(0))
+ 743:./src/usb/usbcore.c **** 				{
+ 744:./src/usb/usbcore.c **** 					goto stall_i;
+ 745:./src/usb/usbcore.c **** 				}
+ 746:./src/usb/usbcore.c **** 				USB_StatusInStage();
+ 747:./src/usb/usbcore.c **** #if USB_FEATURE_EVENT
+ 748:./src/usb/usbcore.c **** 				USB_Feature_Event();
+ 749:./src/usb/usbcore.c **** #endif
+ 750:./src/usb/usbcore.c **** 				break;
+ 751:./src/usb/usbcore.c **** 
+ 752:./src/usb/usbcore.c **** 			case USB_REQUEST_SET_FEATURE:
+ 753:./src/usb/usbcore.c **** 				if (!USB_ReqSetClrFeature(1))
+ 754:./src/usb/usbcore.c **** 				{
+ 755:./src/usb/usbcore.c **** 					goto stall_i;
+ 756:./src/usb/usbcore.c **** 				}
+ 757:./src/usb/usbcore.c **** 				USB_StatusInStage();
+ 758:./src/usb/usbcore.c **** #if USB_FEATURE_EVENT
+ 759:./src/usb/usbcore.c **** 				USB_Feature_Event();
+ 760:./src/usb/usbcore.c **** #endif
+ 761:./src/usb/usbcore.c **** 				break;
+ 762:./src/usb/usbcore.c **** 
+ 763:./src/usb/usbcore.c **** 			case USB_REQUEST_SET_ADDRESS:
+ 764:./src/usb/usbcore.c **** 				if (!USB_ReqSetAddress())
+ 765:./src/usb/usbcore.c **** 				{
+ 766:./src/usb/usbcore.c **** 					goto stall_i;
+ 767:./src/usb/usbcore.c **** 				}
+ 768:./src/usb/usbcore.c **** 				USB_StatusInStage();
+ 769:./src/usb/usbcore.c **** 				break;
+ 770:./src/usb/usbcore.c **** 
+ 771:./src/usb/usbcore.c **** 			case USB_REQUEST_GET_DESCRIPTOR:
+ 772:./src/usb/usbcore.c **** 				if (!USB_ReqGetDescriptor())
+ 773:./src/usb/usbcore.c **** 				{
+ 774:./src/usb/usbcore.c **** 					goto stall_i;
+ 775:./src/usb/usbcore.c **** 				}
+ 776:./src/usb/usbcore.c **** 				USB_DataInStage();
+ 777:./src/usb/usbcore.c **** 				break;
+ 778:./src/usb/usbcore.c **** 
+ 779:./src/usb/usbcore.c **** 			case USB_REQUEST_SET_DESCRIPTOR:
+ 780:./src/usb/usbcore.c **** 				/*stall_o:*/
+ 781:./src/usb/usbcore.c **** 				USB_SetStallEP(0x00); /* not supported */
+ 782:./src/usb/usbcore.c **** 				EP0Data.Count = 0;
+ 783:./src/usb/usbcore.c **** 				break;
+ 784:./src/usb/usbcore.c **** 
+ 785:./src/usb/usbcore.c **** 			case USB_REQUEST_GET_CONFIGURATION:
+ 786:./src/usb/usbcore.c **** 				if (!USB_ReqGetConfiguration())
+ 787:./src/usb/usbcore.c **** 				{
+ 788:./src/usb/usbcore.c **** 					goto stall_i;
+ 789:./src/usb/usbcore.c **** 				}
+ 790:./src/usb/usbcore.c **** 				USB_DataInStage();
+ 791:./src/usb/usbcore.c **** 				break;
+ 792:./src/usb/usbcore.c **** 
+ 793:./src/usb/usbcore.c **** 			case USB_REQUEST_SET_CONFIGURATION:
+ 794:./src/usb/usbcore.c **** 				if (!USB_ReqSetConfiguration())
+ 795:./src/usb/usbcore.c **** 				{
+ 796:./src/usb/usbcore.c **** 					goto stall_i;
+ 797:./src/usb/usbcore.c **** 				}
+ 798:./src/usb/usbcore.c **** 				USB_StatusInStage();
+ 799:./src/usb/usbcore.c **** #if USB_CONFIGURE_EVENT
+ 800:./src/usb/usbcore.c **** 				USB_Configure_Event();
+ 801:./src/usb/usbcore.c **** #endif
+ 802:./src/usb/usbcore.c **** 				break;
+ 803:./src/usb/usbcore.c **** 
+ 804:./src/usb/usbcore.c **** 			case USB_REQUEST_GET_INTERFACE:
+ 805:./src/usb/usbcore.c **** 				if (!USB_ReqGetInterface())
+ 806:./src/usb/usbcore.c **** 				{
+ 807:./src/usb/usbcore.c **** 					goto stall_i;
+ 808:./src/usb/usbcore.c **** 				}
+ 809:./src/usb/usbcore.c **** 				USB_DataInStage();
+ 810:./src/usb/usbcore.c **** 				break;
+ 811:./src/usb/usbcore.c **** 
+ 812:./src/usb/usbcore.c **** 			case USB_REQUEST_SET_INTERFACE:
+ 813:./src/usb/usbcore.c **** 				if (!USB_ReqSetInterface())
+ 814:./src/usb/usbcore.c **** 				{
+ 815:./src/usb/usbcore.c **** 					goto stall_i;
+ 816:./src/usb/usbcore.c **** 				}
+ 817:./src/usb/usbcore.c **** 				USB_StatusInStage();
+ 818:./src/usb/usbcore.c **** #if USB_INTERFACE_EVENT
+ 819:./src/usb/usbcore.c **** 				USB_Interface_Event();
+ 820:./src/usb/usbcore.c **** #endif
+ 821:./src/usb/usbcore.c **** 				break;
+ 822:./src/usb/usbcore.c **** 
+ 823:./src/usb/usbcore.c **** 			default:
+ 824:./src/usb/usbcore.c **** 				goto stall_i;
+ 825:./src/usb/usbcore.c **** 			}
+ 826:./src/usb/usbcore.c **** 			break; /* end case REQUEST_STANDARD */
+ 827:./src/usb/usbcore.c **** 
+ 828:./src/usb/usbcore.c **** #if USB_CLASS
+ 829:./src/usb/usbcore.c **** 		case REQUEST_CLASS:
+ 830:./src/usb/usbcore.c **** 		{
+ 831:./src/usb/usbcore.c **** 			switch (SetupPacket.bmRequestType.BM.Recipient)
+ 832:./src/usb/usbcore.c **** 			{
+ 833:./src/usb/usbcore.c **** 
+ 834:./src/usb/usbcore.c **** 			case REQUEST_TO_DEVICE:
+ 835:./src/usb/usbcore.c **** 				goto stall_i;
+ 836:./src/usb/usbcore.c **** 				/* not supported */
+ 837:./src/usb/usbcore.c **** 
+ 838:./src/usb/usbcore.c **** 			case REQUEST_TO_INTERFACE:
+ 839:./src/usb/usbcore.c **** #if USB_HID
+ 840:./src/usb/usbcore.c **** 				if (SetupPacket.wIndex.WB.L == USB_HID_IF_NUM)
+ 841:./src/usb/usbcore.c **** 				{ /* IF number correct? */
+ 842:./src/usb/usbcore.c **** 					switch (SetupPacket.bRequest)
+ 843:./src/usb/usbcore.c **** 					{
+ 844:./src/usb/usbcore.c **** 						case HID_REQUEST_GET_REPORT:
+ 845:./src/usb/usbcore.c **** 						if (HID_GetReport())
+ 846:./src/usb/usbcore.c **** 						{
+ 847:./src/usb/usbcore.c **** 							EP0Data.pData = EP0Buf; /* point to data to be sent */
+ 848:./src/usb/usbcore.c **** 							USB_DataInStage(); /* send requested data */
+ 849:./src/usb/usbcore.c **** 							goto setup_class_ok;
+ 850:./src/usb/usbcore.c **** 						}
+ 851:./src/usb/usbcore.c **** 						break;
+ 852:./src/usb/usbcore.c **** 						case HID_REQUEST_SET_REPORT:
+ 853:./src/usb/usbcore.c **** 						EP0Data.pData = EP0Buf; /* data to be received */
+ 854:./src/usb/usbcore.c **** 						goto setup_class_ok;
+ 855:./src/usb/usbcore.c **** 						case HID_REQUEST_GET_IDLE:
+ 856:./src/usb/usbcore.c **** 						if (HID_GetIdle())
+ 857:./src/usb/usbcore.c **** 						{
+ 858:./src/usb/usbcore.c **** 							EP0Data.pData = EP0Buf; /* point to data to be sent */
+ 859:./src/usb/usbcore.c **** 							USB_DataInStage(); /* send requested data */
+ 860:./src/usb/usbcore.c **** 							goto setup_class_ok;
+ 861:./src/usb/usbcore.c **** 						}
+ 862:./src/usb/usbcore.c **** 						break;
+ 863:./src/usb/usbcore.c **** 						case HID_REQUEST_SET_IDLE:
+ 864:./src/usb/usbcore.c **** 						if (HID_SetIdle())
+ 865:./src/usb/usbcore.c **** 						{
+ 866:./src/usb/usbcore.c **** 							USB_StatusInStage(); /* send Acknowledge */
+ 867:./src/usb/usbcore.c **** 							goto setup_class_ok;
+ 868:./src/usb/usbcore.c **** 						}
+ 869:./src/usb/usbcore.c **** 						break;
+ 870:./src/usb/usbcore.c **** 						case HID_REQUEST_GET_PROTOCOL:
+ 871:./src/usb/usbcore.c **** 						if (HID_GetProtocol())
+ 872:./src/usb/usbcore.c **** 						{
+ 873:./src/usb/usbcore.c **** 							EP0Data.pData = EP0Buf; /* point to data to be sent */
+ 874:./src/usb/usbcore.c **** 							USB_DataInStage(); /* send requested data */
+ 875:./src/usb/usbcore.c **** 							goto setup_class_ok;
+ 876:./src/usb/usbcore.c **** 						}
+ 877:./src/usb/usbcore.c **** 						break;
+ 878:./src/usb/usbcore.c **** 						case HID_REQUEST_SET_PROTOCOL:
+ 879:./src/usb/usbcore.c **** 						if (HID_SetProtocol())
+ 880:./src/usb/usbcore.c **** 						{
+ 881:./src/usb/usbcore.c **** 							USB_StatusInStage(); /* send Acknowledge */
+ 882:./src/usb/usbcore.c **** 							goto setup_class_ok;
+ 883:./src/usb/usbcore.c **** 						}
+ 884:./src/usb/usbcore.c **** 						break;
+ 885:./src/usb/usbcore.c **** 					}
+ 886:./src/usb/usbcore.c **** 				}
+ 887:./src/usb/usbcore.c **** #endif  /* USB_HID */
+ 888:./src/usb/usbcore.c **** #if USB_MSC
+ 889:./src/usb/usbcore.c **** 				if (SetupPacket.wIndex.WB.L == USB_MSC_IF_NUM)
+ 890:./src/usb/usbcore.c **** 				{ /* IF number correct? */
+ 891:./src/usb/usbcore.c **** 					switch (SetupPacket.bRequest)
+ 892:./src/usb/usbcore.c **** 					{
+ 893:./src/usb/usbcore.c **** 						case MSC_REQUEST_RESET:
+ 894:./src/usb/usbcore.c **** 						if ((SetupPacket.wValue.W == 0) && /* RESET with invalid parameters -> STALL */
+ 895:./src/usb/usbcore.c **** 								(SetupPacket.wLength == 0))
+ 896:./src/usb/usbcore.c **** 						{
+ 897:./src/usb/usbcore.c **** 							if (MSC_Reset())
+ 898:./src/usb/usbcore.c **** 							{
+ 899:./src/usb/usbcore.c **** 								USB_StatusInStage();
+ 900:./src/usb/usbcore.c **** 								goto setup_class_ok;
+ 901:./src/usb/usbcore.c **** 							}
+ 902:./src/usb/usbcore.c **** 						}
+ 903:./src/usb/usbcore.c **** 						break;
+ 904:./src/usb/usbcore.c **** 						case MSC_REQUEST_GET_MAX_LUN:
+ 905:./src/usb/usbcore.c **** 						if ((SetupPacket.wValue.W == 0) && /* GET_MAX_LUN with invalid parameters -> STALL */
+ 906:./src/usb/usbcore.c **** 								(SetupPacket.wLength == 1))
+ 907:./src/usb/usbcore.c **** 						{
+ 908:./src/usb/usbcore.c **** 							if (MSC_GetMaxLUN())
+ 909:./src/usb/usbcore.c **** 							{
+ 910:./src/usb/usbcore.c **** 								EP0Data.pData = EP0Buf;
+ 911:./src/usb/usbcore.c **** 								USB_DataInStage();
+ 912:./src/usb/usbcore.c **** 								goto setup_class_ok;
+ 913:./src/usb/usbcore.c **** 							}
+ 914:./src/usb/usbcore.c **** 						}
+ 915:./src/usb/usbcore.c **** 						break;
+ 916:./src/usb/usbcore.c **** 					}
+ 917:./src/usb/usbcore.c **** 				}
+ 918:./src/usb/usbcore.c **** #endif  /* USB_MSC */
+ 919:./src/usb/usbcore.c **** #if USB_AUDIO
+ 920:./src/usb/usbcore.c **** 				if ((SetupPacket.wIndex.WB.L == USB_ADC_CIF_NUM) || /* IF number correct? */
+ 921:./src/usb/usbcore.c **** 						(SetupPacket.wIndex.WB.L == USB_ADC_SIF1_NUM) ||
+ 922:./src/usb/usbcore.c **** 						(SetupPacket.wIndex.WB.L == USB_ADC_SIF2_NUM))
+ 923:./src/usb/usbcore.c **** 				{
+ 924:./src/usb/usbcore.c **** 					switch (SetupPacket.bRequest)
+ 925:./src/usb/usbcore.c **** 					{
+ 926:./src/usb/usbcore.c **** 						case AUDIO_REQUEST_GET_CUR:
+ 927:./src/usb/usbcore.c **** 						case AUDIO_REQUEST_GET_MIN:
+ 928:./src/usb/usbcore.c **** 						case AUDIO_REQUEST_GET_MAX:
+ 929:./src/usb/usbcore.c **** 						case AUDIO_REQUEST_GET_RES:
+ 930:./src/usb/usbcore.c **** 						if (ADC_IF_GetRequest())
+ 931:./src/usb/usbcore.c **** 						{
+ 932:./src/usb/usbcore.c **** 							EP0Data.pData = EP0Buf; /* point to data to be sent */
+ 933:./src/usb/usbcore.c **** 							USB_DataInStage(); /* send requested data */
+ 934:./src/usb/usbcore.c **** 							goto setup_class_ok;
+ 935:./src/usb/usbcore.c **** 						}
+ 936:./src/usb/usbcore.c **** 						break;
+ 937:./src/usb/usbcore.c **** 						case AUDIO_REQUEST_SET_CUR:
+ 938:./src/usb/usbcore.c **** //                case AUDIO_REQUEST_SET_MIN:
+ 939:./src/usb/usbcore.c **** //                case AUDIO_REQUEST_SET_MAX:
+ 940:./src/usb/usbcore.c **** //                case AUDIO_REQUEST_SET_RES:
+ 941:./src/usb/usbcore.c **** 						EP0Data.pData = EP0Buf; /* data to be received */
+ 942:./src/usb/usbcore.c **** 						goto setup_class_ok;
+ 943:./src/usb/usbcore.c **** 					}
+ 944:./src/usb/usbcore.c **** 				}
+ 945:./src/usb/usbcore.c **** #endif  /* USB_AUDIO */
+ 946:./src/usb/usbcore.c **** #if USB_CDC
+ 947:./src/usb/usbcore.c **** 				if ((SetupPacket.wIndex.WB.L == USB_CDC_CIF_NUM) || /* IF number correct? */
+ 948:./src/usb/usbcore.c **** 				(SetupPacket.wIndex.WB.L == USB_CDC_DIF_NUM))
+ 949:./src/usb/usbcore.c **** 				{
+ 950:./src/usb/usbcore.c **** 					switch (SetupPacket.bRequest)
+ 951:./src/usb/usbcore.c **** 					{
+ 952:./src/usb/usbcore.c **** 					case CDC_SEND_ENCAPSULATED_COMMAND:
+ 953:./src/usb/usbcore.c **** 						EP0Data.pData = uEP0.EP0Buf; /* data to be received, see USB_EVT_OUT */
+ 954:./src/usb/usbcore.c **** 						goto setup_class_ok;
+ 955:./src/usb/usbcore.c **** 					case CDC_GET_ENCAPSULATED_RESPONSE:
+ 956:./src/usb/usbcore.c **** 						if (CDC_GetEncapsulatedResponse())
+ 957:./src/usb/usbcore.c **** 						{
+ 958:./src/usb/usbcore.c **** 							EP0Data.pData = uEP0.EP0Buf; /* point to data to be sent */
+ 959:./src/usb/usbcore.c **** 							USB_DataInStage(); /* send requested data */
+ 960:./src/usb/usbcore.c **** 							goto setup_class_ok;
+ 961:./src/usb/usbcore.c **** 						}
+ 962:./src/usb/usbcore.c **** 						break;
+ 963:./src/usb/usbcore.c **** 					case CDC_SET_COMM_FEATURE:
+ 964:./src/usb/usbcore.c **** 						EP0Data.pData = uEP0.EP0Buf; /* data to be received, see USB_EVT_OUT */
+ 965:./src/usb/usbcore.c **** 						goto setup_class_ok;
+ 966:./src/usb/usbcore.c **** 					case CDC_GET_COMM_FEATURE:
+ 967:./src/usb/usbcore.c **** 						if (CDC_GetCommFeature(SetupPacket.wValue.W))
+ 968:./src/usb/usbcore.c **** 						{
+ 969:./src/usb/usbcore.c **** 							EP0Data.pData = uEP0.EP0Buf; /* point to data to be sent */
+ 970:./src/usb/usbcore.c **** 							USB_DataInStage(); /* send requested data */
+ 971:./src/usb/usbcore.c **** 							goto setup_class_ok;
+ 972:./src/usb/usbcore.c **** 						}
+ 973:./src/usb/usbcore.c **** 						break;
+ 974:./src/usb/usbcore.c **** 					case CDC_CLEAR_COMM_FEATURE:
+ 975:./src/usb/usbcore.c **** 						if (CDC_ClearCommFeature(SetupPacket.wValue.W))
+ 976:./src/usb/usbcore.c **** 						{
+ 977:./src/usb/usbcore.c **** 							USB_StatusInStage(); /* send Acknowledge */
+ 978:./src/usb/usbcore.c **** 							goto setup_class_ok;
+ 979:./src/usb/usbcore.c **** 						}
+ 980:./src/usb/usbcore.c **** 						break;
+ 981:./src/usb/usbcore.c **** 					case CDC_SET_LINE_CODING:
+ 982:./src/usb/usbcore.c **** 						EP0Data.pData = uEP0.EP0Buf; /* data to be received, see USB_EVT_OUT */
+ 983:./src/usb/usbcore.c **** 						goto setup_class_ok;
+ 984:./src/usb/usbcore.c **** 					case CDC_GET_LINE_CODING:
+ 985:./src/usb/usbcore.c **** 						if (CDC_GetLineCoding())
+ 986:./src/usb/usbcore.c **** 						{
+ 987:./src/usb/usbcore.c **** 							EP0Data.pData = uEP0.EP0Buf; /* point to data to be sent */
+ 988:./src/usb/usbcore.c **** 							USB_DataInStage(); /* send requested data */
+ 989:./src/usb/usbcore.c **** 							goto setup_class_ok;
+ 990:./src/usb/usbcore.c **** 						}
+ 991:./src/usb/usbcore.c **** 						break;
+ 992:./src/usb/usbcore.c **** 					case CDC_SET_CONTROL_LINE_STATE:
+ 993:./src/usb/usbcore.c **** 						if (CDC_SetControlLineState(SetupPacket.wValue.W))
+ 994:./src/usb/usbcore.c **** 						{
+ 995:./src/usb/usbcore.c **** 							USB_StatusInStage(); /* send Acknowledge */
+ 996:./src/usb/usbcore.c **** 							goto setup_class_ok;
+ 997:./src/usb/usbcore.c **** 						}
+ 998:./src/usb/usbcore.c **** 						break;
+ 999:./src/usb/usbcore.c **** 					case CDC_SEND_BREAK:
+1000:./src/usb/usbcore.c **** 						if (CDC_SendBreak(SetupPacket.wValue.W))
+1001:./src/usb/usbcore.c **** 						{
+1002:./src/usb/usbcore.c **** 							USB_StatusInStage(); /* send Acknowledge */
+1003:./src/usb/usbcore.c **** 							goto setup_class_ok;
+1004:./src/usb/usbcore.c **** 						}
+1005:./src/usb/usbcore.c **** 						break;
+1006:./src/usb/usbcore.c **** 					}
+1007:./src/usb/usbcore.c **** 				}
+1008:./src/usb/usbcore.c **** #endif  /* USB_CDC */
+1009:./src/usb/usbcore.c **** 				goto stall_i;
+1010:./src/usb/usbcore.c **** 				/* not supported */
+1011:./src/usb/usbcore.c **** 				/* end case REQUEST_TO_INTERFACE */
+1012:./src/usb/usbcore.c **** 			case REQUEST_TO_ENDPOINT:
+1013:./src/usb/usbcore.c **** #if USB_AUDIO
+1014:./src/usb/usbcore.c **** 				switch (SetupPacket.bRequest)
+1015:./src/usb/usbcore.c **** 				{
+1016:./src/usb/usbcore.c **** 					case AUDIO_REQUEST_GET_CUR:
+1017:./src/usb/usbcore.c **** 					case AUDIO_REQUEST_GET_MIN:
+1018:./src/usb/usbcore.c **** 					case AUDIO_REQUEST_GET_MAX:
+1019:./src/usb/usbcore.c **** 					case AUDIO_REQUEST_GET_RES:
+1020:./src/usb/usbcore.c **** 					if (ADC_EP_GetRequest())
+1021:./src/usb/usbcore.c **** 					{
+1022:./src/usb/usbcore.c **** 						EP0Data.pData = EP0Buf; /* point to data to be sent */
+1023:./src/usb/usbcore.c **** 						USB_DataInStage(); /* send requested data */
+1024:./src/usb/usbcore.c **** 						goto setup_class_ok;
+1025:./src/usb/usbcore.c **** 					}
+1026:./src/usb/usbcore.c **** 					break;
+1027:./src/usb/usbcore.c **** 					case AUDIO_REQUEST_SET_CUR:
+1028:./src/usb/usbcore.c **** //              case AUDIO_REQUEST_SET_MIN:
+1029:./src/usb/usbcore.c **** //              case AUDIO_REQUEST_SET_MAX:
+1030:./src/usb/usbcore.c **** //              case AUDIO_REQUEST_SET_RES:
+1031:./src/usb/usbcore.c **** 					EP0Data.pData = EP0Buf; /* data to be received */
+1032:./src/usb/usbcore.c **** 					goto setup_class_ok;
+1033:./src/usb/usbcore.c **** 				}
+1034:./src/usb/usbcore.c **** #endif  /* USB_AUDIO */
+1035:./src/usb/usbcore.c **** 				goto stall_i;
+1036:./src/usb/usbcore.c **** 				/* end case REQUEST_TO_ENDPOINT */
+1037:./src/usb/usbcore.c **** 				break;
+1038:./src/usb/usbcore.c **** 			default:
+1039:./src/usb/usbcore.c **** 				goto stall_i;
+1040:./src/usb/usbcore.c **** 				break;
+1041:./src/usb/usbcore.c **** 			};
+1042:./src/usb/usbcore.c **** 
+1043:./src/usb/usbcore.c **** 			setup_class_ok:; /* request finished successfully */
+1044:./src/usb/usbcore.c **** 
+1045:./src/usb/usbcore.c **** 			break; /* end case REQUEST_CLASS */
+1046:./src/usb/usbcore.c **** 		}
+1047:./src/usb/usbcore.c **** #endif  /* USB_CLASS */
+1048:./src/usb/usbcore.c **** 
+1049:./src/usb/usbcore.c **** #if USB_VENDOR
+1050:./src/usb/usbcore.c **** 			case REQUEST_VENDOR:
+1051:./src/usb/usbcore.c **** 			switch (SetupPacket.bmRequestType.BM.Recipient)
+1052:./src/usb/usbcore.c **** 			{
+1053:./src/usb/usbcore.c **** 
+1054:./src/usb/usbcore.c **** 				case REQUEST_TO_DEVICE:
+1055:./src/usb/usbcore.c **** 				if (!USB_ReqVendorDev(TRUE))
+1056:./src/usb/usbcore.c **** 				{
+1057:./src/usb/usbcore.c **** 					goto stall_i; /* not supported */
+1058:./src/usb/usbcore.c **** 				}
+1059:./src/usb/usbcore.c **** 				break;
+1060:./src/usb/usbcore.c **** 
+1061:./src/usb/usbcore.c **** 				case REQUEST_TO_INTERFACE:
+1062:./src/usb/usbcore.c **** 				if (!USB_ReqVendorIF(TRUE))
+1063:./src/usb/usbcore.c **** 				{
+1064:./src/usb/usbcore.c **** 					goto stall_i; /* not supported */
+1065:./src/usb/usbcore.c **** 				}
+1066:./src/usb/usbcore.c **** 				break;
+1067:./src/usb/usbcore.c **** 
+1068:./src/usb/usbcore.c **** 				case REQUEST_TO_ENDPOINT:
+1069:./src/usb/usbcore.c **** 				if (!USB_ReqVendorEP(TRUE))
+1070:./src/usb/usbcore.c **** 				{
+1071:./src/usb/usbcore.c **** 					goto stall_i; /* not supported */
+1072:./src/usb/usbcore.c **** 				}
+1073:./src/usb/usbcore.c **** 				break;
+1074:./src/usb/usbcore.c **** 
+1075:./src/usb/usbcore.c **** 				default:
+1076:./src/usb/usbcore.c **** 				goto stall_i;
+1077:./src/usb/usbcore.c **** 			}
+1078:./src/usb/usbcore.c **** 
+1079:./src/usb/usbcore.c **** 			if (SetupPacket.wLength)
+1080:./src/usb/usbcore.c **** 			{
+1081:./src/usb/usbcore.c **** 				if (SetupPacket.bmRequestType.BM.Dir == REQUEST_DEVICE_TO_HOST)
+1082:./src/usb/usbcore.c **** 				{
+1083:./src/usb/usbcore.c **** 					USB_DataInStage();
+1084:./src/usb/usbcore.c **** 				}
+1085:./src/usb/usbcore.c **** 			}
+1086:./src/usb/usbcore.c **** 			else
+1087:./src/usb/usbcore.c **** 			{
+1088:./src/usb/usbcore.c **** 				USB_StatusInStage();
+1089:./src/usb/usbcore.c **** 			}
+1090:./src/usb/usbcore.c **** 
+1091:./src/usb/usbcore.c **** 			break; /* end case REQUEST_VENDOR */
+1092:./src/usb/usbcore.c **** #endif  /* USB_VENDOR */
+1093:./src/usb/usbcore.c **** 
+1094:./src/usb/usbcore.c **** 		default:
+1095:./src/usb/usbcore.c **** 			stall_i: USB_SetStallEP(0x80);
+1096:./src/usb/usbcore.c **** 			EP0Data.Count = 0;
+1097:./src/usb/usbcore.c **** 			break;
+1098:./src/usb/usbcore.c **** 		}
+1099:./src/usb/usbcore.c **** 		break; /* end case USB_EVT_SETUP */
+1100:./src/usb/usbcore.c **** 
+1101:./src/usb/usbcore.c **** 	case USB_EVT_OUT:
+1102:./src/usb/usbcore.c **** 		if (SetupPacket.bmRequestType.BM.Dir == REQUEST_HOST_TO_DEVICE)
+1103:./src/usb/usbcore.c **** 		{
+1104:./src/usb/usbcore.c **** 			if (EP0Data.Count)
+1105:./src/usb/usbcore.c **** 			{ /* still data to receive ? */
+1106:./src/usb/usbcore.c **** 				USB_DataOutStage(); /* receive data */
+1107:./src/usb/usbcore.c **** 				if (EP0Data.Count == 0)
+1108:./src/usb/usbcore.c **** 				{ /* data complete ? */
+1109:./src/usb/usbcore.c **** 					switch (SetupPacket.bmRequestType.BM.Type)
+1110:./src/usb/usbcore.c **** 					{
+1111:./src/usb/usbcore.c **** 
+1112:./src/usb/usbcore.c **** 					case REQUEST_STANDARD:
+1113:./src/usb/usbcore.c **** 						goto stall_i;
+1114:./src/usb/usbcore.c **** 						/* not supported */
+1115:./src/usb/usbcore.c **** 
+1116:./src/usb/usbcore.c **** #if (USB_CLASS)
+1117:./src/usb/usbcore.c **** 					case REQUEST_CLASS:
+1118:./src/usb/usbcore.c **** 						switch (SetupPacket.bmRequestType.BM.Recipient)
+1119:./src/usb/usbcore.c **** 						{
+1120:./src/usb/usbcore.c **** 						case REQUEST_TO_DEVICE:
+1121:./src/usb/usbcore.c **** 							goto stall_i;
+1122:./src/usb/usbcore.c **** 							/* not supported */
+1123:./src/usb/usbcore.c **** 
+1124:./src/usb/usbcore.c **** 						case REQUEST_TO_INTERFACE:
+1125:./src/usb/usbcore.c **** #if USB_HID
+1126:./src/usb/usbcore.c **** 							if (SetupPacket.wIndex.WB.L == USB_HID_IF_NUM)
+1127:./src/usb/usbcore.c **** 							{ /* IF number correct? */
+1128:./src/usb/usbcore.c **** 								switch (SetupPacket.bRequest)
+1129:./src/usb/usbcore.c **** 								{
+1130:./src/usb/usbcore.c **** 									case HID_REQUEST_SET_REPORT:
+1131:./src/usb/usbcore.c **** 									if (HID_SetReport())
+1132:./src/usb/usbcore.c **** 									{
+1133:./src/usb/usbcore.c **** 										USB_StatusInStage(); /* send Acknowledge */
+1134:./src/usb/usbcore.c **** 										goto out_class_ok;
+1135:./src/usb/usbcore.c **** 									}
+1136:./src/usb/usbcore.c **** 									break;
+1137:./src/usb/usbcore.c **** 								}
+1138:./src/usb/usbcore.c **** 							}
+1139:./src/usb/usbcore.c **** #endif  /* USB_HID */
+1140:./src/usb/usbcore.c **** #if USB_AUDIO
+1141:./src/usb/usbcore.c **** 							if ((SetupPacket.wIndex.WB.L == USB_ADC_CIF_NUM) || /* IF number correct? */
+1142:./src/usb/usbcore.c **** 									(SetupPacket.wIndex.WB.L == USB_ADC_SIF1_NUM) ||
+1143:./src/usb/usbcore.c **** 									(SetupPacket.wIndex.WB.L == USB_ADC_SIF2_NUM))
+1144:./src/usb/usbcore.c **** 							{
+1145:./src/usb/usbcore.c **** 								switch (SetupPacket.bRequest)
+1146:./src/usb/usbcore.c **** 								{
+1147:./src/usb/usbcore.c **** 									case AUDIO_REQUEST_SET_CUR:
+1148:./src/usb/usbcore.c **** //                      case AUDIO_REQUEST_SET_MIN:
+1149:./src/usb/usbcore.c **** //                      case AUDIO_REQUEST_SET_MAX:
+1150:./src/usb/usbcore.c **** //                      case AUDIO_REQUEST_SET_RES:
+1151:./src/usb/usbcore.c **** 									if (ADC_IF_SetRequest())
+1152:./src/usb/usbcore.c **** 									{
+1153:./src/usb/usbcore.c **** 										USB_StatusInStage(); /* send Acknowledge */
+1154:./src/usb/usbcore.c **** 										goto out_class_ok;
+1155:./src/usb/usbcore.c **** 									}
+1156:./src/usb/usbcore.c **** 									break;
+1157:./src/usb/usbcore.c **** 								}
+1158:./src/usb/usbcore.c **** 							}
+1159:./src/usb/usbcore.c **** #endif  /* USB_AUDIO */
+1160:./src/usb/usbcore.c **** #if USB_CDC
+1161:./src/usb/usbcore.c **** 							if ((SetupPacket.wIndex.WB.L == USB_CDC_CIF_NUM) || /* IF number correct? */
+1162:./src/usb/usbcore.c **** 							(SetupPacket.wIndex.WB.L == USB_CDC_DIF_NUM))
+1163:./src/usb/usbcore.c **** 							{
+1164:./src/usb/usbcore.c **** 								switch (SetupPacket.bRequest)
+1165:./src/usb/usbcore.c **** 								{
+1166:./src/usb/usbcore.c **** 								case CDC_SEND_ENCAPSULATED_COMMAND:
+1167:./src/usb/usbcore.c **** 									if (CDC_SendEncapsulatedCommand())
+1168:./src/usb/usbcore.c **** 									{
+1169:./src/usb/usbcore.c **** 										USB_StatusInStage(); /* send Acknowledge */
+1170:./src/usb/usbcore.c **** 										goto out_class_ok;
+1171:./src/usb/usbcore.c **** 									}
+1172:./src/usb/usbcore.c **** 									break;
+1173:./src/usb/usbcore.c **** 								case CDC_SET_COMM_FEATURE:
+1174:./src/usb/usbcore.c **** 									if (CDC_SetCommFeature(
+1175:./src/usb/usbcore.c **** 											SetupPacket.wValue.W))
+1176:./src/usb/usbcore.c **** 									{
+1177:./src/usb/usbcore.c **** 										USB_StatusInStage(); /* send Acknowledge */
+1178:./src/usb/usbcore.c **** 										goto out_class_ok;
+1179:./src/usb/usbcore.c **** 									}
+1180:./src/usb/usbcore.c **** 									break;
+1181:./src/usb/usbcore.c **** 								case CDC_SET_LINE_CODING:
+1182:./src/usb/usbcore.c **** 									if (CDC_SetLineCoding())
+1183:./src/usb/usbcore.c **** 									{
+1184:./src/usb/usbcore.c **** 										USB_StatusInStage(); /* send Acknowledge */
+1185:./src/usb/usbcore.c **** 										goto out_class_ok;
+1186:./src/usb/usbcore.c **** 									}
+1187:./src/usb/usbcore.c **** 									break;
+1188:./src/usb/usbcore.c **** 								}
+1189:./src/usb/usbcore.c **** 							}
+1190:./src/usb/usbcore.c **** #endif  /* USB_CDC */
+1191:./src/usb/usbcore.c **** 							goto stall_i;
+1192:./src/usb/usbcore.c **** 							/* end case REQUEST_TO_INTERFACE */
+1193:./src/usb/usbcore.c **** 
+1194:./src/usb/usbcore.c **** 						case REQUEST_TO_ENDPOINT:
+1195:./src/usb/usbcore.c **** #if USB_AUDIO
+1196:./src/usb/usbcore.c **** 							switch (SetupPacket.bRequest)
+1197:./src/usb/usbcore.c **** 							{
+1198:./src/usb/usbcore.c **** 								case AUDIO_REQUEST_SET_CUR:
+1199:./src/usb/usbcore.c **** //                    case AUDIO_REQUEST_SET_MIN:
+1200:./src/usb/usbcore.c **** //                    case AUDIO_REQUEST_SET_MAX:
+1201:./src/usb/usbcore.c **** //                    case AUDIO_REQUEST_SET_RES:
+1202:./src/usb/usbcore.c **** 								if (ADC_EP_SetRequest())
+1203:./src/usb/usbcore.c **** 								{
+1204:./src/usb/usbcore.c **** 									USB_StatusInStage(); /* send Acknowledge */
+1205:./src/usb/usbcore.c **** 									goto out_class_ok;
+1206:./src/usb/usbcore.c **** 								}
+1207:./src/usb/usbcore.c **** 								break;
+1208:./src/usb/usbcore.c **** 							}
+1209:./src/usb/usbcore.c **** #endif  /* USB_AUDIO */
+1210:./src/usb/usbcore.c **** 							goto stall_i;
+1211:./src/usb/usbcore.c **** 							/* end case REQUEST_TO_ENDPOINT */
+1212:./src/usb/usbcore.c **** 
+1213:./src/usb/usbcore.c **** 						default:
+1214:./src/usb/usbcore.c **** 							goto stall_i;
+1215:./src/usb/usbcore.c **** 						}
+1216:./src/usb/usbcore.c **** 						out_class_ok: /* request finished successfully */
+1217:./src/usb/usbcore.c **** 						break; /* end case REQUEST_CLASS */
+1218:./src/usb/usbcore.c **** #endif  /* USB_CLASS */
+1219:./src/usb/usbcore.c **** 
+1220:./src/usb/usbcore.c **** #if USB_VENDOR
+1221:./src/usb/usbcore.c **** 						case REQUEST_VENDOR:
+1222:./src/usb/usbcore.c **** 						switch (SetupPacket.bmRequestType.BM.Recipient)
+1223:./src/usb/usbcore.c **** 						{
+1224:./src/usb/usbcore.c **** 
+1225:./src/usb/usbcore.c **** 							case REQUEST_TO_DEVICE:
+1226:./src/usb/usbcore.c **** 							if (!USB_ReqVendorDev(FALSE))
+1227:./src/usb/usbcore.c **** 							{
+1228:./src/usb/usbcore.c **** 								goto stall_i; /* not supported */
+1229:./src/usb/usbcore.c **** 							}
+1230:./src/usb/usbcore.c **** 							break;
+1231:./src/usb/usbcore.c **** 
+1232:./src/usb/usbcore.c **** 							case REQUEST_TO_INTERFACE:
+1233:./src/usb/usbcore.c **** 							if (!USB_ReqVendorIF(FALSE))
+1234:./src/usb/usbcore.c **** 							{
+1235:./src/usb/usbcore.c **** 								goto stall_i; /* not supported */
+1236:./src/usb/usbcore.c **** 							}
+1237:./src/usb/usbcore.c **** 							break;
+1238:./src/usb/usbcore.c **** 
+1239:./src/usb/usbcore.c **** 							case REQUEST_TO_ENDPOINT:
+1240:./src/usb/usbcore.c **** 							if (!USB_ReqVendorEP(FALSE))
+1241:./src/usb/usbcore.c **** 							{
+1242:./src/usb/usbcore.c **** 								goto stall_i; /* not supported */
+1243:./src/usb/usbcore.c **** 							}
+1244:./src/usb/usbcore.c **** 							break;
+1245:./src/usb/usbcore.c **** 
+1246:./src/usb/usbcore.c **** 							default:
+1247:./src/usb/usbcore.c **** 							goto stall_i;
+1248:./src/usb/usbcore.c **** 						}
+1249:./src/usb/usbcore.c **** 
+1250:./src/usb/usbcore.c **** 						USB_StatusInStage();
+1251:./src/usb/usbcore.c **** 
+1252:./src/usb/usbcore.c **** 						break; /* end case REQUEST_VENDOR */
+1253:./src/usb/usbcore.c **** #endif  /* USB_VENDOR */
+1254:./src/usb/usbcore.c **** 
+1255:./src/usb/usbcore.c **** 					default:
+1256:./src/usb/usbcore.c **** 						goto stall_i;
+1257:./src/usb/usbcore.c **** 					}
+1258:./src/usb/usbcore.c **** 				}
+1259:./src/usb/usbcore.c **** 			}
+1260:./src/usb/usbcore.c **** 		}
+1261:./src/usb/usbcore.c **** 		else
+1262:./src/usb/usbcore.c **** 		{
+1263:./src/usb/usbcore.c **** 			USB_StatusOutStage(); /* receive Acknowledge */
+1264:./src/usb/usbcore.c **** 		}
+1265:./src/usb/usbcore.c **** 		break; /* end case USB_EVT_OUT */
+1266:./src/usb/usbcore.c **** 
+1267:./src/usb/usbcore.c **** 	case USB_EVT_IN:
+1268:./src/usb/usbcore.c **** 		if (SetupPacket.bmRequestType.BM.Dir == REQUEST_DEVICE_TO_HOST)
+ 1141              		.loc 1 1268 0
+ 1142 0014 AA4B     		ldr	r3, .L236
+ 1143 0016 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1144 0018 DB09     		lsrs	r3, r3, #7
+ 1145 001a 40F0F780 		bne	.L148
+1269:./src/usb/usbcore.c **** 		{
+1270:./src/usb/usbcore.c **** 			USB_DataInStage(); /* send data */
+1271:./src/usb/usbcore.c **** 		}
+1272:./src/usb/usbcore.c **** 		else
+1273:./src/usb/usbcore.c **** 		{
+1274:./src/usb/usbcore.c **** 			if (USB_DeviceAddress & 0x80)
+ 1146              		.loc 1 1274 0
+ 1147 001e A94B     		ldr	r3, .L236+4
+ 1148 0020 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1149 0022 1206     		lsls	r2, r2, #24
+ 1150 0024 00F1A480 		bmi	.L235
+ 1151              	.L124:
+ 1152              	.L191:
+ 1153              	.LVL123:
+ 1154              	.L123:
+ 1155 0028 38BD     		pop	{r3, r4, r5, pc}
+ 1156              	.L130:
+1275:./src/usb/usbcore.c **** 			{
+1276:./src/usb/usbcore.c **** 				USB_DeviceAddress &= 0x7F;
+1277:./src/usb/usbcore.c **** 				USB_SetAddress(USB_DeviceAddress);
+1278:./src/usb/usbcore.c **** 			}
+1279:./src/usb/usbcore.c **** 		}
+1280:./src/usb/usbcore.c **** 		break; /* end case USB_EVT_IN */
+1281:./src/usb/usbcore.c **** 
+1282:./src/usb/usbcore.c **** 	case USB_EVT_OUT_STALL:
+1283:./src/usb/usbcore.c **** 		USB_ClrStallEP(0x00);
+1284:./src/usb/usbcore.c **** 		break;
+1285:./src/usb/usbcore.c **** 
+1286:./src/usb/usbcore.c **** 	case USB_EVT_IN_STALL:
+1287:./src/usb/usbcore.c **** 		USB_ClrStallEP(0x80);
+ 1157              		.loc 1 1287 0
+ 1158 002a 8020     		movs	r0, #128
+1288:./src/usb/usbcore.c **** 		break;
+1289:./src/usb/usbcore.c **** 
+1290:./src/usb/usbcore.c **** 	}
+1291:./src/usb/usbcore.c **** }
+ 1159              		.loc 1 1291 0
+ 1160 002c BDE83840 		pop	{r3, r4, r5, lr}
+1287:./src/usb/usbcore.c **** 		USB_ClrStallEP(0x80);
+ 1161              		.loc 1 1287 0
+ 1162 0030 FFF7FEBF 		b	USB_ClrStallEP
+ 1163              	.LVL124:
+ 1164              	.L125:
+ 1165              	.LBB46:
+ 1166              	.LBB47:
+ 110:./src/usb/usbcore.c **** 	USB_ReadEP(0x00, (uint8_t *) &SetupPacket);
+ 1167              		.loc 1 110 0
+ 1168 0034 A24C     		ldr	r4, .L236
+ 1169 0036 0020     		movs	r0, #0
+ 1170 0038 2146     		mov	r1, r4
+ 1171 003a FFF7FEFF 		bl	USB_ReadEP
+ 1172              	.LVL125:
+ 1173              	.LBE47:
+ 1174              	.LBE46:
+ 725:./src/usb/usbcore.c **** 		USB_DirCtrlEP(SetupPacket.bmRequestType.BM.Dir);
+ 1175              		.loc 1 725 0
+ 1176 003e 2078     		ldrb	r0, [r4]	@ zero_extendqisi2
+ 726:./src/usb/usbcore.c **** 		EP0Data.Count = SetupPacket.wLength; /* Number of bytes to transfer */
+ 1177              		.loc 1 726 0
+ 1178 0040 A14D     		ldr	r5, .L236+8
+ 725:./src/usb/usbcore.c **** 		USB_DirCtrlEP(SetupPacket.bmRequestType.BM.Dir);
+ 1179              		.loc 1 725 0
+ 1180 0042 C009     		lsrs	r0, r0, #7
+ 1181 0044 FFF7FEFF 		bl	USB_DirCtrlEP
+ 1182              	.LVL126:
+ 727:./src/usb/usbcore.c **** 		switch (SetupPacket.bmRequestType.BM.Type)
+ 1183              		.loc 1 727 0
+ 1184 0048 2278     		ldrb	r2, [r4]	@ zero_extendqisi2
+ 726:./src/usb/usbcore.c **** 		EP0Data.Count = SetupPacket.wLength; /* Number of bytes to transfer */
+ 1185              		.loc 1 726 0
+ 1186 004a E188     		ldrh	r1, [r4, #6]
+ 727:./src/usb/usbcore.c **** 		switch (SetupPacket.bmRequestType.BM.Type)
+ 1187              		.loc 1 727 0
+ 1188 004c C2F34113 		ubfx	r3, r2, #5, #2
+ 726:./src/usb/usbcore.c **** 		EP0Data.Count = SetupPacket.wLength; /* Number of bytes to transfer */
+ 1189              		.loc 1 726 0
+ 1190 0050 A980     		strh	r1, [r5, #4]	@ movhi
+ 727:./src/usb/usbcore.c **** 		switch (SetupPacket.bmRequestType.BM.Type)
+ 1191              		.loc 1 727 0
+ 1192 0052 002B     		cmp	r3, #0
+ 1193 0054 6DD0     		beq	.L132
+ 1194 0056 012B     		cmp	r3, #1
+ 1195 0058 65D1     		bne	.L131
+ 831:./src/usb/usbcore.c **** 			switch (SetupPacket.bmRequestType.BM.Recipient)
+ 1196              		.loc 1 831 0
+ 1197 005a 02F01F02 		and	r2, r2, #31
+ 1198 005e 012A     		cmp	r2, #1
+ 1199 0060 61D1     		bne	.L131
+ 947:./src/usb/usbcore.c **** 				if ((SetupPacket.wIndex.WB.L == USB_CDC_CIF_NUM) || /* IF number correct? */
+ 1200              		.loc 1 947 0
+ 1201 0062 2379     		ldrb	r3, [r4, #4]	@ zero_extendqisi2
+ 1202 0064 012B     		cmp	r3, #1
+ 1203 0066 5ED8     		bhi	.L131
+ 950:./src/usb/usbcore.c **** 					switch (SetupPacket.bRequest)
+ 1204              		.loc 1 950 0
+ 1205 0068 6378     		ldrb	r3, [r4, #1]	@ zero_extendqisi2
+ 1206 006a 232B     		cmp	r3, #35
+ 1207 006c 5BD8     		bhi	.L131
+ 1208 006e DFE813F0 		tbh	[pc, r3, lsl #1]
+ 1209              	.L173:
+ 1210 0072 0A01     		.2byte	(.L178-.L173)/2
+ 1211 0074 4001     		.2byte	(.L174-.L173)/2
+ 1212 0076 0A01     		.2byte	(.L178-.L173)/2
+ 1213 0078 1F01     		.2byte	(.L176-.L173)/2
+ 1214 007a 1801     		.2byte	(.L177-.L173)/2
+ 1215 007c 5A00     		.2byte	(.L131-.L173)/2
+ 1216 007e 5A00     		.2byte	(.L131-.L173)/2
+ 1217 0080 5A00     		.2byte	(.L131-.L173)/2
+ 1218 0082 5A00     		.2byte	(.L131-.L173)/2
+ 1219 0084 5A00     		.2byte	(.L131-.L173)/2
+ 1220 0086 5A00     		.2byte	(.L131-.L173)/2
+ 1221 0088 5A00     		.2byte	(.L131-.L173)/2
+ 1222 008a 5A00     		.2byte	(.L131-.L173)/2
+ 1223 008c 5A00     		.2byte	(.L131-.L173)/2
+ 1224 008e 5A00     		.2byte	(.L131-.L173)/2
+ 1225 0090 5A00     		.2byte	(.L131-.L173)/2
+ 1226 0092 5A00     		.2byte	(.L131-.L173)/2
+ 1227 0094 5A00     		.2byte	(.L131-.L173)/2
+ 1228 0096 5A00     		.2byte	(.L131-.L173)/2
+ 1229 0098 5A00     		.2byte	(.L131-.L173)/2
+ 1230 009a 5A00     		.2byte	(.L131-.L173)/2
+ 1231 009c 5A00     		.2byte	(.L131-.L173)/2
+ 1232 009e 5A00     		.2byte	(.L131-.L173)/2
+ 1233 00a0 5A00     		.2byte	(.L131-.L173)/2
+ 1234 00a2 5A00     		.2byte	(.L131-.L173)/2
+ 1235 00a4 5A00     		.2byte	(.L131-.L173)/2
+ 1236 00a6 5A00     		.2byte	(.L131-.L173)/2
+ 1237 00a8 5A00     		.2byte	(.L131-.L173)/2
+ 1238 00aa 5A00     		.2byte	(.L131-.L173)/2
+ 1239 00ac 5A00     		.2byte	(.L131-.L173)/2
+ 1240 00ae 5A00     		.2byte	(.L131-.L173)/2
+ 1241 00b0 5A00     		.2byte	(.L131-.L173)/2
+ 1242 00b2 0A01     		.2byte	(.L178-.L173)/2
+ 1243 00b4 0D01     		.2byte	(.L179-.L173)/2
+ 1244 00b6 3901     		.2byte	(.L180-.L173)/2
+ 1245 00b8 4601     		.2byte	(.L181-.L173)/2
+ 1246              	.L127:
+1102:./src/usb/usbcore.c **** 		if (SetupPacket.bmRequestType.BM.Dir == REQUEST_HOST_TO_DEVICE)
+ 1247              		.loc 1 1102 0
+ 1248 00ba 814C     		ldr	r4, .L236
+ 1249 00bc 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1250 00be DB09     		lsrs	r3, r3, #7
+ 1251 00c0 40F02481 		bne	.L182
+1104:./src/usb/usbcore.c **** 			if (EP0Data.Count)
+ 1252              		.loc 1 1104 0
+ 1253 00c4 804D     		ldr	r5, .L236+8
+ 1254 00c6 AB88     		ldrh	r3, [r5, #4]
+ 1255 00c8 9BB2     		uxth	r3, r3
+ 1256 00ca 002B     		cmp	r3, #0
+ 1257 00cc ACD0     		beq	.L123
+1106:./src/usb/usbcore.c **** 				USB_DataOutStage(); /* receive data */
+ 1258              		.loc 1 1106 0
+ 1259 00ce FFF7FEFF 		bl	USB_DataOutStage
+ 1260              	.LVL127:
+1107:./src/usb/usbcore.c **** 				if (EP0Data.Count == 0)
+ 1261              		.loc 1 1107 0
+ 1262 00d2 AB88     		ldrh	r3, [r5, #4]
+ 1263 00d4 9BB2     		uxth	r3, r3
+ 1264 00d6 002B     		cmp	r3, #0
+ 1265 00d8 A6D1     		bne	.L123
+1109:./src/usb/usbcore.c **** 					switch (SetupPacket.bmRequestType.BM.Type)
+ 1266              		.loc 1 1109 0
+ 1267 00da 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1268 00dc C3F34112 		ubfx	r2, r3, #5, #2
+ 1269 00e0 012A     		cmp	r2, #1
+ 1270 00e2 20D1     		bne	.L131
+1118:./src/usb/usbcore.c **** 						switch (SetupPacket.bmRequestType.BM.Recipient)
+ 1271              		.loc 1 1118 0
+ 1272 00e4 03F01F03 		and	r3, r3, #31
+ 1273 00e8 012B     		cmp	r3, #1
+ 1274 00ea 1CD1     		bne	.L131
+1161:./src/usb/usbcore.c **** 							if ((SetupPacket.wIndex.WB.L == USB_CDC_CIF_NUM) || /* IF number correct? */
+ 1275              		.loc 1 1161 0
+ 1276 00ec 2379     		ldrb	r3, [r4, #4]	@ zero_extendqisi2
+ 1277 00ee 012B     		cmp	r3, #1
+ 1278 00f0 19D8     		bhi	.L131
+1164:./src/usb/usbcore.c **** 								switch (SetupPacket.bRequest)
+ 1279              		.loc 1 1164 0
+ 1280 00f2 6378     		ldrb	r3, [r4, #1]	@ zero_extendqisi2
+ 1281 00f4 022B     		cmp	r3, #2
+ 1282 00f6 00F04081 		beq	.L187
+ 1283 00fa 202B     		cmp	r3, #32
+ 1284 00fc 0FD0     		beq	.L188
+ 1285 00fe 93B9     		cbnz	r3, .L131
+1167:./src/usb/usbcore.c **** 									if (CDC_SendEncapsulatedCommand())
+ 1286              		.loc 1 1167 0
+ 1287 0100 FFF7FEFF 		bl	CDC_SendEncapsulatedCommand
+ 1288              	.LVL128:
+ 1289 0104 78B1     		cbz	r0, .L131
+ 1290              	.L154:
+ 1291              	.LBB48:
+ 1292              	.LBB49:
+ 159:./src/usb/usbcore.c **** 	USB_WriteEP(0x80, NULL, 0);
+ 1293              		.loc 1 159 0
+ 1294 0106 0021     		movs	r1, #0
+ 1295 0108 0A46     		mov	r2, r1
+ 1296 010a 8020     		movs	r0, #128
+ 1297              	.LBE49:
+ 1298              	.LBE48:
+ 1299              		.loc 1 1291 0
+ 1300 010c BDE83840 		pop	{r3, r4, r5, lr}
+ 1301              	.LBB51:
+ 1302              	.LBB50:
+ 159:./src/usb/usbcore.c **** 	USB_WriteEP(0x80, NULL, 0);
+ 1303              		.loc 1 159 0
+ 1304 0110 FFF7FEBF 		b	USB_WriteEP
+ 1305              	.LVL129:
+ 1306              	.L129:
+ 1307              	.LBE50:
+ 1308              	.LBE51:
+1283:./src/usb/usbcore.c **** 		USB_ClrStallEP(0x00);
+ 1309              		.loc 1 1283 0
+ 1310 0114 0020     		movs	r0, #0
+ 1311              		.loc 1 1291 0
+ 1312 0116 BDE83840 		pop	{r3, r4, r5, lr}
+1283:./src/usb/usbcore.c **** 		USB_ClrStallEP(0x00);
+ 1313              		.loc 1 1283 0
+ 1314 011a FFF7FEBF 		b	USB_ClrStallEP
+ 1315              	.LVL130:
+ 1316              	.L188:
+1182:./src/usb/usbcore.c **** 									if (CDC_SetLineCoding())
+ 1317              		.loc 1 1182 0
+ 1318 011e FFF7FEFF 		bl	CDC_SetLineCoding
+ 1319              	.LVL131:
+ 1320 0122 0028     		cmp	r0, #0
+ 1321 0124 EFD1     		bne	.L154
+ 1322              	.L131:
+1095:./src/usb/usbcore.c **** 			stall_i: USB_SetStallEP(0x80);
+ 1323              		.loc 1 1095 0
+ 1324 0126 8020     		movs	r0, #128
+ 1325 0128 FFF7FEFF 		bl	USB_SetStallEP
+ 1326              	.LVL132:
+1096:./src/usb/usbcore.c **** 			EP0Data.Count = 0;
+ 1327              		.loc 1 1096 0
+ 1328 012c 0023     		movs	r3, #0
+ 1329 012e AB80     		strh	r3, [r5, #4]	@ movhi
+1097:./src/usb/usbcore.c **** 			break;
+ 1330              		.loc 1 1097 0
+ 1331 0130 38BD     		pop	{r3, r4, r5, pc}
+ 1332              	.L132:
+ 731:./src/usb/usbcore.c **** 			switch (SetupPacket.bRequest)
+ 1333              		.loc 1 731 0
+ 1334 0132 6378     		ldrb	r3, [r4, #1]	@ zero_extendqisi2
+ 1335 0134 0B2B     		cmp	r3, #11
+ 1336 0136 F6D8     		bhi	.L131
+ 1337 0138 01A2     		adr	r2, .L135
+ 1338 013a 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+ 1339 013e 00BF     		.p2align 2
+ 1340              	.L135:
+ 1341 0140 F1010000 		.word	.L134+1
+ 1342 0144 E5010000 		.word	.L136+1
+ 1343 0148 27010000 		.word	.L131+1
+ 1344 014c 79020000 		.word	.L137+1
+ 1345 0150 27010000 		.word	.L131+1
+ 1346 0154 57020000 		.word	.L138+1
+ 1347 0158 21020000 		.word	.L139+1
+ 1348 015c 15020000 		.word	.L140+1
+ 1349 0160 D3010000 		.word	.L141+1
+ 1350 0164 B9010000 		.word	.L142+1
+ 1351 0168 8D010000 		.word	.L143+1
+ 1352 016c 83010000 		.word	.L144+1
+ 1353              	.L235:
+1276:./src/usb/usbcore.c **** 				USB_DeviceAddress &= 0x7F;
+ 1354              		.loc 1 1276 0
+ 1355 0170 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1356 0172 02F07F02 		and	r2, r2, #127
+ 1357 0176 1A70     		strb	r2, [r3]
+1277:./src/usb/usbcore.c **** 				USB_SetAddress(USB_DeviceAddress);
+ 1358              		.loc 1 1277 0
+ 1359 0178 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 1360              		.loc 1 1291 0
+ 1361 017a BDE83840 		pop	{r3, r4, r5, lr}
+1277:./src/usb/usbcore.c **** 				USB_SetAddress(USB_DeviceAddress);
+ 1362              		.loc 1 1277 0
+ 1363 017e FFF7FEBF 		b	USB_SetAddress
+ 1364              	.LVL133:
+ 1365              	.L144:
+ 813:./src/usb/usbcore.c **** 				if (!USB_ReqSetInterface())
+ 1366              		.loc 1 813 0
+ 1367 0182 FFF7FEFF 		bl	USB_ReqSetInterface
+ 1368              	.LVL134:
+ 1369 0186 0028     		cmp	r0, #0
+ 1370 0188 CDD0     		beq	.L131
+ 1371 018a BCE7     		b	.L154
+ 1372              	.L143:
+ 1373              	.LBB52:
+ 1374              	.LBB53:
+ 603:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 1375              		.loc 1 603 0
+ 1376 018c 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1377 018e 4C4A     		ldr	r2, .L236
+ 1378 0190 03F01F03 		and	r3, r3, #31
+ 1379 0194 012B     		cmp	r3, #1
+ 1380 0196 C6D1     		bne	.L131
+ 606:./src/usb/usbcore.c **** 		if ((USB_Configuration != 0)
+ 1381              		.loc 1 606 0
+ 1382 0198 4C4B     		ldr	r3, .L236+12
+ 1383 019a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1384 019c 002B     		cmp	r3, #0
+ 1385 019e C2D0     		beq	.L131
+ 607:./src/usb/usbcore.c **** 				&& (SetupPacket.wIndex.WB.L < USB_NumInterfaces))
+ 1386              		.loc 1 607 0
+ 1387 01a0 4B49     		ldr	r1, .L236+16
+ 1388 01a2 1379     		ldrb	r3, [r2, #4]	@ zero_extendqisi2
+ 1389 01a4 0A78     		ldrb	r2, [r1]	@ zero_extendqisi2
+ 1390 01a6 9342     		cmp	r3, r2
+ 1391 01a8 BDD2     		bcs	.L131
+ 609:./src/usb/usbcore.c **** 			EP0Data.pData = USB_AltSetting + SetupPacket.wIndex.WB.L;
+ 1392              		.loc 1 609 0
+ 1393 01aa 4A4A     		ldr	r2, .L236+20
+ 1394 01ac 1344     		add	r3, r3, r2
+ 1395 01ae 2B60     		str	r3, [r5]
+ 1396              	.LBE53:
+ 1397              	.LBE52:
+ 1398              		.loc 1 1291 0
+ 1399 01b0 BDE83840 		pop	{r3, r4, r5, lr}
+ 809:./src/usb/usbcore.c **** 				USB_DataInStage();
+ 1400              		.loc 1 809 0
+ 1401 01b4 FFF7FEBF 		b	USB_DataInStage
+ 1402              	.LVL135:
+ 1403              	.L142:
+ 794:./src/usb/usbcore.c **** 				if (!USB_ReqSetConfiguration())
+ 1404              		.loc 1 794 0
+ 1405 01b8 FFF7FEFF 		bl	USB_ReqSetConfiguration
+ 1406              	.LVL136:
+ 1407 01bc 0028     		cmp	r0, #0
+ 1408 01be B2D0     		beq	.L131
+ 1409              	.LBB54:
+ 1410              	.LBB55:
+ 159:./src/usb/usbcore.c **** 	USB_WriteEP(0x80, NULL, 0);
+ 1411              		.loc 1 159 0
+ 1412 01c0 0021     		movs	r1, #0
+ 1413 01c2 0A46     		mov	r2, r1
+ 1414 01c4 8020     		movs	r0, #128
+ 1415 01c6 FFF7FEFF 		bl	USB_WriteEP
+ 1416              	.LVL137:
+ 1417              	.LBE55:
+ 1418              	.LBE54:
+ 1419              		.loc 1 1291 0
+ 1420 01ca BDE83840 		pop	{r3, r4, r5, lr}
+ 800:./src/usb/usbcore.c **** 				USB_Configure_Event();
+ 1421              		.loc 1 800 0
+ 1422 01ce FFF7FEBF 		b	USB_Configure_Event
+ 1423              	.LVL138:
+ 1424              	.L141:
+ 1425              	.LBB56:
+ 1426              	.LBB57:
+ 451:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 1427              		.loc 1 451 0
+ 1428 01d2 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1429 01d4 D906     		lsls	r1, r3, #27
+ 1430 01d6 A6D1     		bne	.L131
+ 454:./src/usb/usbcore.c **** 		EP0Data.pData = &USB_Configuration;
+ 1431              		.loc 1 454 0
+ 1432 01d8 3C4B     		ldr	r3, .L236+12
+ 1433 01da 2B60     		str	r3, [r5]
+ 1434              	.LBE57:
+ 1435              	.LBE56:
+ 1436              		.loc 1 1291 0
+ 1437 01dc BDE83840 		pop	{r3, r4, r5, lr}
+ 790:./src/usb/usbcore.c **** 				USB_DataInStage();
+ 1438              		.loc 1 790 0
+ 1439 01e0 FFF7FEBF 		b	USB_DataInStage
+ 1440              	.LVL139:
+ 1441              	.L136:
+ 742:./src/usb/usbcore.c **** 				if (!USB_ReqSetClrFeature(0))
+ 1442              		.loc 1 742 0
+ 1443 01e4 0020     		movs	r0, #0
+ 1444 01e6 FFF7FEFF 		bl	USB_ReqSetClrFeature
+ 1445              	.LVL140:
+ 1446 01ea 0028     		cmp	r0, #0
+ 1447 01ec 9BD0     		beq	.L131
+ 1448 01ee 8AE7     		b	.L154
+ 1449              	.L134:
+ 1450              	.LBB58:
+ 1451              	.LBB59:
+ 188:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 1452              		.loc 1 188 0
+ 1453 01f0 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1454 01f2 334A     		ldr	r2, .L236
+ 1455 01f4 03F01F03 		and	r3, r3, #31
+ 1456 01f8 012B     		cmp	r3, #1
+ 1457 01fa 00F0AE80 		beq	.L145
+ 1458 01fe 022B     		cmp	r3, #2
+ 1459 0200 00F08A80 		beq	.L146
+ 1460 0204 002B     		cmp	r3, #0
+ 1461 0206 8ED1     		bne	.L131
+ 191:./src/usb/usbcore.c **** 		EP0Data.pData = (uint8_t *) &USB_DeviceStatus;
+ 1462              		.loc 1 191 0
+ 1463 0208 334B     		ldr	r3, .L236+24
+ 1464 020a 2B60     		str	r3, [r5]
+ 1465              	.L148:
+ 1466              	.LBE59:
+ 1467              	.LBE58:
+ 1468              		.loc 1 1291 0
+ 1469 020c BDE83840 		pop	{r3, r4, r5, lr}
+1270:./src/usb/usbcore.c **** 			USB_DataInStage(); /* send data */
+ 1470              		.loc 1 1270 0
+ 1471 0210 FFF7FEBF 		b	USB_DataInStage
+ 1472              	.LVL141:
+ 1473              	.L140:
+ 781:./src/usb/usbcore.c **** 				USB_SetStallEP(0x00); /* not supported */
+ 1474              		.loc 1 781 0
+ 1475 0214 0020     		movs	r0, #0
+ 1476 0216 FFF7FEFF 		bl	USB_SetStallEP
+ 1477              	.LVL142:
+ 782:./src/usb/usbcore.c **** 				EP0Data.Count = 0;
+ 1478              		.loc 1 782 0
+ 1479 021a 0023     		movs	r3, #0
+ 1480 021c AB80     		strh	r3, [r5, #4]	@ movhi
+ 783:./src/usb/usbcore.c **** 				break;
+ 1481              		.loc 1 783 0
+ 1482 021e 38BD     		pop	{r3, r4, r5, pc}
+ 1483              	.L139:
+ 1484              	.LBB61:
+ 1485              	.LBB62:
+ 353:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 1486              		.loc 1 353 0
+ 1487 0220 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1488 0222 274A     		ldr	r2, .L236
+ 1489 0224 13F01F03 		ands	r3, r3, #31
+ 1490 0228 7FF47DAF 		bne	.L131
+ 356:./src/usb/usbcore.c **** 		switch (SetupPacket.wValue.WB.H)
+ 1491              		.loc 1 356 0
+ 1492 022c D178     		ldrb	r1, [r2, #3]	@ zero_extendqisi2
+ 1493 022e 0229     		cmp	r1, #2
+ 1494 0230 00F0BA80 		beq	.L157
+ 1495 0234 0329     		cmp	r1, #3
+ 1496 0236 00F0A780 		beq	.L158
+ 1497 023a 0129     		cmp	r1, #1
+ 1498 023c 7FF473AF 		bne	.L131
+ 359:./src/usb/usbcore.c **** 			EP0Data.pData = (uint8_t *) USB_DeviceDescriptor;
+ 1499              		.loc 1 359 0
+ 1500 0240 264A     		ldr	r2, .L236+28
+ 360:./src/usb/usbcore.c **** 			len = USB_DEVICE_DESC_SIZE;
+ 1501              		.loc 1 360 0
+ 1502 0242 1223     		movs	r3, #18
+ 359:./src/usb/usbcore.c **** 			EP0Data.pData = (uint8_t *) USB_DeviceDescriptor;
+ 1503              		.loc 1 359 0
+ 1504 0244 2A60     		str	r2, [r5]
+ 1505              	.LVL143:
+ 1506              	.L164:
+ 430:./src/usb/usbcore.c **** 	if (EP0Data.Count > len)
+ 1507              		.loc 1 430 0
+ 1508 0246 A988     		ldrh	r1, [r5, #4]
+ 1509 0248 1F4A     		ldr	r2, .L236+8
+ 1510 024a 89B2     		uxth	r1, r1
+ 1511 024c 9942     		cmp	r1, r3
+ 1512 024e DDD9     		bls	.L148
+ 432:./src/usb/usbcore.c **** 		EP0Data.Count = len;
+ 1513              		.loc 1 432 0
+ 1514 0250 9BB2     		uxth	r3, r3
+ 1515              	.LVL144:
+ 1516 0252 9380     		strh	r3, [r2, #4]	@ movhi
+ 1517 0254 DAE7     		b	.L148
+ 1518              	.L138:
+ 1519              	.LBE62:
+ 1520              	.LBE61:
+ 1521              	.LBB64:
+ 1522              	.LBB65:
+ 326:./src/usb/usbcore.c **** 	switch (SetupPacket.bmRequestType.BM.Recipient)
+ 1523              		.loc 1 326 0
+ 1524 0256 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1525 0258 194A     		ldr	r2, .L236
+ 1526 025a 13F01F01 		ands	r1, r3, #31
+ 1527 025e 7FF462AF 		bne	.L131
+ 329:./src/usb/usbcore.c **** 		USB_DeviceAddress = 0x80 | SetupPacket.wValue.WB.L;
+ 1528              		.loc 1 329 0
+ 1529 0262 9478     		ldrb	r4, [r2, #2]	@ zero_extendqisi2
+ 1530 0264 174B     		ldr	r3, .L236+4
+ 1531 0266 44F08004 		orr	r4, r4, #128
+ 1532 026a 1C70     		strb	r4, [r3]
+ 1533              	.LBE65:
+ 1534              	.LBE64:
+ 1535              	.LBB66:
+ 1536              	.LBB67:
+ 159:./src/usb/usbcore.c **** 	USB_WriteEP(0x80, NULL, 0);
+ 1537              		.loc 1 159 0
+ 1538 026c 0A46     		mov	r2, r1
+ 1539 026e 8020     		movs	r0, #128
+ 1540              	.LBE67:
+ 1541              	.LBE66:
+ 1542              		.loc 1 1291 0
+ 1543 0270 BDE83840 		pop	{r3, r4, r5, lr}
+ 1544              	.LBB69:
+ 1545              	.LBB68:
+ 159:./src/usb/usbcore.c **** 	USB_WriteEP(0x80, NULL, 0);
+ 1546              		.loc 1 159 0
+ 1547 0274 FFF7FEBF 		b	USB_WriteEP
+ 1548              	.LVL145:
+ 1549              	.L137:
+ 1550              	.LBE68:
+ 1551              	.LBE69:
+ 753:./src/usb/usbcore.c **** 				if (!USB_ReqSetClrFeature(1))
+ 1552              		.loc 1 753 0
+ 1553 0278 0120     		movs	r0, #1
+ 1554 027a FFF7FEFF 		bl	USB_ReqSetClrFeature
+ 1555              	.LVL146:
+ 1556 027e 0028     		cmp	r0, #0
+ 1557 0280 3FF451AF 		beq	.L131
+ 1558 0284 3FE7     		b	.L154
+ 1559              	.L178:
+ 982:./src/usb/usbcore.c **** 						EP0Data.pData = uEP0.EP0Buf; /* data to be received, see USB_EVT_OUT */
+ 1560              		.loc 1 982 0
+ 1561 0286 164B     		ldr	r3, .L236+32
+ 1562 0288 2B60     		str	r3, [r5]
+ 983:./src/usb/usbcore.c **** 						goto setup_class_ok;
+ 1563              		.loc 1 983 0
+ 1564 028a 38BD     		pop	{r3, r4, r5, pc}
+ 1565              	.L179:
+ 985:./src/usb/usbcore.c **** 						if (CDC_GetLineCoding())
+ 1566              		.loc 1 985 0
+ 1567 028c FFF7FEFF 		bl	CDC_GetLineCoding
+ 1568              	.LVL147:
+ 1569 0290 0028     		cmp	r0, #0
+ 1570 0292 3FF448AF 		beq	.L131
+ 1571              	.L234:
+ 987:./src/usb/usbcore.c **** 							EP0Data.pData = uEP0.EP0Buf; /* point to data to be sent */
+ 1572              		.loc 1 987 0
+ 1573 0296 124B     		ldr	r3, .L236+32
+ 1574 0298 2B60     		str	r3, [r5]
+ 1575              		.loc 1 1291 0
+ 1576 029a BDE83840 		pop	{r3, r4, r5, lr}
+ 988:./src/usb/usbcore.c **** 							USB_DataInStage(); /* send requested data */
+ 1577              		.loc 1 988 0
+ 1578 029e FFF7FEBF 		b	USB_DataInStage
+ 1579              	.LVL148:
+ 1580              	.L177:
+ 975:./src/usb/usbcore.c **** 						if (CDC_ClearCommFeature(SetupPacket.wValue.W))
+ 1581              		.loc 1 975 0
+ 1582 02a2 6088     		ldrh	r0, [r4, #2]
+ 1583 02a4 FFF7FEFF 		bl	CDC_ClearCommFeature
+ 1584              	.LVL149:
+ 1585 02a8 0028     		cmp	r0, #0
+ 1586 02aa 3FF43CAF 		beq	.L131
+ 1587 02ae 2AE7     		b	.L154
+ 1588              	.L176:
+ 967:./src/usb/usbcore.c **** 						if (CDC_GetCommFeature(SetupPacket.wValue.W))
+ 1589              		.loc 1 967 0
+ 1590 02b0 6088     		ldrh	r0, [r4, #2]
+ 1591 02b2 FFF7FEFF 		bl	CDC_GetCommFeature
+ 1592              	.LVL150:
+ 1593 02b6 0028     		cmp	r0, #0
+ 1594 02b8 3FF435AF 		beq	.L131
+ 1595 02bc EBE7     		b	.L234
+ 1596              	.L237:
+ 1597 02be 00BF     		.align	2
+ 1598              	.L236:
+ 1599 02c0 00000000 		.word	SetupPacket
+ 1600 02c4 00000000 		.word	USB_DeviceAddress
+ 1601 02c8 00000000 		.word	EP0Data
+ 1602 02cc 00000000 		.word	USB_Configuration
+ 1603 02d0 00000000 		.word	USB_NumInterfaces
+ 1604 02d4 00000000 		.word	USB_AltSetting
+ 1605 02d8 00000000 		.word	USB_DeviceStatus
+ 1606 02dc 00000000 		.word	USB_DeviceDescriptor
+ 1607 02e0 00000000 		.word	uEP0
+ 1608              	.L180:
+ 993:./src/usb/usbcore.c **** 						if (CDC_SetControlLineState(SetupPacket.wValue.W))
+ 1609              		.loc 1 993 0
+ 1610 02e4 6088     		ldrh	r0, [r4, #2]
+ 1611 02e6 FFF7FEFF 		bl	CDC_SetControlLineState
+ 1612              	.LVL151:
+ 1613 02ea 0028     		cmp	r0, #0
+ 1614 02ec 3FF41BAF 		beq	.L131
+ 1615 02f0 09E7     		b	.L154
+ 1616              	.L174:
+ 956:./src/usb/usbcore.c **** 						if (CDC_GetEncapsulatedResponse())
+ 1617              		.loc 1 956 0
+ 1618 02f2 FFF7FEFF 		bl	CDC_GetEncapsulatedResponse
+ 1619              	.LVL152:
+ 1620 02f6 0028     		cmp	r0, #0
+ 1621 02f8 3FF415AF 		beq	.L131
+ 1622 02fc CBE7     		b	.L234
+ 1623              	.L181:
+1000:./src/usb/usbcore.c **** 						if (CDC_SendBreak(SetupPacket.wValue.W))
+ 1624              		.loc 1 1000 0
+ 1625 02fe 6088     		ldrh	r0, [r4, #2]
+ 1626 0300 FFF7FEFF 		bl	CDC_SendBreak
+ 1627              	.LVL153:
+ 1628 0304 0028     		cmp	r0, #0
+ 1629 0306 3FF40EAF 		beq	.L131
+ 1630 030a FCE6     		b	.L154
+ 1631              	.L182:
+ 1632              	.LBB70:
+ 1633              	.LBB71:
+ 170:./src/usb/usbcore.c **** 	USB_ReadEP(0x00, uEP0.EP0Buf);
+ 1634              		.loc 1 170 0
+ 1635 030c 0020     		movs	r0, #0
+ 1636 030e 2F49     		ldr	r1, .L238
+ 1637              	.LBE71:
+ 1638              	.LBE70:
+ 1639              		.loc 1 1291 0
+ 1640 0310 BDE83840 		pop	{r3, r4, r5, lr}
+ 1641              	.LBB73:
+ 1642              	.LBB72:
+ 170:./src/usb/usbcore.c **** 	USB_ReadEP(0x00, uEP0.EP0Buf);
+ 1643              		.loc 1 170 0
+ 1644 0314 FFF7FEBF 		b	USB_ReadEP
+ 1645              	.LVL154:
+ 1646              	.L146:
+ 1647              	.LBE72:
+ 1648              	.LBE73:
+ 1649              	.LBB74:
+ 1650              	.LBB60:
+ 206:./src/usb/usbcore.c **** 		n = SetupPacket.wIndex.WB.L & 0x8F;
+ 1651              		.loc 1 206 0
+ 1652 0318 1379     		ldrb	r3, [r2, #4]	@ zero_extendqisi2
+ 1653              	.LVL155:
+ 207:./src/usb/usbcore.c **** 		m = (n & 0x80) ? ((1 << 16) << (n & 0x0F)) : (1 << n);
+ 1654              		.loc 1 207 0
+ 1655 031a 1C06     		lsls	r4, r3, #24
+ 1656 031c 4BBF     		itete	mi
+ 1657 031e 4FF48031 		movmi	r1, #65536
+ 1658 0322 0121     		movpl	r1, #1
+ 1659 0324 03F00F02 		andmi	r2, r3, #15
+ 1660 0328 03F08F02 		andpl	r2, r3, #143
+ 1661 032c 01FA02F2 		lsl	r2, r1, r2
+ 1662              	.LVL156:
+ 208:./src/usb/usbcore.c **** 		if (((USB_Configuration != 0) || ((n & 0x0F) == 0))
+ 1663              		.loc 1 208 0
+ 1664 0330 2749     		ldr	r1, .L238+4
+ 1665 0332 0978     		ldrb	r1, [r1]	@ zero_extendqisi2
+ 1666 0334 11B9     		cbnz	r1, .L153
+ 1667 0336 1807     		lsls	r0, r3, #28
+ 1668 0338 7FF4F5AE 		bne	.L131
+ 1669              	.L153:
+ 209:./src/usb/usbcore.c **** 				&& (USB_EndPointMask & m))
+ 1670              		.loc 1 209 0
+ 1671 033c 254B     		ldr	r3, .L238+8
+ 1672              	.LVL157:
+ 1673 033e 1B68     		ldr	r3, [r3]
+ 1674 0340 1A42     		tst	r2, r3
+ 1675 0342 3FF4F0AE 		beq	.L131
+ 211:./src/usb/usbcore.c **** 			uEP0.EP0Buf16[0] = (USB_EndPointHalt & m) ? 1 : 0;
+ 1676              		.loc 1 211 0
+ 1677 0346 2449     		ldr	r1, .L238+12
+ 1678 0348 204B     		ldr	r3, .L238
+ 1679 034a 0968     		ldr	r1, [r1]
+ 212:./src/usb/usbcore.c **** 			EP0Data.pData = uEP0.EP0Buf;
+ 1680              		.loc 1 212 0
+ 1681 034c 2B60     		str	r3, [r5]
+ 211:./src/usb/usbcore.c **** 			uEP0.EP0Buf16[0] = (USB_EndPointHalt & m) ? 1 : 0;
+ 1682              		.loc 1 211 0
+ 1683 034e 0A42     		tst	r2, r1
+ 1684 0350 0CBF     		ite	eq
+ 1685 0352 0022     		moveq	r2, #0
+ 1686 0354 0122     		movne	r2, #1
+ 1687              	.LVL158:
+ 1688 0356 1A80     		strh	r2, [r3]	@ movhi
+ 1689 0358 58E7     		b	.L148
+ 1690              	.LVL159:
+ 1691              	.L145:
+ 194:./src/usb/usbcore.c **** 		if ((USB_Configuration != 0)
+ 1692              		.loc 1 194 0
+ 1693 035a 1D4B     		ldr	r3, .L238+4
+ 1694 035c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1695 035e 002B     		cmp	r3, #0
+ 1696 0360 3FF4E1AE 		beq	.L131
+ 195:./src/usb/usbcore.c **** 				&& (SetupPacket.wIndex.WB.L < USB_NumInterfaces))
+ 1697              		.loc 1 195 0
+ 1698 0364 1D4B     		ldr	r3, .L238+16
+ 1699 0366 1279     		ldrb	r2, [r2, #4]	@ zero_extendqisi2
+ 1700 0368 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1701 036a 9A42     		cmp	r2, r3
+ 1702 036c BFF4DBAE 		bcs	.L131
+ 197:./src/usb/usbcore.c **** 			uEP0.EP0Buf16[0] = 0;
+ 1703              		.loc 1 197 0
+ 1704 0370 164B     		ldr	r3, .L238
+ 1705 0372 0022     		movs	r2, #0
+ 198:./src/usb/usbcore.c **** 			EP0Data.pData = uEP0.EP0Buf;
+ 1706              		.loc 1 198 0
+ 1707 0374 2B60     		str	r3, [r5]
+ 197:./src/usb/usbcore.c **** 			uEP0.EP0Buf16[0] = 0;
+ 1708              		.loc 1 197 0
+ 1709 0376 1A80     		strh	r2, [r3]	@ movhi
+ 1710 0378 48E7     		b	.L148
+ 1711              	.L187:
+ 1712              	.LBE60:
+ 1713              	.LBE74:
+1174:./src/usb/usbcore.c **** 									if (CDC_SetCommFeature(
+ 1714              		.loc 1 1174 0
+ 1715 037a 6088     		ldrh	r0, [r4, #2]
+ 1716 037c FFF7FEFF 		bl	CDC_SetCommFeature
+ 1717              	.LVL160:
+ 1718 0380 0028     		cmp	r0, #0
+ 1719 0382 3FF4D0AE 		beq	.L131
+ 1720 0386 BEE6     		b	.L154
+ 1721              	.L158:
+ 1722              	.LVL161:
+ 1723              	.LBB75:
+ 1724              	.LBB63:
+ 380:./src/usb/usbcore.c **** 			for (n = 0; n != SetupPacket.wValue.WB.L; n++)
+ 1725              		.loc 1 380 0
+ 1726 0388 9078     		ldrb	r0, [r2, #2]	@ zero_extendqisi2
+ 1727 038a 154A     		ldr	r2, .L238+20
+ 1728 038c 30B1     		cbz	r0, .L161
+ 1729 038e 1178     		ldrb	r1, [r2]	@ zero_extendqisi2
+ 1730              	.LVL162:
+ 1731              	.L168:
+ 1732 0390 0133     		adds	r3, r3, #1
+ 1733              	.LVL163:
+ 382:./src/usb/usbcore.c **** 				if (((USB_STRING_DESCRIPTOR *) pD)->bLength != 0)
+ 1734              		.loc 1 382 0
+ 1735 0392 09B1     		cbz	r1, .L167
+ 384:./src/usb/usbcore.c **** 					pD += ((USB_STRING_DESCRIPTOR *) pD)->bLength;
+ 1736              		.loc 1 384 0
+ 1737 0394 0A44     		add	r2, r2, r1
+ 1738              	.LVL164:
+ 1739 0396 1178     		ldrb	r1, [r2]	@ zero_extendqisi2
+ 1740              	.L167:
+ 1741              	.LVL165:
+ 380:./src/usb/usbcore.c **** 			for (n = 0; n != SetupPacket.wValue.WB.L; n++)
+ 1742              		.loc 1 380 0
+ 1743 0398 8342     		cmp	r3, r0
+ 1744 039a F9D1     		bne	.L168
+ 1745              	.LVL166:
+ 1746              	.L161:
+ 387:./src/usb/usbcore.c **** 			if (((USB_STRING_DESCRIPTOR *) pD)->bLength == 0)
+ 1747              		.loc 1 387 0
+ 1748 039c 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 1749 039e 002B     		cmp	r3, #0
+ 1750 03a0 3FF4C1AE 		beq	.L131
+ 391:./src/usb/usbcore.c **** 			EP0Data.pData = pD;
+ 1751              		.loc 1 391 0
+ 1752 03a4 2A60     		str	r2, [r5]
+ 1753              	.LVL167:
+ 1754 03a6 4EE7     		b	.L164
+ 1755              	.LVL168:
+ 1756              	.L157:
+ 364:./src/usb/usbcore.c **** 			for (n = 0; n != SetupPacket.wValue.WB.L; n++)
+ 1757              		.loc 1 364 0
+ 1758 03a8 9078     		ldrb	r0, [r2, #2]	@ zero_extendqisi2
+ 1759 03aa 0E4A     		ldr	r2, .L238+24
+ 1760 03ac 38B1     		cbz	r0, .L163
+ 1761 03ae 1178     		ldrb	r1, [r2]	@ zero_extendqisi2
+ 1762              	.LVL169:
+ 1763              	.L166:
+ 1764 03b0 0133     		adds	r3, r3, #1
+ 1765              	.LVL170:
+ 366:./src/usb/usbcore.c **** 				if (((USB_CONFIGURATION_DESCRIPTOR *) pD)->bLength != 0)
+ 1766              		.loc 1 366 0
+ 1767 03b2 11B1     		cbz	r1, .L165
+ 368:./src/usb/usbcore.c **** 					pD += ((USB_CONFIGURATION_DESCRIPTOR *) pD)->wTotalLength;
+ 1768              		.loc 1 368 0
+ 1769 03b4 5188     		ldrh	r1, [r2, #2]	@ unaligned
+ 1770 03b6 0A44     		add	r2, r2, r1
+ 1771              	.LVL171:
+ 1772 03b8 1178     		ldrb	r1, [r2]	@ zero_extendqisi2
+ 1773              	.L165:
+ 1774              	.LVL172:
+ 364:./src/usb/usbcore.c **** 			for (n = 0; n != SetupPacket.wValue.WB.L; n++)
+ 1775              		.loc 1 364 0
+ 1776 03ba 8342     		cmp	r3, r0
+ 1777 03bc F8D1     		bne	.L166
+ 1778              	.LVL173:
+ 1779              	.L163:
+ 371:./src/usb/usbcore.c **** 			if (((USB_CONFIGURATION_DESCRIPTOR *) pD)->bLength == 0)
+ 1780              		.loc 1 371 0
+ 1781 03be 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 1782 03c0 002B     		cmp	r3, #0
+ 1783 03c2 3FF4B0AE 		beq	.L131
+ 375:./src/usb/usbcore.c **** 			EP0Data.pData = pD;
+ 1784              		.loc 1 375 0
+ 1785 03c6 2A60     		str	r2, [r5]
+ 376:./src/usb/usbcore.c **** 			len = ((USB_CONFIGURATION_DESCRIPTOR *) pD)->wTotalLength;
+ 1786              		.loc 1 376 0
+ 1787 03c8 5388     		ldrh	r3, [r2, #2]	@ unaligned
+ 1788              	.LVL174:
+ 1789 03ca 3CE7     		b	.L164
+ 1790              	.L239:
+ 1791              		.align	2
+ 1792              	.L238:
+ 1793 03cc 00000000 		.word	uEP0
+ 1794 03d0 00000000 		.word	USB_Configuration
+ 1795 03d4 00000000 		.word	USB_EndPointMask
+ 1796 03d8 00000000 		.word	USB_EndPointHalt
+ 1797 03dc 00000000 		.word	USB_NumInterfaces
+ 1798 03e0 00000000 		.word	USB_StringDescriptor
+ 1799 03e4 00000000 		.word	USB_ConfigDescriptor
+ 1800              	.LBE63:
+ 1801              	.LBE75:
+ 1802              		.cfi_endproc
+ 1803              	.LFE14:
+ 1805              		.comm	SetupPacket,8,4
+ 1806              		.comm	EP0Data,8,4
+ 1807              		.comm	uEP0,8,4
+ 1808              		.comm	USB_AltSetting,4,4
+ 1809              		.comm	USB_NumInterfaces,1,1
+ 1810              		.comm	USB_EndPointStall,4,4
+ 1811              		.comm	USB_EndPointHalt,4,4
+ 1812              		.comm	USB_EndPointMask,4,4
+ 1813              		.comm	USB_Configuration,1,1
+ 1814              		.comm	USB_DeviceAddress,1,1
+ 1815              		.comm	USB_DeviceStatus,2,2
+ 1816              		.text
+ 1817              	.Letext0:
+ 1818              		.file 2 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 1819              		.file 3 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+ 1820              		.file 4 "./src/usb/usb.h"
+ 1821              		.file 5 "./src/usb/usbcore.h"
+ 1822              		.file 6 "./src/usb/usbdesc.h"
+ 1823              		.file 7 "./src/usb/usbhw.h"
+ 1824              		.file 8 "./src/usb/cdcuser.h"
+ 1825              		.file 9 "./src/usb/usbuser.h"
+ 1826              		.file 10 "./Drivers/include/lpc_types.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 usbcore.c
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:19     .text.USB_ResetCore:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:24     .text.USB_ResetCore:00000000 USB_ResetCore
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:73     .text.USB_ResetCore:00000024 $d
+                            *COM*:00000004 USB_EndPointMask
+                            *COM*:00000002 USB_DeviceStatus
+                            *COM*:00000001 USB_DeviceAddress
+                            *COM*:00000001 USB_Configuration
+                            *COM*:00000004 USB_EndPointHalt
+                            *COM*:00000004 USB_EndPointStall
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:83     .text.USB_SetupStage:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:88     .text.USB_SetupStage:00000000 USB_SetupStage
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:103    .text.USB_SetupStage:00000008 $d
+                            *COM*:00000008 SetupPacket
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:108    .text.USB_DataInStage:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:113    .text.USB_DataInStage:00000000 USB_DataInStage
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:163    .text.USB_DataInStage:0000002c $d
+                            *COM*:00000008 EP0Data
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:168    .text.USB_DataOutStage:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:173    .text.USB_DataOutStage:00000000 USB_DataOutStage
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:206    .text.USB_DataOutStage:0000001c $d
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:211    .text.USB_StatusInStage:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:216    .text.USB_StatusInStage:00000000 USB_StatusInStage
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:233    .text.USB_StatusOutStage:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:238    .text.USB_StatusOutStage:00000000 USB_StatusOutStage
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:253    .text.USB_StatusOutStage:00000008 $d
+                            *COM*:00000008 uEP0
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:258    .text.USB_ReqSetClrFeature:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:263    .text.USB_ReqSetClrFeature:00000000 USB_ReqSetClrFeature
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:434    .text.USB_ReqSetClrFeature:000000bc $d
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:446    .text.USB_ReqSetConfiguration:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:451    .text.USB_ReqSetConfiguration:00000000 USB_ReqSetConfiguration
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:797    .text.USB_ReqSetConfiguration:000001c8 $d
+                            *COM*:00000001 USB_NumInterfaces
+                            *COM*:00000004 USB_AltSetting
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:810    .text.USB_ReqSetInterface:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:815    .text.USB_ReqSetInterface:00000000 USB_ReqSetInterface
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1095   .text.USB_ReqSetInterface:0000015c $d
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1105   .text.USB_EndPoint0:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1110   .text.USB_EndPoint0:00000000 USB_EndPoint0
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1132   .text.USB_EndPoint0:0000000c $d
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1210   .text.USB_EndPoint0:00000072 $d
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1248   .text.USB_EndPoint0:000000ba $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1341   .text.USB_EndPoint0:00000140 $d
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1355   .text.USB_EndPoint0:00000170 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1599   .text.USB_EndPoint0:000002c0 $d
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1610   .text.USB_EndPoint0:000002e4 $t
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1793   .text.USB_EndPoint0:000003cc $d
+                     .debug_frame:00000010 $d
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1139   .text.USB_EndPoint0:00000013 $d
+C:\Users\kosmos\AppData\Local\Temp\cccVkZsj.s:1139   .text.USB_EndPoint0:00000014 $t
+
+UNDEFINED SYMBOLS
+USB_ReadEP
+USB_WriteEP
+USB_WakeUpCfg
+USB_ClrStallEP
+USB_SetStallEP
+USB_DisableEP
+USB_Configure
+USB_ConfigEP
+USB_EnableEP
+USB_ResetEP
+USB_ConfigDescriptor
+USB_DirCtrlEP
+CDC_SendEncapsulatedCommand
+CDC_SetLineCoding
+USB_SetAddress
+USB_Configure_Event
+CDC_GetLineCoding
+CDC_ClearCommFeature
+CDC_GetCommFeature
+USB_DeviceDescriptor
+CDC_SetControlLineState
+CDC_GetEncapsulatedResponse
+CDC_SendBreak
+CDC_SetCommFeature
+USB_StringDescriptor

@@ -1,0 +1,1478 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"lpc17xx_mcpwm.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.MCPWM_Init,"ax",%progbits
+  19              		.align	2
+  20              		.global	MCPWM_Init
+  21              		.thumb
+  22              		.thumb_func
+  24              	MCPWM_Init:
+  25              	.LFB55:
+  26              		.file 1 "./Drivers/source/lpc17xx_mcpwm.c"
+   1:./Drivers/source/lpc17xx_mcpwm.c **** /***********************************************************************//**
+   2:./Drivers/source/lpc17xx_mcpwm.c ****  * @file		lpc17xx_mcpwm.c
+   3:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Contains all functions support for Motor Control PWM firmware
+   4:./Drivers/source/lpc17xx_mcpwm.c ****  * 				library on LPC17xx
+   5:./Drivers/source/lpc17xx_mcpwm.c ****  * @version		2.0
+   6:./Drivers/source/lpc17xx_mcpwm.c ****  * @date		21. May. 2010
+   7:./Drivers/source/lpc17xx_mcpwm.c ****  * @author		NXP MCU SW Application Team
+   8:./Drivers/source/lpc17xx_mcpwm.c ****  **************************************************************************
+   9:./Drivers/source/lpc17xx_mcpwm.c ****  * Software that is described herein is for illustrative purposes only
+  10:./Drivers/source/lpc17xx_mcpwm.c ****  * which provides customers with programming information regarding the
+  11:./Drivers/source/lpc17xx_mcpwm.c ****  * products. This software is supplied "AS IS" without any warranties.
+  12:./Drivers/source/lpc17xx_mcpwm.c ****  * NXP Semiconductors assumes no responsibility or liability for the
+  13:./Drivers/source/lpc17xx_mcpwm.c ****  * use of the software, conveys no license or title under any patent,
+  14:./Drivers/source/lpc17xx_mcpwm.c ****  * copyright, or mask work right to the product. NXP Semiconductors
+  15:./Drivers/source/lpc17xx_mcpwm.c ****  * reserves the right to make changes in the software without
+  16:./Drivers/source/lpc17xx_mcpwm.c ****  * notification. NXP Semiconductors also make no representation or
+  17:./Drivers/source/lpc17xx_mcpwm.c ****  * warranty that such application will be suitable for the specified
+  18:./Drivers/source/lpc17xx_mcpwm.c ****  * use without further testing or modification.
+  19:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+  20:./Drivers/source/lpc17xx_mcpwm.c **** 
+  21:./Drivers/source/lpc17xx_mcpwm.c **** /* Peripheral group ----------------------------------------------------------- */
+  22:./Drivers/source/lpc17xx_mcpwm.c **** /** @addtogroup MCPWM
+  23:./Drivers/source/lpc17xx_mcpwm.c ****  * @{
+  24:./Drivers/source/lpc17xx_mcpwm.c ****  */
+  25:./Drivers/source/lpc17xx_mcpwm.c **** 
+  26:./Drivers/source/lpc17xx_mcpwm.c **** /* Includes ------------------------------------------------------------------- */
+  27:./Drivers/source/lpc17xx_mcpwm.c **** #include "lpc17xx_mcpwm.h"
+  28:./Drivers/source/lpc17xx_mcpwm.c **** #include "lpc17xx_clkpwr.h"
+  29:./Drivers/source/lpc17xx_mcpwm.c **** 
+  30:./Drivers/source/lpc17xx_mcpwm.c **** /* If this source file built with example, the LPC17xx FW library configuration
+  31:./Drivers/source/lpc17xx_mcpwm.c ****  * file in each example directory ("lpc17xx_libcfg.h") must be included,
+  32:./Drivers/source/lpc17xx_mcpwm.c ****  * otherwise the default FW library configuration file must be included instead
+  33:./Drivers/source/lpc17xx_mcpwm.c ****  */
+  34:./Drivers/source/lpc17xx_mcpwm.c **** #ifdef __BUILD_WITH_EXAMPLE__
+  35:./Drivers/source/lpc17xx_mcpwm.c **** #include "lpc17xx_libcfg.h"
+  36:./Drivers/source/lpc17xx_mcpwm.c **** #else
+  37:./Drivers/source/lpc17xx_mcpwm.c **** #include "lpc17xx_libcfg_default.h"
+  38:./Drivers/source/lpc17xx_mcpwm.c **** #endif /* __BUILD_WITH_EXAMPLE__ */
+  39:./Drivers/source/lpc17xx_mcpwm.c **** 
+  40:./Drivers/source/lpc17xx_mcpwm.c **** 
+  41:./Drivers/source/lpc17xx_mcpwm.c **** #ifdef _MCPWM
+  42:./Drivers/source/lpc17xx_mcpwm.c **** 
+  43:./Drivers/source/lpc17xx_mcpwm.c **** /* Public Functions ----------------------------------------------------------- */
+  44:./Drivers/source/lpc17xx_mcpwm.c **** /** @addtogroup MCPWM_Public_Functions
+  45:./Drivers/source/lpc17xx_mcpwm.c ****  * @{
+  46:./Drivers/source/lpc17xx_mcpwm.c ****  */
+  47:./Drivers/source/lpc17xx_mcpwm.c **** 
+  48:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+  49:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Initializes the MCPWM peripheral
+  50:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 		Motor Control PWM peripheral selected,
+  51:./Drivers/source/lpc17xx_mcpwm.c ****  * 				Should be: LPC_MCPWM
+  52:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+  53:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+  54:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_Init(LPC_MCPWM_TypeDef *MCPWMx)
+  55:./Drivers/source/lpc17xx_mcpwm.c **** {
+  27              		.loc 1 55 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              	.LVL0:
+  32 0000 10B5     		push	{r4, lr}
+  33              		.cfi_def_cfa_offset 8
+  34              		.cfi_offset 4, -8
+  35              		.cfi_offset 14, -4
+  56:./Drivers/source/lpc17xx_mcpwm.c **** 
+  57:./Drivers/source/lpc17xx_mcpwm.c **** 	/* Turn On MCPWM PCLK */
+  58:./Drivers/source/lpc17xx_mcpwm.c **** 	CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCMC, ENABLE);
+  36              		.loc 1 58 0
+  37 0002 0121     		movs	r1, #1
+  55:./Drivers/source/lpc17xx_mcpwm.c **** {
+  38              		.loc 1 55 0
+  39 0004 0446     		mov	r4, r0
+  40              		.loc 1 58 0
+  41 0006 4FF40030 		mov	r0, #131072
+  42              	.LVL1:
+  43 000a FFF7FEFF 		bl	CLKPWR_ConfigPPWR
+  44              	.LVL2:
+  59:./Drivers/source/lpc17xx_mcpwm.c **** 	/* As default, peripheral clock for MCPWM module
+  60:./Drivers/source/lpc17xx_mcpwm.c **** 	 * is set to FCCLK / 2 */
+  61:./Drivers/source/lpc17xx_mcpwm.c **** 	CLKPWR_SetPCLKDiv(CLKPWR_PCLKSEL_MC, CLKPWR_PCLKSEL_CCLK_DIV_4);
+  45              		.loc 1 61 0
+  46 000e 3E20     		movs	r0, #62
+  47 0010 0021     		movs	r1, #0
+  48 0012 FFF7FEFF 		bl	CLKPWR_SetPCLKDiv
+  49              	.LVL3:
+  62:./Drivers/source/lpc17xx_mcpwm.c **** 
+  63:./Drivers/source/lpc17xx_mcpwm.c **** 	MCPWMx->MCCAP_CLR = MCPWM_CAPCLR_CAP(0) | MCPWM_CAPCLR_CAP(1) | MCPWM_CAPCLR_CAP(2);
+  64:./Drivers/source/lpc17xx_mcpwm.c **** 	MCPWMx->MCINTFLAG_CLR = MCPWM_INT_ILIM(0) | MCPWM_INT_ILIM(1) | MCPWM_INT_ILIM(2) \
+  50              		.loc 1 64 0
+  51 0016 40F27773 		movw	r3, #1911
+  63:./Drivers/source/lpc17xx_mcpwm.c **** 	MCPWMx->MCCAP_CLR = MCPWM_CAPCLR_CAP(0) | MCPWM_CAPCLR_CAP(1) | MCPWM_CAPCLR_CAP(2);
+  52              		.loc 1 63 0
+  53 001a 0722     		movs	r2, #7
+  54 001c 6267     		str	r2, [r4, #116]
+  55              		.loc 1 64 0
+  56 001e 2367     		str	r3, [r4, #112]
+  65:./Drivers/source/lpc17xx_mcpwm.c **** 							| MCPWM_INT_IMAT(0) | MCPWM_INT_IMAT(1) | MCPWM_INT_IMAT(2) \
+  66:./Drivers/source/lpc17xx_mcpwm.c **** 							| MCPWM_INT_ICAP(0) | MCPWM_INT_ICAP(1) | MCPWM_INT_ICAP(2);
+  67:./Drivers/source/lpc17xx_mcpwm.c **** 	MCPWMx->MCINTEN_CLR = MCPWM_INT_ILIM(0) | MCPWM_INT_ILIM(1) | MCPWM_INT_ILIM(2) \
+  57              		.loc 1 67 0
+  58 0020 A365     		str	r3, [r4, #88]
+  59 0022 10BD     		pop	{r4, pc}
+  60              		.cfi_endproc
+  61              	.LFE55:
+  63              		.section	.text.MCPWM_ConfigChannel,"ax",%progbits
+  64              		.align	2
+  65              		.global	MCPWM_ConfigChannel
+  66              		.thumb
+  67              		.thumb_func
+  69              	MCPWM_ConfigChannel:
+  70              	.LFB56:
+  68:./Drivers/source/lpc17xx_mcpwm.c **** 							| MCPWM_INT_IMAT(0) | MCPWM_INT_IMAT(1) | MCPWM_INT_IMAT(2) \
+  69:./Drivers/source/lpc17xx_mcpwm.c **** 							| MCPWM_INT_ICAP(0) | MCPWM_INT_ICAP(1) | MCPWM_INT_ICAP(2);
+  70:./Drivers/source/lpc17xx_mcpwm.c **** }
+  71:./Drivers/source/lpc17xx_mcpwm.c **** 
+  72:./Drivers/source/lpc17xx_mcpwm.c **** 
+  73:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+  74:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Configures each channel in MCPWM peripheral according to the
+  75:./Drivers/source/lpc17xx_mcpwm.c ****  * 				specified parameters in the MCPWM_CHANNEL_CFG_Type.
+  76:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 			Motor Control PWM peripheral selected
+  77:./Drivers/source/lpc17xx_mcpwm.c ****  * 								should be: LPC_MCPWM
+  78:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channelNum		Channel number, should be: 0..2.
+  79:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channelSetup	Pointer to a MCPWM_CHANNEL_CFG_Type structure
+  80:./Drivers/source/lpc17xx_mcpwm.c **** *                    			that contains the configuration information for the
+  81:./Drivers/source/lpc17xx_mcpwm.c **** *                    			specified MCPWM channel.
+  82:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+  83:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+  84:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_ConfigChannel(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channelNum,
+  85:./Drivers/source/lpc17xx_mcpwm.c **** 						MCPWM_CHANNEL_CFG_Type * channelSetup)
+  86:./Drivers/source/lpc17xx_mcpwm.c **** {
+  71              		.loc 1 86 0
+  72              		.cfi_startproc
+  73              		@ args = 0, pretend = 0, frame = 0
+  74              		@ frame_needed = 0, uses_anonymous_args = 0
+  75              		@ link register save eliminated.
+  76              	.LVL4:
+  87:./Drivers/source/lpc17xx_mcpwm.c **** 	if ((channelNum >= 0) && (channelNum <= 2)) {
+  77              		.loc 1 87 0
+  78 0000 0229     		cmp	r1, #2
+  86:./Drivers/source/lpc17xx_mcpwm.c **** {
+  79              		.loc 1 86 0
+  80 0002 70B4     		push	{r4, r5, r6}
+  81              		.cfi_def_cfa_offset 12
+  82              		.cfi_offset 4, -12
+  83              		.cfi_offset 5, -8
+  84              		.cfi_offset 6, -4
+  85              		.loc 1 87 0
+  86 0004 23D8     		bhi	.L2
+  88:./Drivers/source/lpc17xx_mcpwm.c **** 		if (channelNum == 0) {
+  89:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCTIM0 = channelSetup->channelTimercounterValue;
+  87              		.loc 1 89 0
+  88 0006 5369     		ldr	r3, [r2, #20]
+  90:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCPER0 = channelSetup->channelPeriodValue;
+  89              		.loc 1 90 0
+  90 0008 9569     		ldr	r5, [r2, #24]
+  91:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCPW0 = channelSetup->channelPulsewidthValue;
+  91              		.loc 1 91 0
+  92 000a D469     		ldr	r4, [r2, #28]
+  88:./Drivers/source/lpc17xx_mcpwm.c **** 		if (channelNum == 0) {
+  93              		.loc 1 88 0
+  94 000c 09BB     		cbnz	r1, .L4
+  89:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCTIM0 = channelSetup->channelTimercounterValue;
+  95              		.loc 1 89 0
+  96 000e 8361     		str	r3, [r0, #24]
+  90:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCPER0 = channelSetup->channelPeriodValue;
+  97              		.loc 1 90 0
+  98 0010 4562     		str	r5, [r0, #36]
+  99              		.loc 1 91 0
+ 100 0012 0463     		str	r4, [r0, #48]
+ 101              	.L5:
+  92:./Drivers/source/lpc17xx_mcpwm.c **** 		} else if (channelNum == 1) {
+  93:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCTIM1 = channelSetup->channelTimercounterValue;
+  94:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCPER1 = channelSetup->channelPeriodValue;
+  95:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCPW1 = channelSetup->channelPulsewidthValue;
+  96:./Drivers/source/lpc17xx_mcpwm.c **** 		} else if (channelNum == 2) {
+  97:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCTIM2 = channelSetup->channelTimercounterValue;
+  98:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCPER2 = channelSetup->channelPeriodValue;
+  99:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCPW2 = channelSetup->channelPulsewidthValue;
+ 100:./Drivers/source/lpc17xx_mcpwm.c **** 		} else {
+ 101:./Drivers/source/lpc17xx_mcpwm.c **** 			return;
+ 102:./Drivers/source/lpc17xx_mcpwm.c **** 		}
+ 103:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 104:./Drivers/source/lpc17xx_mcpwm.c **** 		if (channelSetup->channelType /* == MCPWM_CHANNEL_CENTER_MODE */){
+ 102              		.loc 1 104 0
+ 103 0014 1368     		ldr	r3, [r2]
+ 104 0016 13B3     		cbz	r3, .L23
+ 105:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_SET = MCPWM_CON_CENTER(channelNum);
+ 105              		.loc 1 105 0 discriminator 1
+ 106 0018 CB00     		lsls	r3, r1, #3
+ 107 001a 5C1C     		adds	r4, r3, #1
+ 108 001c 0125     		movs	r5, #1
+ 109 001e 05FA04F4 		lsl	r4, r5, r4
+ 110 0022 4460     		str	r4, [r0, #4]
+ 111              	.L7:
+ 106:./Drivers/source/lpc17xx_mcpwm.c **** 		} else {
+ 107:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_CLR = MCPWM_CON_CENTER(channelNum);
+ 108:./Drivers/source/lpc17xx_mcpwm.c **** 		}
+ 109:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 110:./Drivers/source/lpc17xx_mcpwm.c **** 		if (channelSetup->channelPolarity /* == MCPWM_CHANNEL_PASSIVE_HI */){
+ 112              		.loc 1 110 0
+ 113 0024 5468     		ldr	r4, [r2, #4]
+ 114 0026 0CBB     		cbnz	r4, .L12
+ 111:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_SET = MCPWM_CON_POLAR(channelNum);
+ 112:./Drivers/source/lpc17xx_mcpwm.c **** 		} else {
+ 113:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_CLR = MCPWM_CON_POLAR(channelNum);
+ 115              		.loc 1 113 0 discriminator 1
+ 116 0028 9C1C     		adds	r4, r3, #2
+ 117 002a 0125     		movs	r5, #1
+ 118 002c 05FA04F4 		lsl	r4, r5, r4
+ 119 0030 8460     		str	r4, [r0, #8]
+ 120              	.L8:
+ 114:./Drivers/source/lpc17xx_mcpwm.c **** 		}
+ 115:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 116:./Drivers/source/lpc17xx_mcpwm.c **** 		if (channelSetup->channelDeadtimeEnable /* == ENABLE */){
+ 121              		.loc 1 116 0
+ 122 0032 9468     		ldr	r4, [r2, #8]
+ 123 0034 3CBB     		cbnz	r4, .L14
+ 117:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_SET = MCPWM_CON_DTE(channelNum);
+ 118:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCDEADTIME &= ~(MCPWM_DT(channelNum, 0x3FF));
+ 119:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCDEADTIME |= MCPWM_DT(channelNum, channelSetup->channelDeadtimeValue);
+ 120:./Drivers/source/lpc17xx_mcpwm.c **** 		} else {
+ 121:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_CLR = MCPWM_CON_DTE(channelNum);
+ 124              		.loc 1 121 0 discriminator 1
+ 125 0036 D91C     		adds	r1, r3, #3
+ 126              	.LVL5:
+ 127 0038 0124     		movs	r4, #1
+ 128 003a 04FA01F1 		lsl	r1, r4, r1
+ 129 003e 8160     		str	r1, [r0, #8]
+ 130              	.L9:
+ 122:./Drivers/source/lpc17xx_mcpwm.c **** 		}
+ 123:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 124:./Drivers/source/lpc17xx_mcpwm.c **** 		if (channelSetup->channelUpdateEnable /* == ENABLE */){
+ 131              		.loc 1 124 0
+ 132 0040 1269     		ldr	r2, [r2, #16]
+ 133              	.LVL6:
+ 134 0042 CAB1     		cbz	r2, .L24
+ 125:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_CLR = MCPWM_CON_DISUP(channelNum);
+ 135              		.loc 1 125 0 discriminator 1
+ 136 0044 0433     		adds	r3, r3, #4
+ 137 0046 0122     		movs	r2, #1
+ 138 0048 02FA03F3 		lsl	r3, r2, r3
+ 139 004c 8360     		str	r3, [r0, #8]
+ 140              	.L2:
+ 126:./Drivers/source/lpc17xx_mcpwm.c **** 		} else {
+ 127:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_SET = MCPWM_CON_DISUP(channelNum);
+ 128:./Drivers/source/lpc17xx_mcpwm.c **** 		}
+ 129:./Drivers/source/lpc17xx_mcpwm.c **** 	}
+ 130:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 141              		.loc 1 130 0
+ 142 004e 70BC     		pop	{r4, r5, r6}
+ 143 0050 7047     		bx	lr
+ 144              	.LVL7:
+ 145              	.L4:
+  92:./Drivers/source/lpc17xx_mcpwm.c **** 		} else if (channelNum == 1) {
+ 146              		.loc 1 92 0
+ 147 0052 0129     		cmp	r1, #1
+ 148 0054 2ED0     		beq	.L25
+  97:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCTIM2 = channelSetup->channelTimercounterValue;
+ 149              		.loc 1 97 0
+ 150 0056 0362     		str	r3, [r0, #32]
+  98:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCPER2 = channelSetup->channelPeriodValue;
+ 151              		.loc 1 98 0
+ 152 0058 C562     		str	r5, [r0, #44]
+  99:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCPW2 = channelSetup->channelPulsewidthValue;
+ 153              		.loc 1 99 0
+ 154 005a 8463     		str	r4, [r0, #56]
+ 155 005c DAE7     		b	.L5
+ 156              	.L23:
+ 107:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_CLR = MCPWM_CON_CENTER(channelNum);
+ 157              		.loc 1 107 0 discriminator 1
+ 158 005e CB00     		lsls	r3, r1, #3
+ 159 0060 5C1C     		adds	r4, r3, #1
+ 160 0062 0125     		movs	r5, #1
+ 161 0064 05FA04F4 		lsl	r4, r5, r4
+ 162 0068 8460     		str	r4, [r0, #8]
+ 163 006a DBE7     		b	.L7
+ 164              	.L12:
+ 111:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_SET = MCPWM_CON_POLAR(channelNum);
+ 165              		.loc 1 111 0 discriminator 1
+ 166 006c 9C1C     		adds	r4, r3, #2
+ 167 006e 0125     		movs	r5, #1
+ 168 0070 05FA04F4 		lsl	r4, r5, r4
+ 169 0074 4460     		str	r4, [r0, #4]
+ 170 0076 DCE7     		b	.L8
+ 171              	.LVL8:
+ 172              	.L24:
+ 127:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_SET = MCPWM_CON_DISUP(channelNum);
+ 173              		.loc 1 127 0 discriminator 1
+ 174 0078 0433     		adds	r3, r3, #4
+ 175 007a 0122     		movs	r2, #1
+ 176 007c 02FA03F3 		lsl	r3, r2, r3
+ 177              		.loc 1 130 0 discriminator 1
+ 178 0080 70BC     		pop	{r4, r5, r6}
+ 127:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_SET = MCPWM_CON_DISUP(channelNum);
+ 179              		.loc 1 127 0 discriminator 1
+ 180 0082 4360     		str	r3, [r0, #4]
+ 181              		.loc 1 130 0 discriminator 1
+ 182 0084 7047     		bx	lr
+ 183              	.LVL9:
+ 184              	.L14:
+ 117:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_SET = MCPWM_CON_DTE(channelNum);
+ 185              		.loc 1 117 0 discriminator 1
+ 186 0086 DC1C     		adds	r4, r3, #3
+ 187 0088 0126     		movs	r6, #1
+ 188 008a A640     		lsls	r6, r6, r4
+ 118:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCDEADTIME &= ~(MCPWM_DT(channelNum, 0x3FF));
+ 189              		.loc 1 118 0 discriminator 1
+ 190 008c 01EB8101 		add	r1, r1, r1, lsl #2
+ 191              	.LVL10:
+ 192 0090 4900     		lsls	r1, r1, #1
+ 193 0092 40F2FF34 		movw	r4, #1023
+ 194 0096 8C40     		lsls	r4, r4, r1
+ 119:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCDEADTIME |= MCPWM_DT(channelNum, channelSetup->channelDeadtimeValue);
+ 195              		.loc 1 119 0 discriminator 1
+ 196 0098 D568     		ldr	r5, [r2, #12]
+ 117:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCON_SET = MCPWM_CON_DTE(channelNum);
+ 197              		.loc 1 117 0 discriminator 1
+ 198 009a 4660     		str	r6, [r0, #4]
+ 119:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCDEADTIME |= MCPWM_DT(channelNum, channelSetup->channelDeadtimeValue);
+ 199              		.loc 1 119 0 discriminator 1
+ 200 009c C5F30905 		ubfx	r5, r5, #0, #10
+ 201 00a0 05FA01F1 		lsl	r1, r5, r1
+ 118:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCDEADTIME &= ~(MCPWM_DT(channelNum, 0x3FF));
+ 202              		.loc 1 118 0 discriminator 1
+ 203 00a4 C56B     		ldr	r5, [r0, #60]
+ 204 00a6 25EA0404 		bic	r4, r5, r4
+ 205 00aa C463     		str	r4, [r0, #60]
+ 119:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCDEADTIME |= MCPWM_DT(channelNum, channelSetup->channelDeadtimeValue);
+ 206              		.loc 1 119 0 discriminator 1
+ 207 00ac C46B     		ldr	r4, [r0, #60]
+ 208 00ae 2143     		orrs	r1, r1, r4
+ 209 00b0 C163     		str	r1, [r0, #60]
+ 210 00b2 C5E7     		b	.L9
+ 211              	.LVL11:
+ 212              	.L25:
+  93:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCTIM1 = channelSetup->channelTimercounterValue;
+ 213              		.loc 1 93 0
+ 214 00b4 C361     		str	r3, [r0, #28]
+  94:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCPER1 = channelSetup->channelPeriodValue;
+ 215              		.loc 1 94 0
+ 216 00b6 8562     		str	r5, [r0, #40]
+  95:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCPW1 = channelSetup->channelPulsewidthValue;
+ 217              		.loc 1 95 0
+ 218 00b8 4463     		str	r4, [r0, #52]
+ 219 00ba ABE7     		b	.L5
+ 220              		.cfi_endproc
+ 221              	.LFE56:
+ 223              		.section	.text.MCPWM_WriteToShadow,"ax",%progbits
+ 224              		.align	2
+ 225              		.global	MCPWM_WriteToShadow
+ 226              		.thumb
+ 227              		.thumb_func
+ 229              	MCPWM_WriteToShadow:
+ 230              	.LFB57:
+ 131:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 132:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 133:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 134:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Write to MCPWM shadow registers - Update the value for period
+ 135:./Drivers/source/lpc17xx_mcpwm.c ****  * 				and pulse width in MCPWM peripheral.
+ 136:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 			Motor Control PWM peripheral selected
+ 137:./Drivers/source/lpc17xx_mcpwm.c ****  * 								Should be: LPC_MCPWM
+ 138:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channelNum		Channel Number, should be: 0..2.
+ 139:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channelSetup	Pointer to a MCPWM_CHANNEL_CFG_Type structure
+ 140:./Drivers/source/lpc17xx_mcpwm.c **** *                    			that contains the configuration information for the
+ 141:./Drivers/source/lpc17xx_mcpwm.c **** *                    			specified MCPWM channel.
+ 142:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 143:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 144:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_WriteToShadow(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channelNum,
+ 145:./Drivers/source/lpc17xx_mcpwm.c **** 								MCPWM_CHANNEL_CFG_Type *channelSetup)
+ 146:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 231              		.loc 1 146 0
+ 232              		.cfi_startproc
+ 233              		@ args = 0, pretend = 0, frame = 0
+ 234              		@ frame_needed = 0, uses_anonymous_args = 0
+ 235              		@ link register save eliminated.
+ 236              	.LVL12:
+ 147:./Drivers/source/lpc17xx_mcpwm.c **** 	if (channelNum == 0){
+ 237              		.loc 1 147 0
+ 238 0000 41B1     		cbz	r1, .L30
+ 148:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPER0 = channelSetup->channelPeriodValue;
+ 149:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPW0 = channelSetup->channelPulsewidthValue;
+ 150:./Drivers/source/lpc17xx_mcpwm.c **** 	} else if (channelNum == 1) {
+ 239              		.loc 1 150 0
+ 240 0002 0129     		cmp	r1, #1
+ 241 0004 0BD0     		beq	.L31
+ 151:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPER1 = channelSetup->channelPeriodValue;
+ 152:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPW1 = channelSetup->channelPulsewidthValue;
+ 153:./Drivers/source/lpc17xx_mcpwm.c **** 	} else if (channelNum == 2) {
+ 242              		.loc 1 153 0
+ 243 0006 0229     		cmp	r1, #2
+ 244 0008 03D1     		bne	.L26
+ 154:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPER2 = channelSetup->channelPeriodValue;
+ 245              		.loc 1 154 0
+ 246 000a 9169     		ldr	r1, [r2, #24]
+ 247              	.LVL13:
+ 155:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPW2 = channelSetup->channelPulsewidthValue;
+ 248              		.loc 1 155 0
+ 249 000c D369     		ldr	r3, [r2, #28]
+ 154:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPER2 = channelSetup->channelPeriodValue;
+ 250              		.loc 1 154 0
+ 251 000e C162     		str	r1, [r0, #44]
+ 252              		.loc 1 155 0
+ 253 0010 8363     		str	r3, [r0, #56]
+ 254              	.L26:
+ 255 0012 7047     		bx	lr
+ 256              	.LVL14:
+ 257              	.L30:
+ 148:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPER0 = channelSetup->channelPeriodValue;
+ 258              		.loc 1 148 0
+ 259 0014 9169     		ldr	r1, [r2, #24]
+ 260              	.LVL15:
+ 149:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPW0 = channelSetup->channelPulsewidthValue;
+ 261              		.loc 1 149 0
+ 262 0016 D369     		ldr	r3, [r2, #28]
+ 148:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPER0 = channelSetup->channelPeriodValue;
+ 263              		.loc 1 148 0
+ 264 0018 4162     		str	r1, [r0, #36]
+ 149:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPW0 = channelSetup->channelPulsewidthValue;
+ 265              		.loc 1 149 0
+ 266 001a 0363     		str	r3, [r0, #48]
+ 267 001c 7047     		bx	lr
+ 268              	.LVL16:
+ 269              	.L31:
+ 151:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPER1 = channelSetup->channelPeriodValue;
+ 270              		.loc 1 151 0
+ 271 001e 9169     		ldr	r1, [r2, #24]
+ 272              	.LVL17:
+ 152:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPW1 = channelSetup->channelPulsewidthValue;
+ 273              		.loc 1 152 0
+ 274 0020 D369     		ldr	r3, [r2, #28]
+ 151:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPER1 = channelSetup->channelPeriodValue;
+ 275              		.loc 1 151 0
+ 276 0022 8162     		str	r1, [r0, #40]
+ 152:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCPW1 = channelSetup->channelPulsewidthValue;
+ 277              		.loc 1 152 0
+ 278 0024 4363     		str	r3, [r0, #52]
+ 279 0026 7047     		bx	lr
+ 280              		.cfi_endproc
+ 281              	.LFE57:
+ 283              		.section	.text.MCPWM_ConfigCapture,"ax",%progbits
+ 284              		.align	2
+ 285              		.global	MCPWM_ConfigCapture
+ 286              		.thumb
+ 287              		.thumb_func
+ 289              	MCPWM_ConfigCapture:
+ 290              	.LFB58:
+ 156:./Drivers/source/lpc17xx_mcpwm.c **** 	}
+ 157:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 158:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 159:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 160:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 161:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 162:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Configures capture function in MCPWM peripheral
+ 163:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 			Motor Control PWM peripheral selected
+ 164:./Drivers/source/lpc17xx_mcpwm.c ****  * 								Should be: LPC_MCPWM
+ 165:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channelNum		MCI (Motor Control Input pin) number
+ 166:./Drivers/source/lpc17xx_mcpwm.c ****  * 								Should be: 0..2
+ 167:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	captureConfig	Pointer to a MCPWM_CAPTURE_CFG_Type structure
+ 168:./Drivers/source/lpc17xx_mcpwm.c **** *                    			that contains the configuration information for the
+ 169:./Drivers/source/lpc17xx_mcpwm.c **** *                    			specified MCPWM capture.
+ 170:./Drivers/source/lpc17xx_mcpwm.c ****  * @return
+ 171:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 172:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_ConfigCapture(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channelNum,
+ 173:./Drivers/source/lpc17xx_mcpwm.c **** 						MCPWM_CAPTURE_CFG_Type *captureConfig)
+ 174:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 291              		.loc 1 174 0
+ 292              		.cfi_startproc
+ 293              		@ args = 0, pretend = 0, frame = 0
+ 294              		@ frame_needed = 0, uses_anonymous_args = 0
+ 295              		@ link register save eliminated.
+ 296              	.LVL18:
+ 175:./Drivers/source/lpc17xx_mcpwm.c **** 	if ((channelNum >= 0) && (channelNum <= 2)) {
+ 297              		.loc 1 175 0
+ 298 0000 0229     		cmp	r1, #2
+ 174:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 299              		.loc 1 174 0
+ 300 0002 30B4     		push	{r4, r5}
+ 301              		.cfi_def_cfa_offset 8
+ 302              		.cfi_offset 4, -8
+ 303              		.cfi_offset 5, -4
+ 304              		.loc 1 175 0
+ 305 0004 1DD8     		bhi	.L32
+ 176:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 177:./Drivers/source/lpc17xx_mcpwm.c **** 		if (captureConfig->captureFalling /* == ENABLE */) {
+ 306              		.loc 1 177 0
+ 307 0006 9468     		ldr	r4, [r2, #8]
+ 178:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_SET = MCPWM_CAPCON_CAPMCI_FE(captureConfig->captureChannel, channelNum);
+ 308              		.loc 1 178 0
+ 309 0008 1368     		ldr	r3, [r2]
+ 177:./Drivers/source/lpc17xx_mcpwm.c **** 		if (captureConfig->captureFalling /* == ENABLE */) {
+ 310              		.loc 1 177 0
+ 311 000a E4B1     		cbz	r4, .L34
+ 312              		.loc 1 178 0
+ 313 000c 022B     		cmp	r3, #2
+ 314 000e 3ED9     		bls	.L55
+ 315 0010 0024     		movs	r4, #0
+ 316              	.L35:
+ 317              		.loc 1 178 0 is_stmt 0 discriminator 3
+ 318 0012 0461     		str	r4, [r0, #16]
+ 179:./Drivers/source/lpc17xx_mcpwm.c **** 		} else {
+ 180:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_CAPMCI_FE(captureConfig->captureChannel, channelNum);
+ 181:./Drivers/source/lpc17xx_mcpwm.c **** 		}
+ 182:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 183:./Drivers/source/lpc17xx_mcpwm.c **** 		if (captureConfig->captureRising /* == ENABLE */) {
+ 319              		.loc 1 183 0 is_stmt 1 discriminator 3
+ 320 0014 5468     		ldr	r4, [r2, #4]
+ 321 0016 E4B9     		cbnz	r4, .L56
+ 322              	.L38:
+ 184:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_SET = MCPWM_CAPCON_CAPMCI_RE(captureConfig->captureChannel, channelNum);
+ 185:./Drivers/source/lpc17xx_mcpwm.c **** 		} else {
+ 186:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_CAPMCI_RE(captureConfig->captureChannel, channelNum);
+ 323              		.loc 1 186 0
+ 324 0018 022B     		cmp	r3, #2
+ 325 001a 28D9     		bls	.L57
+ 326              	.L41:
+ 327              		.loc 1 186 0 is_stmt 0 discriminator 3
+ 328 001c 4461     		str	r4, [r0, #20]
+ 187:./Drivers/source/lpc17xx_mcpwm.c **** 		}
+ 188:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 189:./Drivers/source/lpc17xx_mcpwm.c **** 		if (captureConfig->timerReset /* == ENABLE */){
+ 329              		.loc 1 189 0 is_stmt 1 discriminator 3
+ 330 001e D468     		ldr	r4, [r2, #12]
+ 331 0020 F4B1     		cbz	r4, .L42
+ 332              	.L61:
+ 190:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_SET = MCPWM_CAPCON_RT(captureConfig->captureChannel);
+ 333              		.loc 1 190 0
+ 334 0022 022B     		cmp	r3, #2
+ 335 0024 9DBF     		ittte	ls
+ 336 0026 1233     		addls	r3, r3, #18
+ 337 0028 0124     		movls	r4, #1
+ 338 002a 04FA03F3 		lslls	r3, r4, r3
+ 339 002e 0023     		movhi	r3, #0
+ 340 0030 0361     		str	r3, [r0, #16]
+ 341              	.L44:
+ 191:./Drivers/source/lpc17xx_mcpwm.c **** 		} else {
+ 192:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_RT(captureConfig->captureChannel);
+ 193:./Drivers/source/lpc17xx_mcpwm.c **** 		}
+ 194:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 195:./Drivers/source/lpc17xx_mcpwm.c **** 		if (captureConfig->hnfEnable /* == ENABLE */){
+ 342              		.loc 1 195 0
+ 343 0032 1369     		ldr	r3, [r2, #16]
+ 344 0034 002B     		cmp	r3, #0
+ 345 0036 3CD0     		beq	.L58
+ 196:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_SET = MCPWM_CAPCON_HNFCAP(channelNum);
+ 346              		.loc 1 196 0 discriminator 1
+ 347 0038 1531     		adds	r1, r1, #21
+ 348              	.LVL19:
+ 349 003a 0123     		movs	r3, #1
+ 350 003c 03FA01F1 		lsl	r1, r3, r1
+ 351              	.LVL20:
+ 352 0040 0161     		str	r1, [r0, #16]
+ 353              	.L32:
+ 197:./Drivers/source/lpc17xx_mcpwm.c **** 		} else {
+ 198:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_HNFCAP(channelNum);
+ 199:./Drivers/source/lpc17xx_mcpwm.c **** 		}
+ 200:./Drivers/source/lpc17xx_mcpwm.c **** 	}
+ 201:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 354              		.loc 1 201 0
+ 355 0042 30BC     		pop	{r4, r5}
+ 356 0044 7047     		bx	lr
+ 357              	.LVL21:
+ 358              	.L34:
+ 180:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_CAPMCI_FE(captureConfig->captureChannel, channelNum);
+ 359              		.loc 1 180 0
+ 360 0046 022B     		cmp	r3, #2
+ 361 0048 2AD9     		bls	.L59
+ 362              	.L37:
+ 180:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_CAPMCI_FE(captureConfig->captureChannel, channelNum);
+ 363              		.loc 1 180 0 is_stmt 0 discriminator 3
+ 364 004a 4461     		str	r4, [r0, #20]
+ 183:./Drivers/source/lpc17xx_mcpwm.c **** 		if (captureConfig->captureRising /* == ENABLE */) {
+ 365              		.loc 1 183 0 is_stmt 1 discriminator 3
+ 366 004c 5468     		ldr	r4, [r2, #4]
+ 367 004e 002C     		cmp	r4, #0
+ 368 0050 E2D0     		beq	.L38
+ 369              	.L56:
+ 184:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_SET = MCPWM_CAPCON_CAPMCI_RE(captureConfig->captureChannel, channelNum);
+ 370              		.loc 1 184 0
+ 371 0052 022B     		cmp	r3, #2
+ 372 0054 13D9     		bls	.L60
+ 373 0056 0024     		movs	r4, #0
+ 374              	.L39:
+ 184:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_SET = MCPWM_CAPCON_CAPMCI_RE(captureConfig->captureChannel, channelNum);
+ 375              		.loc 1 184 0 is_stmt 0 discriminator 3
+ 376 0058 0461     		str	r4, [r0, #16]
+ 189:./Drivers/source/lpc17xx_mcpwm.c **** 		if (captureConfig->timerReset /* == ENABLE */){
+ 377              		.loc 1 189 0 is_stmt 1 discriminator 3
+ 378 005a D468     		ldr	r4, [r2, #12]
+ 379 005c 002C     		cmp	r4, #0
+ 380 005e E0D1     		bne	.L61
+ 381              	.L42:
+ 192:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_RT(captureConfig->captureChannel);
+ 382              		.loc 1 192 0
+ 383 0060 022B     		cmp	r3, #2
+ 384 0062 02D8     		bhi	.L45
+ 192:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_RT(captureConfig->captureChannel);
+ 385              		.loc 1 192 0 is_stmt 0 discriminator 1
+ 386 0064 1233     		adds	r3, r3, #18
+ 387 0066 0124     		movs	r4, #1
+ 388 0068 9C40     		lsls	r4, r4, r3
+ 389              	.L45:
+ 192:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_RT(captureConfig->captureChannel);
+ 390              		.loc 1 192 0 discriminator 3
+ 391 006a 4461     		str	r4, [r0, #20]
+ 392 006c E1E7     		b	.L44
+ 393              	.L57:
+ 186:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_CAPMCI_RE(captureConfig->captureChannel, channelNum);
+ 394              		.loc 1 186 0 is_stmt 1 discriminator 1
+ 395 006e 03EB4304 		add	r4, r3, r3, lsl #1
+ 396 0072 0C44     		add	r4, r4, r1
+ 397 0074 6400     		lsls	r4, r4, #1
+ 398 0076 0125     		movs	r5, #1
+ 399 0078 05FA04F4 		lsl	r4, r5, r4
+ 400 007c CEE7     		b	.L41
+ 401              	.L60:
+ 184:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_SET = MCPWM_CAPCON_CAPMCI_RE(captureConfig->captureChannel, channelNum);
+ 402              		.loc 1 184 0 discriminator 1
+ 403 007e 03EB4304 		add	r4, r3, r3, lsl #1
+ 404 0082 0C44     		add	r4, r4, r1
+ 405 0084 6400     		lsls	r4, r4, #1
+ 406 0086 0125     		movs	r5, #1
+ 407 0088 05FA04F4 		lsl	r4, r5, r4
+ 408 008c E4E7     		b	.L39
+ 409              	.L55:
+ 178:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_SET = MCPWM_CAPCON_CAPMCI_FE(captureConfig->captureChannel, channelNum);
+ 410              		.loc 1 178 0 discriminator 1
+ 411 008e 03EB4304 		add	r4, r3, r3, lsl #1
+ 412 0092 0C44     		add	r4, r4, r1
+ 413 0094 6400     		lsls	r4, r4, #1
+ 414 0096 0134     		adds	r4, r4, #1
+ 415 0098 0125     		movs	r5, #1
+ 416 009a 05FA04F4 		lsl	r4, r5, r4
+ 417 009e B8E7     		b	.L35
+ 418              	.L59:
+ 180:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_CAPMCI_FE(captureConfig->captureChannel, channelNum);
+ 419              		.loc 1 180 0 discriminator 1
+ 420 00a0 03EB4304 		add	r4, r3, r3, lsl #1
+ 421 00a4 0C44     		add	r4, r4, r1
+ 422 00a6 6400     		lsls	r4, r4, #1
+ 423 00a8 0134     		adds	r4, r4, #1
+ 424 00aa 0125     		movs	r5, #1
+ 425 00ac 05FA04F4 		lsl	r4, r5, r4
+ 426 00b0 CBE7     		b	.L37
+ 427              	.L58:
+ 198:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_HNFCAP(channelNum);
+ 428              		.loc 1 198 0 discriminator 1
+ 429 00b2 1531     		adds	r1, r1, #21
+ 430              	.LVL22:
+ 431 00b4 0123     		movs	r3, #1
+ 432 00b6 03FA01F1 		lsl	r1, r3, r1
+ 433              	.LVL23:
+ 434              		.loc 1 201 0 discriminator 1
+ 435 00ba 30BC     		pop	{r4, r5}
+ 198:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCAPCON_CLR = MCPWM_CAPCON_HNFCAP(channelNum);
+ 436              		.loc 1 198 0 discriminator 1
+ 437 00bc 4161     		str	r1, [r0, #20]
+ 438              		.loc 1 201 0 discriminator 1
+ 439 00be 7047     		bx	lr
+ 440              		.cfi_endproc
+ 441              	.LFE58:
+ 443              		.section	.text.MCPWM_ClearCapture,"ax",%progbits
+ 444              		.align	2
+ 445              		.global	MCPWM_ClearCapture
+ 446              		.thumb
+ 447              		.thumb_func
+ 449              	MCPWM_ClearCapture:
+ 450              	.LFB59:
+ 202:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 203:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 204:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 205:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Clears current captured value in specified capture channel
+ 206:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 		Motor Control PWM peripheral selected
+ 207:./Drivers/source/lpc17xx_mcpwm.c ****  * 							Should be: LPC_MCPWM
+ 208:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	captureChannel	Capture channel number, should be: 0..2
+ 209:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 210:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 211:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_ClearCapture(LPC_MCPWM_TypeDef *MCPWMx, uint32_t captureChannel)
+ 212:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 451              		.loc 1 212 0
+ 452              		.cfi_startproc
+ 453              		@ args = 0, pretend = 0, frame = 0
+ 454              		@ frame_needed = 0, uses_anonymous_args = 0
+ 455              		@ link register save eliminated.
+ 456              	.LVL24:
+ 213:./Drivers/source/lpc17xx_mcpwm.c **** 	MCPWMx->MCCAP_CLR = MCPWM_CAPCLR_CAP(captureChannel);
+ 457              		.loc 1 213 0
+ 458 0000 0229     		cmp	r1, #2
+ 459 0002 9ABF     		itte	ls
+ 460 0004 0123     		movls	r3, #1
+ 461 0006 03FA01F1 		lslls	r1, r3, r1
+ 462              	.LVL25:
+ 463 000a 0021     		movhi	r1, #0
+ 464 000c 4167     		str	r1, [r0, #116]
+ 465 000e 7047     		bx	lr
+ 466              		.cfi_endproc
+ 467              	.LFE59:
+ 469              		.section	.text.MCPWM_GetCapture,"ax",%progbits
+ 470              		.align	2
+ 471              		.global	MCPWM_GetCapture
+ 472              		.thumb
+ 473              		.thumb_func
+ 475              	MCPWM_GetCapture:
+ 476              	.LFB60:
+ 214:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 215:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 216:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 217:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Get current captured value in specified capture channel
+ 218:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 		Motor Control PWM peripheral selected,
+ 219:./Drivers/source/lpc17xx_mcpwm.c ****  * 							Should be: LPC_MCPWM
+ 220:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	captureChannel	Capture channel number, should be: 0..2
+ 221:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 222:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 223:./Drivers/source/lpc17xx_mcpwm.c **** uint32_t MCPWM_GetCapture(LPC_MCPWM_TypeDef *MCPWMx, uint32_t captureChannel)
+ 224:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 477              		.loc 1 224 0
+ 478              		.cfi_startproc
+ 479              		@ args = 0, pretend = 0, frame = 0
+ 480              		@ frame_needed = 0, uses_anonymous_args = 0
+ 481              		@ link register save eliminated.
+ 482              	.LVL26:
+ 225:./Drivers/source/lpc17xx_mcpwm.c **** 	if (captureChannel == 0){
+ 483              		.loc 1 225 0
+ 484 0000 31B1     		cbz	r1, .L70
+ 226:./Drivers/source/lpc17xx_mcpwm.c **** 		return (MCPWMx->MCCR0);
+ 227:./Drivers/source/lpc17xx_mcpwm.c **** 	} else if (captureChannel == 1) {
+ 485              		.loc 1 227 0
+ 486 0002 0129     		cmp	r1, #1
+ 487 0004 06D0     		beq	.L71
+ 228:./Drivers/source/lpc17xx_mcpwm.c **** 		return (MCPWMx->MCCR1);
+ 229:./Drivers/source/lpc17xx_mcpwm.c **** 	} else if (captureChannel == 2) {
+ 488              		.loc 1 229 0
+ 489 0006 0229     		cmp	r1, #2
+ 230:./Drivers/source/lpc17xx_mcpwm.c **** 		return (MCPWMx->MCCR2);
+ 490              		.loc 1 230 0
+ 491 0008 0CBF     		ite	eq
+ 492 000a C06C     		ldreq	r0, [r0, #76]
+ 493              	.LVL27:
+ 231:./Drivers/source/lpc17xx_mcpwm.c **** 	}
+ 232:./Drivers/source/lpc17xx_mcpwm.c **** 	return (0);
+ 494              		.loc 1 232 0
+ 495 000c 0020     		movne	r0, #0
+ 233:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 496              		.loc 1 233 0
+ 497 000e 7047     		bx	lr
+ 498              	.LVL28:
+ 499              	.L70:
+ 226:./Drivers/source/lpc17xx_mcpwm.c **** 		return (MCPWMx->MCCR0);
+ 500              		.loc 1 226 0
+ 501 0010 406C     		ldr	r0, [r0, #68]
+ 502              	.LVL29:
+ 503 0012 7047     		bx	lr
+ 504              	.LVL30:
+ 505              	.L71:
+ 228:./Drivers/source/lpc17xx_mcpwm.c **** 		return (MCPWMx->MCCR1);
+ 506              		.loc 1 228 0
+ 507 0014 806C     		ldr	r0, [r0, #72]
+ 508              	.LVL31:
+ 509 0016 7047     		bx	lr
+ 510              		.cfi_endproc
+ 511              	.LFE60:
+ 513              		.section	.text.MCPWM_CountConfig,"ax",%progbits
+ 514              		.align	2
+ 515              		.global	MCPWM_CountConfig
+ 516              		.thumb
+ 517              		.thumb_func
+ 519              	MCPWM_CountConfig:
+ 520              	.LFB61:
+ 234:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 235:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 236:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 237:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Configures Count control in MCPWM peripheral
+ 238:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 		Motor Control PWM peripheral selected
+ 239:./Drivers/source/lpc17xx_mcpwm.c ****  * 							Should be: LPC_MCPWM
+ 240:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channelNum	Channel number, should be: 0..2
+ 241:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	countMode	Count mode, should be:
+ 242:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- ENABLE: Enables count mode.
+ 243:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- DISABLE: Disable count mode, the channel is in timer mode.
+ 244:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	countConfig	Pointer to a MCPWM_COUNT_CFG_Type structure
+ 245:./Drivers/source/lpc17xx_mcpwm.c **** *                    		that contains the configuration information for the
+ 246:./Drivers/source/lpc17xx_mcpwm.c **** *                    		specified MCPWM count control.
+ 247:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 248:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 249:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_CountConfig(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channelNum,
+ 250:./Drivers/source/lpc17xx_mcpwm.c **** 					uint32_t countMode, MCPWM_COUNT_CFG_Type *countConfig)
+ 251:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 521              		.loc 1 251 0
+ 522              		.cfi_startproc
+ 523              		@ args = 0, pretend = 0, frame = 0
+ 524              		@ frame_needed = 0, uses_anonymous_args = 0
+ 525              		@ link register save eliminated.
+ 526              	.LVL32:
+ 252:./Drivers/source/lpc17xx_mcpwm.c **** 	if ((channelNum >= 0) && (channelNum <= 2)) {
+ 527              		.loc 1 252 0
+ 528 0000 0229     		cmp	r1, #2
+ 251:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 529              		.loc 1 251 0
+ 530 0002 30B4     		push	{r4, r5}
+ 531              		.cfi_def_cfa_offset 8
+ 532              		.cfi_offset 4, -8
+ 533              		.cfi_offset 5, -4
+ 534              		.loc 1 252 0
+ 535 0004 1DD8     		bhi	.L72
+ 253:./Drivers/source/lpc17xx_mcpwm.c **** 		if (countMode /* == ENABLE */){
+ 536              		.loc 1 253 0
+ 537 0006 F2B1     		cbz	r2, .L74
+ 254:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCNTCON_SET = MCPWM_CNTCON_CNTR(channelNum);
+ 538              		.loc 1 254 0 discriminator 1
+ 539 0008 01F11D02 		add	r2, r1, #29
+ 540              	.LVL33:
+ 541 000c 0125     		movs	r5, #1
+ 542 000e 05FA02F2 		lsl	r2, r5, r2
+ 255:./Drivers/source/lpc17xx_mcpwm.c **** 			if (countConfig->countFalling /* == ENABLE */) {
+ 543              		.loc 1 255 0 discriminator 1
+ 544 0012 9C68     		ldr	r4, [r3, #8]
+ 254:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCNTCON_SET = MCPWM_CNTCON_CNTR(channelNum);
+ 545              		.loc 1 254 0 discriminator 1
+ 546 0014 0266     		str	r2, [r0, #96]
+ 256:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_SET = MCPWM_CNTCON_TCMCI_FE(countConfig->counterChannel,channelNum);
+ 547              		.loc 1 256 0 discriminator 1
+ 548 0016 1A68     		ldr	r2, [r3]
+ 255:./Drivers/source/lpc17xx_mcpwm.c **** 			if (countConfig->countFalling /* == ENABLE */) {
+ 549              		.loc 1 255 0 discriminator 1
+ 550 0018 E4B1     		cbz	r4, .L75
+ 551              		.loc 1 256 0
+ 552 001a 022A     		cmp	r2, #2
+ 553 001c 32D8     		bhi	.L82
+ 554              		.loc 1 256 0 is_stmt 0 discriminator 1
+ 555 001e 02EB4204 		add	r4, r2, r2, lsl #1
+ 556 0022 0C44     		add	r4, r4, r1
+ 557 0024 AC40     		lsls	r4, r4, r5
+ 558 0026 2C44     		add	r4, r4, r5
+ 559 0028 A540     		lsls	r5, r5, r4
+ 560              	.L76:
+ 257:./Drivers/source/lpc17xx_mcpwm.c **** 			} else {
+ 258:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_CLR = MCPWM_CNTCON_TCMCI_FE(countConfig->counterChannel,channelNum);
+ 259:./Drivers/source/lpc17xx_mcpwm.c **** 			}
+ 260:./Drivers/source/lpc17xx_mcpwm.c **** 			if (countConfig->countRising /* == ENABLE */) {
+ 561              		.loc 1 260 0 is_stmt 1 discriminator 3
+ 562 002a 5B68     		ldr	r3, [r3, #4]
+ 563              	.LVL34:
+ 256:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_SET = MCPWM_CNTCON_TCMCI_FE(countConfig->counterChannel,channelNum);
+ 564              		.loc 1 256 0 discriminator 3
+ 565 002c 0566     		str	r5, [r0, #96]
+ 566              		.loc 1 260 0 discriminator 3
+ 567 002e F3B1     		cbz	r3, .L79
+ 568              	.L86:
+ 261:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_SET = MCPWM_CNTCON_TCMCI_RE(countConfig->counterChannel,channelNum);
+ 569              		.loc 1 261 0
+ 570 0030 022A     		cmp	r2, #2
+ 571 0032 29D8     		bhi	.L84
+ 572              		.loc 1 261 0 is_stmt 0 discriminator 1
+ 573 0034 02EB4202 		add	r2, r2, r2, lsl #1
+ 574 0038 1144     		add	r1, r1, r2
+ 575              	.LVL35:
+ 576 003a 4900     		lsls	r1, r1, #1
+ 577 003c 0123     		movs	r3, #1
+ 578 003e 8B40     		lsls	r3, r3, r1
+ 579              	.L80:
+ 580              		.loc 1 261 0 discriminator 3
+ 581 0040 0366     		str	r3, [r0, #96]
+ 582              	.L72:
+ 262:./Drivers/source/lpc17xx_mcpwm.c **** 			} else {
+ 263:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_CLR = MCPWM_CNTCON_TCMCI_RE(countConfig->counterChannel,channelNum);
+ 264:./Drivers/source/lpc17xx_mcpwm.c **** 			}
+ 265:./Drivers/source/lpc17xx_mcpwm.c **** 		} else {
+ 266:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCNTCON_CLR = MCPWM_CNTCON_CNTR(channelNum);
+ 267:./Drivers/source/lpc17xx_mcpwm.c **** 		}
+ 268:./Drivers/source/lpc17xx_mcpwm.c **** 	}
+ 269:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 583              		.loc 1 269 0 is_stmt 1
+ 584 0042 30BC     		pop	{r4, r5}
+ 585 0044 7047     		bx	lr
+ 586              	.LVL36:
+ 587              	.L74:
+ 266:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCNTCON_CLR = MCPWM_CNTCON_CNTR(channelNum);
+ 588              		.loc 1 266 0 discriminator 1
+ 589 0046 1D31     		adds	r1, r1, #29
+ 590              	.LVL37:
+ 591 0048 0123     		movs	r3, #1
+ 592              	.LVL38:
+ 593 004a 03FA01F1 		lsl	r1, r3, r1
+ 594              	.LVL39:
+ 595              		.loc 1 269 0 discriminator 1
+ 596 004e 30BC     		pop	{r4, r5}
+ 266:./Drivers/source/lpc17xx_mcpwm.c **** 			MCPWMx->MCCNTCON_CLR = MCPWM_CNTCON_CNTR(channelNum);
+ 597              		.loc 1 266 0 discriminator 1
+ 598 0050 4166     		str	r1, [r0, #100]
+ 599              		.loc 1 269 0 discriminator 1
+ 600 0052 7047     		bx	lr
+ 601              	.LVL40:
+ 602              	.L75:
+ 258:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_CLR = MCPWM_CNTCON_TCMCI_FE(countConfig->counterChannel,channelNum);
+ 603              		.loc 1 258 0
+ 604 0054 022A     		cmp	r2, #2
+ 605 0056 06D8     		bhi	.L78
+ 258:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_CLR = MCPWM_CNTCON_TCMCI_FE(countConfig->counterChannel,channelNum);
+ 606              		.loc 1 258 0 is_stmt 0 discriminator 1
+ 607 0058 02EB4204 		add	r4, r2, r2, lsl #1
+ 608 005c 0C44     		add	r4, r4, r1
+ 609 005e 6400     		lsls	r4, r4, #1
+ 610 0060 0134     		adds	r4, r4, #1
+ 611 0062 05FA04F4 		lsl	r4, r5, r4
+ 612              	.L78:
+ 260:./Drivers/source/lpc17xx_mcpwm.c **** 			if (countConfig->countRising /* == ENABLE */) {
+ 613              		.loc 1 260 0 is_stmt 1 discriminator 3
+ 614 0066 5B68     		ldr	r3, [r3, #4]
+ 615              	.LVL41:
+ 258:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_CLR = MCPWM_CNTCON_TCMCI_FE(countConfig->counterChannel,channelNum);
+ 616              		.loc 1 258 0 discriminator 3
+ 617 0068 4466     		str	r4, [r0, #100]
+ 260:./Drivers/source/lpc17xx_mcpwm.c **** 			if (countConfig->countRising /* == ENABLE */) {
+ 618              		.loc 1 260 0 discriminator 3
+ 619 006a 002B     		cmp	r3, #0
+ 620 006c E0D1     		bne	.L86
+ 621              	.L79:
+ 263:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_CLR = MCPWM_CNTCON_TCMCI_RE(countConfig->counterChannel,channelNum);
+ 622              		.loc 1 263 0
+ 623 006e 022A     		cmp	r2, #2
+ 624 0070 05D8     		bhi	.L81
+ 263:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_CLR = MCPWM_CNTCON_TCMCI_RE(countConfig->counterChannel,channelNum);
+ 625              		.loc 1 263 0 is_stmt 0 discriminator 1
+ 626 0072 02EB4202 		add	r2, r2, r2, lsl #1
+ 627 0076 1144     		add	r1, r1, r2
+ 628              	.LVL42:
+ 629 0078 4900     		lsls	r1, r1, #1
+ 630 007a 0123     		movs	r3, #1
+ 631 007c 8B40     		lsls	r3, r3, r1
+ 632              	.L81:
+ 633              		.loc 1 269 0 is_stmt 1 discriminator 3
+ 634 007e 30BC     		pop	{r4, r5}
+ 263:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_CLR = MCPWM_CNTCON_TCMCI_RE(countConfig->counterChannel,channelNum);
+ 635              		.loc 1 263 0 discriminator 3
+ 636 0080 4366     		str	r3, [r0, #100]
+ 637              		.loc 1 269 0 discriminator 3
+ 638 0082 7047     		bx	lr
+ 639              	.LVL43:
+ 640              	.L82:
+ 256:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_SET = MCPWM_CNTCON_TCMCI_FE(countConfig->counterChannel,channelNum);
+ 641              		.loc 1 256 0
+ 642 0084 0025     		movs	r5, #0
+ 643 0086 D0E7     		b	.L76
+ 644              	.LVL44:
+ 645              	.L84:
+ 261:./Drivers/source/lpc17xx_mcpwm.c **** 				MCPWMx->MCCNTCON_SET = MCPWM_CNTCON_TCMCI_RE(countConfig->counterChannel,channelNum);
+ 646              		.loc 1 261 0
+ 647 0088 0023     		movs	r3, #0
+ 648 008a D9E7     		b	.L80
+ 649              		.cfi_endproc
+ 650              	.LFE61:
+ 652              		.section	.text.MCPWM_Start,"ax",%progbits
+ 653              		.align	2
+ 654              		.global	MCPWM_Start
+ 655              		.thumb
+ 656              		.thumb_func
+ 658              	MCPWM_Start:
+ 659              	.LFB62:
+ 270:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 271:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 272:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 273:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Start MCPWM activity for each MCPWM channel
+ 274:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 		Motor Control PWM peripheral selected
+ 275:./Drivers/source/lpc17xx_mcpwm.c ****  * 							Should be: LPC_MCPWM
+ 276:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channel0	State of this command on channel 0:
+ 277:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- ENABLE: 'Start' command will effect on channel 0
+ 278:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- DISABLE: 'Start' command will not effect on channel 0
+ 279:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channel1	State of this command on channel 1:
+ 280:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- ENABLE: 'Start' command will effect on channel 1
+ 281:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- DISABLE: 'Start' command will not effect on channel 1
+ 282:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channel2	State of this command on channel 2:
+ 283:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- ENABLE: 'Start' command will effect on channel 2
+ 284:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- DISABLE: 'Start' command will not effect on channel 2
+ 285:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 286:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 287:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_Start(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channel0,
+ 288:./Drivers/source/lpc17xx_mcpwm.c **** 					uint32_t channel1, uint32_t channel2)
+ 289:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 660              		.loc 1 289 0
+ 661              		.cfi_startproc
+ 662              		@ args = 0, pretend = 0, frame = 0
+ 663              		@ frame_needed = 0, uses_anonymous_args = 0
+ 664              		@ link register save eliminated.
+ 665              	.LVL45:
+ 290:./Drivers/source/lpc17xx_mcpwm.c **** 	uint32_t regVal = 0;
+ 291:./Drivers/source/lpc17xx_mcpwm.c **** 	regVal = (channel0 ? MCPWM_CON_RUN(0) : 0) | (channel1 ? MCPWM_CON_RUN(1) : 0) \
+ 666              		.loc 1 291 0
+ 667 0000 002A     		cmp	r2, #0
+ 668 0002 0CBF     		ite	eq
+ 669 0004 0022     		moveq	r2, #0
+ 670 0006 4FF48072 		movne	r2, #256
+ 671              	.LVL46:
+ 672 000a 0029     		cmp	r1, #0
+ 673 000c 0CBF     		ite	eq
+ 674 000e 1146     		moveq	r1, r2
+ 675 0010 42F00101 		orrne	r1, r2, #1
+ 676              	.LVL47:
+ 292:./Drivers/source/lpc17xx_mcpwm.c **** 				| (channel2 ? MCPWM_CON_RUN(2) : 0);
+ 677              		.loc 1 292 0
+ 678 0014 002B     		cmp	r3, #0
+ 679 0016 0CBF     		ite	eq
+ 680 0018 0023     		moveq	r3, #0
+ 681 001a 4FF48033 		movne	r3, #65536
+ 682              	.LVL48:
+ 291:./Drivers/source/lpc17xx_mcpwm.c **** 	regVal = (channel0 ? MCPWM_CON_RUN(0) : 0) | (channel1 ? MCPWM_CON_RUN(1) : 0) \
+ 683              		.loc 1 291 0
+ 684 001e 41EA0302 		orr	r2, r1, r3
+ 685              	.LVL49:
+ 293:./Drivers/source/lpc17xx_mcpwm.c **** 	MCPWMx->MCCON_SET = regVal;
+ 686              		.loc 1 293 0
+ 687 0022 4260     		str	r2, [r0, #4]
+ 688 0024 7047     		bx	lr
+ 689              		.cfi_endproc
+ 690              	.LFE62:
+ 692 0026 00BF     		.section	.text.MCPWM_Stop,"ax",%progbits
+ 693              		.align	2
+ 694              		.global	MCPWM_Stop
+ 695              		.thumb
+ 696              		.thumb_func
+ 698              	MCPWM_Stop:
+ 699              	.LFB63:
+ 294:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 295:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 296:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 297:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 298:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Stop MCPWM activity for each MCPWM channel
+ 299:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 		Motor Control PWM peripheral selected
+ 300:./Drivers/source/lpc17xx_mcpwm.c ****  * 							Should be: LPC_MCPWM
+ 301:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channel0	State of this command on channel 0:
+ 302:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- ENABLE: 'Stop' command will effect on channel 0
+ 303:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- DISABLE: 'Stop' command will not effect on channel 0
+ 304:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channel1	State of this command on channel 1:
+ 305:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- ENABLE: 'Stop' command will effect on channel 1
+ 306:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- DISABLE: 'Stop' command will not effect on channel 1
+ 307:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	channel2	State of this command on channel 2:
+ 308:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- ENABLE: 'Stop' command will effect on channel 2
+ 309:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- DISABLE: 'Stop' command will not effect on channel 2
+ 310:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 311:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 312:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_Stop(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channel0,
+ 313:./Drivers/source/lpc17xx_mcpwm.c **** 		uint32_t channel1, uint32_t channel2)
+ 314:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 700              		.loc 1 314 0
+ 701              		.cfi_startproc
+ 702              		@ args = 0, pretend = 0, frame = 0
+ 703              		@ frame_needed = 0, uses_anonymous_args = 0
+ 704              		@ link register save eliminated.
+ 705              	.LVL50:
+ 315:./Drivers/source/lpc17xx_mcpwm.c **** 	uint32_t regVal = 0;
+ 316:./Drivers/source/lpc17xx_mcpwm.c **** 	regVal = (channel0 ? MCPWM_CON_RUN(0) : 0) | (channel1 ? MCPWM_CON_RUN(1) : 0) \
+ 706              		.loc 1 316 0
+ 707 0000 002A     		cmp	r2, #0
+ 708 0002 0CBF     		ite	eq
+ 709 0004 0022     		moveq	r2, #0
+ 710 0006 4FF48072 		movne	r2, #256
+ 711              	.LVL51:
+ 712 000a 0029     		cmp	r1, #0
+ 713 000c 0CBF     		ite	eq
+ 714 000e 1146     		moveq	r1, r2
+ 715 0010 42F00101 		orrne	r1, r2, #1
+ 716              	.LVL52:
+ 317:./Drivers/source/lpc17xx_mcpwm.c **** 				| (channel2 ? MCPWM_CON_RUN(2) : 0);
+ 717              		.loc 1 317 0
+ 718 0014 002B     		cmp	r3, #0
+ 719 0016 0CBF     		ite	eq
+ 720 0018 0023     		moveq	r3, #0
+ 721 001a 4FF48033 		movne	r3, #65536
+ 722              	.LVL53:
+ 316:./Drivers/source/lpc17xx_mcpwm.c **** 	regVal = (channel0 ? MCPWM_CON_RUN(0) : 0) | (channel1 ? MCPWM_CON_RUN(1) : 0) \
+ 723              		.loc 1 316 0
+ 724 001e 41EA0302 		orr	r2, r1, r3
+ 725              	.LVL54:
+ 318:./Drivers/source/lpc17xx_mcpwm.c **** 	MCPWMx->MCCON_CLR = regVal;
+ 726              		.loc 1 318 0
+ 727 0022 8260     		str	r2, [r0, #8]
+ 728 0024 7047     		bx	lr
+ 729              		.cfi_endproc
+ 730              	.LFE63:
+ 732 0026 00BF     		.section	.text.MCPWM_ACMode,"ax",%progbits
+ 733              		.align	2
+ 734              		.global	MCPWM_ACMode
+ 735              		.thumb
+ 736              		.thumb_func
+ 738              	MCPWM_ACMode:
+ 739              	.LFB64:
+ 319:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 320:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 321:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 322:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 323:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Enables/Disables 3-phase AC motor mode on MCPWM peripheral
+ 324:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 		Motor Control PWM peripheral selected
+ 325:./Drivers/source/lpc17xx_mcpwm.c ****  * 							Should be: LPC_MCPWM
+ 326:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	acMode		State of this command, should be:
+ 327:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- ENABLE.
+ 328:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- DISABLE.
+ 329:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 330:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 331:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_ACMode(LPC_MCPWM_TypeDef *MCPWMx, uint32_t acMode)
+ 332:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 740              		.loc 1 332 0
+ 741              		.cfi_startproc
+ 742              		@ args = 0, pretend = 0, frame = 0
+ 743              		@ frame_needed = 0, uses_anonymous_args = 0
+ 744              		@ link register save eliminated.
+ 745              	.LVL55:
+ 333:./Drivers/source/lpc17xx_mcpwm.c **** 	if (acMode){
+ 334:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCCON_SET = MCPWM_CON_ACMODE;
+ 746              		.loc 1 334 0
+ 747 0000 4FF08043 		mov	r3, #1073741824
+ 333:./Drivers/source/lpc17xx_mcpwm.c **** 	if (acMode){
+ 748              		.loc 1 333 0
+ 749 0004 09B9     		cbnz	r1, .L100
+ 335:./Drivers/source/lpc17xx_mcpwm.c **** 	} else {
+ 336:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCCON_CLR = MCPWM_CON_ACMODE;
+ 750              		.loc 1 336 0
+ 751 0006 8360     		str	r3, [r0, #8]
+ 752 0008 7047     		bx	lr
+ 753              	.L100:
+ 334:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCCON_SET = MCPWM_CON_ACMODE;
+ 754              		.loc 1 334 0
+ 755 000a 4360     		str	r3, [r0, #4]
+ 756 000c 7047     		bx	lr
+ 757              		.cfi_endproc
+ 758              	.LFE64:
+ 760 000e 00BF     		.section	.text.MCPWM_DCMode,"ax",%progbits
+ 761              		.align	2
+ 762              		.global	MCPWM_DCMode
+ 763              		.thumb
+ 764              		.thumb_func
+ 766              	MCPWM_DCMode:
+ 767              	.LFB65:
+ 337:./Drivers/source/lpc17xx_mcpwm.c **** 	}
+ 338:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 339:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 340:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 341:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 342:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Enables/Disables 3-phase DC motor mode on MCPWM peripheral
+ 343:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 			Motor Control PWM peripheral selected
+ 344:./Drivers/source/lpc17xx_mcpwm.c ****  * 								Should be: LPC_MCPWM
+ 345:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	dcMode			State of this command, should be:
+ 346:./Drivers/source/lpc17xx_mcpwm.c ****  * 								- ENABLE.
+ 347:./Drivers/source/lpc17xx_mcpwm.c ****  * 								- DISABLE.
+ 348:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	outputInvered	Polarity of the MCOB outputs for all 3 channels,
+ 349:./Drivers/source/lpc17xx_mcpwm.c ****  * 								should be:
+ 350:./Drivers/source/lpc17xx_mcpwm.c ****  * 								- ENABLE: The MCOB outputs have opposite polarity
+ 351:./Drivers/source/lpc17xx_mcpwm.c ****  * 									from the MCOA outputs.
+ 352:./Drivers/source/lpc17xx_mcpwm.c ****  * 								- DISABLE: The MCOB outputs have the same basic
+ 353:./Drivers/source/lpc17xx_mcpwm.c ****  * 									polarity as the MCOA outputs.
+ 354:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	outputPattern	A value contains bits that enables/disables the specified
+ 355:./Drivers/source/lpc17xx_mcpwm.c ****  * 								output pins route to the internal MCOA0 signal, should be:
+ 356:./Drivers/source/lpc17xx_mcpwm.c **** 								- MCPWM_PATENT_A0: 	 MCOA0 tracks internal MCOA0
+ 357:./Drivers/source/lpc17xx_mcpwm.c **** 								- MCPWM_PATENT_B0: 	 MCOB0 tracks internal MCOA0
+ 358:./Drivers/source/lpc17xx_mcpwm.c **** 								- MCPWM_PATENT_A1: 	 MCOA1 tracks internal MCOA0
+ 359:./Drivers/source/lpc17xx_mcpwm.c **** 								- MCPWM_PATENT_B1: 	 MCOB1 tracks internal MCOA0
+ 360:./Drivers/source/lpc17xx_mcpwm.c **** 								- MCPWM_PATENT_A2: 	 MCOA2 tracks internal MCOA0
+ 361:./Drivers/source/lpc17xx_mcpwm.c **** 								- MCPWM_PATENT_B2: 	 MCOB2 tracks internal MCOA0
+ 362:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 363:./Drivers/source/lpc17xx_mcpwm.c ****  *
+ 364:./Drivers/source/lpc17xx_mcpwm.c ****  * Note: all these outputPatent values above can be ORed together for using as input parameter.
+ 365:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 366:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_DCMode(LPC_MCPWM_TypeDef *MCPWMx, uint32_t dcMode,
+ 367:./Drivers/source/lpc17xx_mcpwm.c **** 					uint32_t outputInvered, uint32_t outputPattern)
+ 368:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 768              		.loc 1 368 0
+ 769              		.cfi_startproc
+ 770              		@ args = 0, pretend = 0, frame = 0
+ 771              		@ frame_needed = 0, uses_anonymous_args = 0
+ 772              		@ link register save eliminated.
+ 773              	.LVL56:
+ 369:./Drivers/source/lpc17xx_mcpwm.c **** 	if (dcMode){
+ 774              		.loc 1 369 0
+ 775 0000 41B1     		cbz	r1, .L102
+ 370:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCCON_SET = MCPWM_CON_DCMODE;
+ 776              		.loc 1 370 0
+ 777 0002 4FF00041 		mov	r1, #-2147483648
+ 778              	.LVL57:
+ 779 0006 4160     		str	r1, [r0, #4]
+ 371:./Drivers/source/lpc17xx_mcpwm.c **** 	} else {
+ 372:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCCON_CLR = MCPWM_CON_DCMODE;
+ 373:./Drivers/source/lpc17xx_mcpwm.c **** 	}
+ 374:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 375:./Drivers/source/lpc17xx_mcpwm.c **** 	if (outputInvered) {
+ 780              		.loc 1 375 0
+ 781 0008 4AB9     		cbnz	r2, .L106
+ 782              	.L104:
+ 376:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCCON_SET = MCPWM_CON_INVBDC;
+ 377:./Drivers/source/lpc17xx_mcpwm.c **** 	} else {
+ 378:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCCON_CLR = MCPWM_CON_INVBDC;
+ 783              		.loc 1 378 0
+ 784 000a 4FF00052 		mov	r2, #536870912
+ 785              	.LVL58:
+ 786 000e 8260     		str	r2, [r0, #8]
+ 379:./Drivers/source/lpc17xx_mcpwm.c **** 	}
+ 380:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 381:./Drivers/source/lpc17xx_mcpwm.c **** 	MCPWMx->MCCCP = outputPattern;
+ 787              		.loc 1 381 0
+ 788 0010 0364     		str	r3, [r0, #64]
+ 789 0012 7047     		bx	lr
+ 790              	.LVL59:
+ 791              	.L102:
+ 372:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCCON_CLR = MCPWM_CON_DCMODE;
+ 792              		.loc 1 372 0
+ 793 0014 4FF00041 		mov	r1, #-2147483648
+ 794              	.LVL60:
+ 795 0018 8160     		str	r1, [r0, #8]
+ 375:./Drivers/source/lpc17xx_mcpwm.c **** 	if (outputInvered) {
+ 796              		.loc 1 375 0
+ 797 001a 002A     		cmp	r2, #0
+ 798 001c F5D0     		beq	.L104
+ 799              	.L106:
+ 376:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCCON_SET = MCPWM_CON_INVBDC;
+ 800              		.loc 1 376 0
+ 801 001e 4FF00052 		mov	r2, #536870912
+ 802              	.LVL61:
+ 803 0022 4260     		str	r2, [r0, #4]
+ 804              		.loc 1 381 0
+ 805 0024 0364     		str	r3, [r0, #64]
+ 806 0026 7047     		bx	lr
+ 807              		.cfi_endproc
+ 808              	.LFE65:
+ 810              		.section	.text.MCPWM_IntConfig,"ax",%progbits
+ 811              		.align	2
+ 812              		.global	MCPWM_IntConfig
+ 813              		.thumb
+ 814              		.thumb_func
+ 816              	MCPWM_IntConfig:
+ 817              	.LFB66:
+ 382:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 383:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 384:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 385:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 386:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Configures the specified interrupt in MCPWM peripheral
+ 387:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 		Motor Control PWM peripheral selected
+ 388:./Drivers/source/lpc17xx_mcpwm.c ****  * 							Should be: LPC_MCPWM
+ 389:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	ulIntType	Interrupt type, should be:
+ 390:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM0: Limit interrupt for channel (0)
+ 391:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT0: Match interrupt for channel (0)
+ 392:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP0: Capture interrupt for channel (0)
+ 393:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM1: Limit interrupt for channel (1)
+ 394:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT1: Match interrupt for channel (1)
+ 395:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP1: Capture interrupt for channel (1)
+ 396:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM2: Limit interrupt for channel (2)
+ 397:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT2: Match interrupt for channel (2)
+ 398:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP2: Capture interrupt for channel (2)
+ 399:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_ABORT: Fast abort interrupt
+ 400:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	NewState	New State of this command, should be:
+ 401:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- ENABLE.
+ 402:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- DISABLE.
+ 403:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 404:./Drivers/source/lpc17xx_mcpwm.c ****  *
+ 405:./Drivers/source/lpc17xx_mcpwm.c ****  * Note: all these ulIntType values above can be ORed together for using as input parameter.
+ 406:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 407:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_IntConfig(LPC_MCPWM_TypeDef *MCPWMx, uint32_t ulIntType, FunctionalState NewState)
+ 408:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 818              		.loc 1 408 0
+ 819              		.cfi_startproc
+ 820              		@ args = 0, pretend = 0, frame = 0
+ 821              		@ frame_needed = 0, uses_anonymous_args = 0
+ 822              		@ link register save eliminated.
+ 823              	.LVL62:
+ 409:./Drivers/source/lpc17xx_mcpwm.c **** 	if (NewState) {
+ 824              		.loc 1 409 0
+ 825 0000 0AB9     		cbnz	r2, .L110
+ 410:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCINTEN_SET = ulIntType;
+ 411:./Drivers/source/lpc17xx_mcpwm.c **** 	} else {
+ 412:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCINTEN_CLR = ulIntType;
+ 826              		.loc 1 412 0
+ 827 0002 8165     		str	r1, [r0, #88]
+ 828 0004 7047     		bx	lr
+ 829              	.L110:
+ 410:./Drivers/source/lpc17xx_mcpwm.c **** 		MCPWMx->MCINTEN_SET = ulIntType;
+ 830              		.loc 1 410 0
+ 831 0006 4165     		str	r1, [r0, #84]
+ 832 0008 7047     		bx	lr
+ 833              		.cfi_endproc
+ 834              	.LFE66:
+ 836 000a 00BF     		.section	.text.MCPWM_IntSet,"ax",%progbits
+ 837              		.align	2
+ 838              		.global	MCPWM_IntSet
+ 839              		.thumb
+ 840              		.thumb_func
+ 842              	MCPWM_IntSet:
+ 843              	.LFB67:
+ 413:./Drivers/source/lpc17xx_mcpwm.c **** 	}
+ 414:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 415:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 416:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 417:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 418:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Sets/Forces the specified interrupt for MCPWM peripheral
+ 419:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 		Motor Control PWM peripheral selected
+ 420:./Drivers/source/lpc17xx_mcpwm.c ****  * 							Should be LPC_MCPWM
+ 421:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	ulIntType	Interrupt type, should be:
+ 422:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM0: Limit interrupt for channel (0)
+ 423:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT0: Match interrupt for channel (0)
+ 424:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP0: Capture interrupt for channel (0)
+ 425:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM1: Limit interrupt for channel (1)
+ 426:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT1: Match interrupt for channel (1)
+ 427:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP1: Capture interrupt for channel (1)
+ 428:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM2: Limit interrupt for channel (2)
+ 429:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT2: Match interrupt for channel (2)
+ 430:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP2: Capture interrupt for channel (2)
+ 431:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_ABORT: Fast abort interrupt
+ 432:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 433:./Drivers/source/lpc17xx_mcpwm.c ****  * Note: all these ulIntType values above can be ORed together for using as input parameter.
+ 434:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 435:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_IntSet(LPC_MCPWM_TypeDef *MCPWMx, uint32_t ulIntType)
+ 436:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 844              		.loc 1 436 0
+ 845              		.cfi_startproc
+ 846              		@ args = 0, pretend = 0, frame = 0
+ 847              		@ frame_needed = 0, uses_anonymous_args = 0
+ 848              		@ link register save eliminated.
+ 849              	.LVL63:
+ 437:./Drivers/source/lpc17xx_mcpwm.c **** 	MCPWMx->MCINTFLAG_SET = ulIntType;
+ 850              		.loc 1 437 0
+ 851 0000 C166     		str	r1, [r0, #108]
+ 852 0002 7047     		bx	lr
+ 853              		.cfi_endproc
+ 854              	.LFE67:
+ 856              		.section	.text.MCPWM_IntClear,"ax",%progbits
+ 857              		.align	2
+ 858              		.global	MCPWM_IntClear
+ 859              		.thumb
+ 860              		.thumb_func
+ 862              	MCPWM_IntClear:
+ 863              	.LFB68:
+ 438:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 439:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 440:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 441:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 442:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Clear the specified interrupt pending for MCPWM peripheral
+ 443:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 		Motor Control PWM peripheral selected,
+ 444:./Drivers/source/lpc17xx_mcpwm.c ****  * 							should be: LPC_MCPWM
+ 445:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	ulIntType	Interrupt type, should be:
+ 446:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM0: Limit interrupt for channel (0)
+ 447:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT0: Match interrupt for channel (0)
+ 448:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP0: Capture interrupt for channel (0)
+ 449:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM1: Limit interrupt for channel (1)
+ 450:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT1: Match interrupt for channel (1)
+ 451:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP1: Capture interrupt for channel (1)
+ 452:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM2: Limit interrupt for channel (2)
+ 453:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT2: Match interrupt for channel (2)
+ 454:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP2: Capture interrupt for channel (2)
+ 455:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_ABORT: Fast abort interrupt
+ 456:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 457:./Drivers/source/lpc17xx_mcpwm.c ****  * Note: all these ulIntType values above can be ORed together for using as input parameter.
+ 458:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 459:./Drivers/source/lpc17xx_mcpwm.c **** void MCPWM_IntClear(LPC_MCPWM_TypeDef *MCPWMx, uint32_t ulIntType)
+ 460:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 864              		.loc 1 460 0
+ 865              		.cfi_startproc
+ 866              		@ args = 0, pretend = 0, frame = 0
+ 867              		@ frame_needed = 0, uses_anonymous_args = 0
+ 868              		@ link register save eliminated.
+ 869              	.LVL64:
+ 461:./Drivers/source/lpc17xx_mcpwm.c **** 	MCPWMx->MCINTFLAG_CLR = ulIntType;
+ 870              		.loc 1 461 0
+ 871 0000 0167     		str	r1, [r0, #112]
+ 872 0002 7047     		bx	lr
+ 873              		.cfi_endproc
+ 874              	.LFE68:
+ 876              		.section	.text.MCPWM_GetIntStatus,"ax",%progbits
+ 877              		.align	2
+ 878              		.global	MCPWM_GetIntStatus
+ 879              		.thumb
+ 880              		.thumb_func
+ 882              	MCPWM_GetIntStatus:
+ 883              	.LFB69:
+ 462:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 463:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 464:./Drivers/source/lpc17xx_mcpwm.c **** 
+ 465:./Drivers/source/lpc17xx_mcpwm.c **** /*********************************************************************//**
+ 466:./Drivers/source/lpc17xx_mcpwm.c ****  * @brief		Check whether if the specified interrupt in MCPWM is set or not
+ 467:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	MCPWMx 		Motor Control PWM peripheral selected,
+ 468:./Drivers/source/lpc17xx_mcpwm.c ****  * 							should be: LPC_MCPWM
+ 469:./Drivers/source/lpc17xx_mcpwm.c ****  * @param[in]	ulIntType	Interrupt type, should be:
+ 470:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM0: Limit interrupt for channel (0)
+ 471:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT0: Match interrupt for channel (0)
+ 472:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP0: Capture interrupt for channel (0)
+ 473:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM1: Limit interrupt for channel (1)
+ 474:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT1: Match interrupt for channel (1)
+ 475:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP1: Capture interrupt for channel (1)
+ 476:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_LIM2: Limit interrupt for channel (2)
+ 477:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_MAT2: Match interrupt for channel (2)
+ 478:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_CAP2: Capture interrupt for channel (2)
+ 479:./Drivers/source/lpc17xx_mcpwm.c ****  * 							- MCPWM_INTFLAG_ABORT: Fast abort interrupt
+ 480:./Drivers/source/lpc17xx_mcpwm.c ****  * @return		None
+ 481:./Drivers/source/lpc17xx_mcpwm.c ****  **********************************************************************/
+ 482:./Drivers/source/lpc17xx_mcpwm.c **** FlagStatus MCPWM_GetIntStatus(LPC_MCPWM_TypeDef *MCPWMx, uint32_t ulIntType)
+ 483:./Drivers/source/lpc17xx_mcpwm.c **** {
+ 884              		.loc 1 483 0
+ 885              		.cfi_startproc
+ 886              		@ args = 0, pretend = 0, frame = 0
+ 887              		@ frame_needed = 0, uses_anonymous_args = 0
+ 888              		@ link register save eliminated.
+ 889              	.LVL65:
+ 484:./Drivers/source/lpc17xx_mcpwm.c **** 	return ((MCPWMx->MCINTFLAG & ulIntType) ? SET : RESET);
+ 890              		.loc 1 484 0
+ 891 0000 836E     		ldr	r3, [r0, #104]
+ 892 0002 1942     		tst	r1, r3
+ 485:./Drivers/source/lpc17xx_mcpwm.c **** }
+ 893              		.loc 1 485 0
+ 894 0004 0CBF     		ite	eq
+ 895 0006 0020     		moveq	r0, #0
+ 896 0008 0120     		movne	r0, #1
+ 897              	.LVL66:
+ 898 000a 7047     		bx	lr
+ 899              		.cfi_endproc
+ 900              	.LFE69:
+ 902              		.text
+ 903              	.Letext0:
+ 904              		.file 2 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 905              		.file 3 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+ 906              		.file 4 "./LPC17xx/LPC17xx.h"
+ 907              		.file 5 "./Drivers/include/lpc_types.h"
+ 908              		.file 6 "./Drivers/include/lpc17xx_mcpwm.h"
+ 909              		.file 7 "./Core/core_cm3.h"
+ 910              		.file 8 "./Drivers/include/lpc17xx_clkpwr.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 lpc17xx_mcpwm.c
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:19     .text.MCPWM_Init:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:24     .text.MCPWM_Init:00000000 MCPWM_Init
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:64     .text.MCPWM_ConfigChannel:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:69     .text.MCPWM_ConfigChannel:00000000 MCPWM_ConfigChannel
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:224    .text.MCPWM_WriteToShadow:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:229    .text.MCPWM_WriteToShadow:00000000 MCPWM_WriteToShadow
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:284    .text.MCPWM_ConfigCapture:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:289    .text.MCPWM_ConfigCapture:00000000 MCPWM_ConfigCapture
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:444    .text.MCPWM_ClearCapture:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:449    .text.MCPWM_ClearCapture:00000000 MCPWM_ClearCapture
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:470    .text.MCPWM_GetCapture:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:475    .text.MCPWM_GetCapture:00000000 MCPWM_GetCapture
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:514    .text.MCPWM_CountConfig:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:519    .text.MCPWM_CountConfig:00000000 MCPWM_CountConfig
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:653    .text.MCPWM_Start:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:658    .text.MCPWM_Start:00000000 MCPWM_Start
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:693    .text.MCPWM_Stop:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:698    .text.MCPWM_Stop:00000000 MCPWM_Stop
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:733    .text.MCPWM_ACMode:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:738    .text.MCPWM_ACMode:00000000 MCPWM_ACMode
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:761    .text.MCPWM_DCMode:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:766    .text.MCPWM_DCMode:00000000 MCPWM_DCMode
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:811    .text.MCPWM_IntConfig:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:816    .text.MCPWM_IntConfig:00000000 MCPWM_IntConfig
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:837    .text.MCPWM_IntSet:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:842    .text.MCPWM_IntSet:00000000 MCPWM_IntSet
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:857    .text.MCPWM_IntClear:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:862    .text.MCPWM_IntClear:00000000 MCPWM_IntClear
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:877    .text.MCPWM_GetIntStatus:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccr9DtEf.s:882    .text.MCPWM_GetIntStatus:00000000 MCPWM_GetIntStatus
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+CLKPWR_ConfigPPWR
+CLKPWR_SetPCLKDiv

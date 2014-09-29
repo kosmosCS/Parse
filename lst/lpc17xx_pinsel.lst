@@ -1,0 +1,613 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"lpc17xx_pinsel.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.PINSEL_ConfigTraceFunc,"ax",%progbits
+  19              		.align	2
+  20              		.global	PINSEL_ConfigTraceFunc
+  21              		.thumb
+  22              		.thumb_func
+  24              	PINSEL_ConfigTraceFunc:
+  25              	.LFB58:
+  26              		.file 1 "./Drivers/source/lpc17xx_pinsel.c"
+   1:./Drivers/source/lpc17xx_pinsel.c **** /***********************************************************************//**
+   2:./Drivers/source/lpc17xx_pinsel.c ****  * @file		lpc17xx_pinsel.c
+   3:./Drivers/source/lpc17xx_pinsel.c ****  * @brief		Contains all functions support for Pin connect block firmware
+   4:./Drivers/source/lpc17xx_pinsel.c ****  * 				library on LPC17xx
+   5:./Drivers/source/lpc17xx_pinsel.c ****  * @version		2.0
+   6:./Drivers/source/lpc17xx_pinsel.c ****  * @date		21. May. 2010
+   7:./Drivers/source/lpc17xx_pinsel.c ****  * @author		NXP MCU SW Application Team
+   8:./Drivers/source/lpc17xx_pinsel.c ****  **************************************************************************
+   9:./Drivers/source/lpc17xx_pinsel.c ****  * Software that is described herein is for illustrative purposes only
+  10:./Drivers/source/lpc17xx_pinsel.c ****  * which provides customers with programming information regarding the
+  11:./Drivers/source/lpc17xx_pinsel.c ****  * products. This software is supplied "AS IS" without any warranties.
+  12:./Drivers/source/lpc17xx_pinsel.c ****  * NXP Semiconductors assumes no responsibility or liability for the
+  13:./Drivers/source/lpc17xx_pinsel.c ****  * use of the software, conveys no license or title under any patent,
+  14:./Drivers/source/lpc17xx_pinsel.c ****  * copyright, or mask work right to the product. NXP Semiconductors
+  15:./Drivers/source/lpc17xx_pinsel.c ****  * reserves the right to make changes in the software without
+  16:./Drivers/source/lpc17xx_pinsel.c ****  * notification. NXP Semiconductors also make no representation or
+  17:./Drivers/source/lpc17xx_pinsel.c ****  * warranty that such application will be suitable for the specified
+  18:./Drivers/source/lpc17xx_pinsel.c ****  * use without further testing or modification.
+  19:./Drivers/source/lpc17xx_pinsel.c ****  **********************************************************************/
+  20:./Drivers/source/lpc17xx_pinsel.c **** 
+  21:./Drivers/source/lpc17xx_pinsel.c **** /* Peripheral group ----------------------------------------------------------- */
+  22:./Drivers/source/lpc17xx_pinsel.c **** /** @addtogroup PINSEL
+  23:./Drivers/source/lpc17xx_pinsel.c ****  * @{
+  24:./Drivers/source/lpc17xx_pinsel.c ****  */
+  25:./Drivers/source/lpc17xx_pinsel.c **** 
+  26:./Drivers/source/lpc17xx_pinsel.c **** /* Includes ------------------------------------------------------------------- */
+  27:./Drivers/source/lpc17xx_pinsel.c **** #include "lpc17xx_pinsel.h"
+  28:./Drivers/source/lpc17xx_pinsel.c **** 
+  29:./Drivers/source/lpc17xx_pinsel.c **** /* Public Functions ----------------------------------------------------------- */
+  30:./Drivers/source/lpc17xx_pinsel.c **** 
+  31:./Drivers/source/lpc17xx_pinsel.c **** static void set_PinFunc ( uint8_t portnum, uint8_t pinnum, uint8_t funcnum);
+  32:./Drivers/source/lpc17xx_pinsel.c **** static void set_ResistorMode ( uint8_t portnum, uint8_t pinnum, uint8_t modenum);
+  33:./Drivers/source/lpc17xx_pinsel.c **** static void set_OpenDrainMode( uint8_t portnum, uint8_t pinnum, uint8_t modenum);
+  34:./Drivers/source/lpc17xx_pinsel.c **** 
+  35:./Drivers/source/lpc17xx_pinsel.c **** /*********************************************************************//**
+  36:./Drivers/source/lpc17xx_pinsel.c ****  * @brief 		Setup the pin selection function
+  37:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in]	portnum PORT number,
+  38:./Drivers/source/lpc17xx_pinsel.c ****  * 				should be one of the following:
+  39:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_0	: Port 0
+  40:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_1	: Port 1
+  41:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_2	: Port 2
+  42:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_3	: Port 3
+  43:./Drivers/source/lpc17xx_pinsel.c ****  *
+  44:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in]	pinnum	Pin number,
+  45:./Drivers/source/lpc17xx_pinsel.c ****  * 				should be one of the following:
+  46:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_0 : Pin 0
+  47:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_1 : Pin 1
+  48:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_2 : Pin 2
+  49:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_3 : Pin 3
+  50:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_4 : Pin 4
+  51:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_5 : Pin 5
+  52:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_6 : Pin 6
+  53:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_7 : Pin 7
+  54:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_8 : Pin 8
+  55:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_9 : Pin 9
+  56:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_10 : Pin 10
+  57:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_11 : Pin 11
+  58:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_12 : Pin 12
+  59:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_13 : Pin 13
+  60:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_14 : Pin 14
+  61:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_15 : Pin 15
+  62:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_16 : Pin 16
+  63:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_17 : Pin 17
+  64:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_18 : Pin 18
+  65:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_19 : Pin 19
+  66:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_20 : Pin 20
+  67:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_21 : Pin 21
+  68:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_22 : Pin 22
+  69:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_23 : Pin 23
+  70:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_24 : Pin 24
+  71:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_25 : Pin 25
+  72:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_26 : Pin 26
+  73:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_27 : Pin 27
+  74:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_28 : Pin 28
+  75:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_29 : Pin 29
+  76:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_30 : Pin 30
+  77:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_31 : Pin 31
+  78:./Drivers/source/lpc17xx_pinsel.c **** 
+  79:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in] 	funcnum Function number,
+  80:./Drivers/source/lpc17xx_pinsel.c ****  * 				should be one of the following:
+  81:./Drivers/source/lpc17xx_pinsel.c ****  *				- PINSEL_FUNC_0 : default function
+  82:./Drivers/source/lpc17xx_pinsel.c ****  *				- PINSEL_FUNC_1 : first alternate function
+  83:./Drivers/source/lpc17xx_pinsel.c ****  *				- PINSEL_FUNC_2 : second alternate function
+  84:./Drivers/source/lpc17xx_pinsel.c ****  *				- PINSEL_FUNC_3 : third alternate function
+  85:./Drivers/source/lpc17xx_pinsel.c ****  *
+  86:./Drivers/source/lpc17xx_pinsel.c ****  * @return 		None
+  87:./Drivers/source/lpc17xx_pinsel.c ****  **********************************************************************/
+  88:./Drivers/source/lpc17xx_pinsel.c **** static void set_PinFunc ( uint8_t portnum, uint8_t pinnum, uint8_t funcnum)
+  89:./Drivers/source/lpc17xx_pinsel.c **** {
+  90:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t pinnum_t = pinnum;
+  91:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t pinselreg_idx = 2 * portnum;
+  92:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t *pPinCon = (uint32_t *)&LPC_PINCON->PINSEL0;
+  93:./Drivers/source/lpc17xx_pinsel.c **** 
+  94:./Drivers/source/lpc17xx_pinsel.c **** 	if (pinnum_t >= 16) {
+  95:./Drivers/source/lpc17xx_pinsel.c **** 		pinnum_t -= 16;
+  96:./Drivers/source/lpc17xx_pinsel.c **** 		pinselreg_idx++;
+  97:./Drivers/source/lpc17xx_pinsel.c **** 	}
+  98:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinselreg_idx) &= ~(0x03UL << (pinnum_t * 2));
+  99:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinselreg_idx) |= ((uint32_t)funcnum) << (pinnum_t * 2);
+ 100:./Drivers/source/lpc17xx_pinsel.c **** }
+ 101:./Drivers/source/lpc17xx_pinsel.c **** 
+ 102:./Drivers/source/lpc17xx_pinsel.c **** /*********************************************************************//**
+ 103:./Drivers/source/lpc17xx_pinsel.c ****  * @brief 		Setup resistor mode for each pin
+ 104:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in]	portnum PORT number,
+ 105:./Drivers/source/lpc17xx_pinsel.c ****  * 				should be one of the following:
+ 106:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_0	: Port 0
+ 107:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_1	: Port 1
+ 108:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_2	: Port 2
+ 109:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_3	: Port 3
+ 110:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in]	pinnum	Pin number,
+ 111:./Drivers/source/lpc17xx_pinsel.c ****  * 				should be one of the following:
+ 112:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_0 : Pin 0
+ 113:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_1 : Pin 1
+ 114:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_2 : Pin 2
+ 115:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_3 : Pin 3
+ 116:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_4 : Pin 4
+ 117:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_5 : Pin 5
+ 118:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_6 : Pin 6
+ 119:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_7 : Pin 7
+ 120:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_8 : Pin 8
+ 121:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_9 : Pin 9
+ 122:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_10 : Pin 10
+ 123:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_11 : Pin 11
+ 124:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_12 : Pin 12
+ 125:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_13 : Pin 13
+ 126:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_14 : Pin 14
+ 127:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_15 : Pin 15
+ 128:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_16 : Pin 16
+ 129:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_17 : Pin 17
+ 130:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_18 : Pin 18
+ 131:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_19 : Pin 19
+ 132:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_20 : Pin 20
+ 133:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_21 : Pin 21
+ 134:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_22 : Pin 22
+ 135:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_23 : Pin 23
+ 136:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_24 : Pin 24
+ 137:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_25 : Pin 25
+ 138:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_26 : Pin 26
+ 139:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_27 : Pin 27
+ 140:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_28 : Pin 28
+ 141:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_29 : Pin 29
+ 142:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_30 : Pin 30
+ 143:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_31 : Pin 31
+ 144:./Drivers/source/lpc17xx_pinsel.c **** 
+ 145:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in] 	modenum: Mode number,
+ 146:./Drivers/source/lpc17xx_pinsel.c ****  * 				should be one of the following:
+ 147:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PINMODE_PULLUP	: Internal pull-up resistor
+ 148:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PINMODE_TRISTATE : Tri-state
+ 149:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PINMODE_PULLDOWN : Internal pull-down resistor
+ 150:./Drivers/source/lpc17xx_pinsel.c **** 
+ 151:./Drivers/source/lpc17xx_pinsel.c ****  * @return 		None
+ 152:./Drivers/source/lpc17xx_pinsel.c ****  **********************************************************************/
+ 153:./Drivers/source/lpc17xx_pinsel.c **** void set_ResistorMode ( uint8_t portnum, uint8_t pinnum, uint8_t modenum)
+ 154:./Drivers/source/lpc17xx_pinsel.c **** {
+ 155:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t pinnum_t = pinnum;
+ 156:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t pinmodereg_idx = 2 * portnum;
+ 157:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t *pPinCon = (uint32_t *)&LPC_PINCON->PINMODE0;
+ 158:./Drivers/source/lpc17xx_pinsel.c **** 
+ 159:./Drivers/source/lpc17xx_pinsel.c **** 	if (pinnum_t >= 16) {
+ 160:./Drivers/source/lpc17xx_pinsel.c **** 		pinnum_t -= 16;
+ 161:./Drivers/source/lpc17xx_pinsel.c **** 		pinmodereg_idx++ ;
+ 162:./Drivers/source/lpc17xx_pinsel.c **** 	}
+ 163:./Drivers/source/lpc17xx_pinsel.c **** 
+ 164:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinmodereg_idx) &= ~(0x03UL << (pinnum_t * 2));
+ 165:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinmodereg_idx) |= ((uint32_t)modenum) << (pinnum_t * 2);
+ 166:./Drivers/source/lpc17xx_pinsel.c **** }
+ 167:./Drivers/source/lpc17xx_pinsel.c **** 
+ 168:./Drivers/source/lpc17xx_pinsel.c **** /*********************************************************************//**
+ 169:./Drivers/source/lpc17xx_pinsel.c ****  * @brief 		Setup Open drain mode for each pin
+ 170:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in]	portnum PORT number,
+ 171:./Drivers/source/lpc17xx_pinsel.c ****  * 				should be one of the following:
+ 172:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_0	: Port 0
+ 173:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_1	: Port 1
+ 174:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_2	: Port 2
+ 175:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PORT_3	: Port 3
+ 176:./Drivers/source/lpc17xx_pinsel.c ****  *
+ 177:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in]	pinnum	Pin number,
+ 178:./Drivers/source/lpc17xx_pinsel.c ****  * 				should be one of the following:
+ 179:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_0 : Pin 0
+ 180:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_1 : Pin 1
+ 181:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_2 : Pin 2
+ 182:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_3 : Pin 3
+ 183:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_4 : Pin 4
+ 184:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_5 : Pin 5
+ 185:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_6 : Pin 6
+ 186:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_7 : Pin 7
+ 187:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_8 : Pin 8
+ 188:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_9 : Pin 9
+ 189:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_10 : Pin 10
+ 190:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_11 : Pin 11
+ 191:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_12 : Pin 12
+ 192:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_13 : Pin 13
+ 193:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_14 : Pin 14
+ 194:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_15 : Pin 15
+ 195:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_16 : Pin 16
+ 196:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_17 : Pin 17
+ 197:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_18 : Pin 18
+ 198:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_19 : Pin 19
+ 199:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_20 : Pin 20
+ 200:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_21 : Pin 21
+ 201:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_22 : Pin 22
+ 202:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_23 : Pin 23
+ 203:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_24 : Pin 24
+ 204:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_25 : Pin 25
+ 205:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_26 : Pin 26
+ 206:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_27 : Pin 27
+ 207:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_28 : Pin 28
+ 208:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_29 : Pin 29
+ 209:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_30 : Pin 30
+ 210:./Drivers/source/lpc17xx_pinsel.c **** 				- PINSEL_PIN_31 : Pin 31
+ 211:./Drivers/source/lpc17xx_pinsel.c **** 
+ 212:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in]	modenum  Open drain mode number,
+ 213:./Drivers/source/lpc17xx_pinsel.c ****  * 				should be one of the following:
+ 214:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PINMODE_NORMAL : Pin is in the normal (not open drain) mode
+ 215:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_PINMODE_OPENDRAIN : Pin is in the open drain mode
+ 216:./Drivers/source/lpc17xx_pinsel.c ****  *
+ 217:./Drivers/source/lpc17xx_pinsel.c ****  * @return 		None
+ 218:./Drivers/source/lpc17xx_pinsel.c ****  **********************************************************************/
+ 219:./Drivers/source/lpc17xx_pinsel.c **** void set_OpenDrainMode( uint8_t portnum, uint8_t pinnum, uint8_t modenum)
+ 220:./Drivers/source/lpc17xx_pinsel.c **** {
+ 221:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t *pPinCon = (uint32_t *)&LPC_PINCON->PINMODE_OD0;
+ 222:./Drivers/source/lpc17xx_pinsel.c **** 
+ 223:./Drivers/source/lpc17xx_pinsel.c **** 	if (modenum == PINSEL_PINMODE_OPENDRAIN){
+ 224:./Drivers/source/lpc17xx_pinsel.c **** 		*(uint32_t *)(pPinCon + portnum) |= (0x01UL << pinnum);
+ 225:./Drivers/source/lpc17xx_pinsel.c **** 	} else {
+ 226:./Drivers/source/lpc17xx_pinsel.c **** 		*(uint32_t *)(pPinCon + portnum) &= ~(0x01UL << pinnum);
+ 227:./Drivers/source/lpc17xx_pinsel.c **** 	}
+ 228:./Drivers/source/lpc17xx_pinsel.c **** }
+ 229:./Drivers/source/lpc17xx_pinsel.c **** 
+ 230:./Drivers/source/lpc17xx_pinsel.c **** /* End of Public Functions ---------------------------------------------------- */
+ 231:./Drivers/source/lpc17xx_pinsel.c **** 
+ 232:./Drivers/source/lpc17xx_pinsel.c **** /* Public Functions ----------------------------------------------------------- */
+ 233:./Drivers/source/lpc17xx_pinsel.c **** /** @addtogroup PINSEL_Public_Functions
+ 234:./Drivers/source/lpc17xx_pinsel.c ****  * @{
+ 235:./Drivers/source/lpc17xx_pinsel.c ****  */
+ 236:./Drivers/source/lpc17xx_pinsel.c **** /*********************************************************************//**
+ 237:./Drivers/source/lpc17xx_pinsel.c ****  * @brief 		Configure trace function
+ 238:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in] 	NewState State of the Trace function configuration,
+ 239:./Drivers/source/lpc17xx_pinsel.c ****  * 				should be one of the following:
+ 240:./Drivers/source/lpc17xx_pinsel.c ****  * 				- ENABLE : Enable Trace Function
+ 241:./Drivers/source/lpc17xx_pinsel.c ****  * 				- DISABLE : Disable Trace Function
+ 242:./Drivers/source/lpc17xx_pinsel.c ****  *
+ 243:./Drivers/source/lpc17xx_pinsel.c ****  * @return 		None
+ 244:./Drivers/source/lpc17xx_pinsel.c ****  **********************************************************************/
+ 245:./Drivers/source/lpc17xx_pinsel.c **** void PINSEL_ConfigTraceFunc(FunctionalState NewState)
+ 246:./Drivers/source/lpc17xx_pinsel.c **** {
+  27              		.loc 1 246 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  32              	.LVL0:
+ 247:./Drivers/source/lpc17xx_pinsel.c **** 	if (NewState == ENABLE) {
+  33              		.loc 1 247 0
+  34 0000 0128     		cmp	r0, #1
+  35 0002 06D0     		beq	.L5
+ 248:./Drivers/source/lpc17xx_pinsel.c **** 		LPC_PINCON->PINSEL10 |= (0x01UL << 3);
+ 249:./Drivers/source/lpc17xx_pinsel.c **** 	} else if (NewState == DISABLE) {
+  36              		.loc 1 249 0
+  37 0004 20B9     		cbnz	r0, .L1
+ 250:./Drivers/source/lpc17xx_pinsel.c **** 		LPC_PINCON->PINSEL10 &= ~(0x01UL << 3);
+  38              		.loc 1 250 0
+  39 0006 064B     		ldr	r3, .L6
+  40 0008 9A6A     		ldr	r2, [r3, #40]
+  41 000a 22F00802 		bic	r2, r2, #8
+  42 000e 9A62     		str	r2, [r3, #40]
+  43              	.L1:
+  44 0010 7047     		bx	lr
+  45              	.L5:
+ 248:./Drivers/source/lpc17xx_pinsel.c **** 		LPC_PINCON->PINSEL10 |= (0x01UL << 3);
+  46              		.loc 1 248 0
+  47 0012 034B     		ldr	r3, .L6
+  48 0014 9A6A     		ldr	r2, [r3, #40]
+  49 0016 42F00802 		orr	r2, r2, #8
+  50 001a 9A62     		str	r2, [r3, #40]
+  51 001c 7047     		bx	lr
+  52              	.L7:
+  53 001e 00BF     		.align	2
+  54              	.L6:
+  55 0020 00C00240 		.word	1073922048
+  56              		.cfi_endproc
+  57              	.LFE58:
+  59              		.section	.text.PINSEL_SetI2C0Pins,"ax",%progbits
+  60              		.align	2
+  61              		.global	PINSEL_SetI2C0Pins
+  62              		.thumb
+  63              		.thumb_func
+  65              	PINSEL_SetI2C0Pins:
+  66              	.LFB59:
+ 251:./Drivers/source/lpc17xx_pinsel.c **** 	}
+ 252:./Drivers/source/lpc17xx_pinsel.c **** }
+ 253:./Drivers/source/lpc17xx_pinsel.c **** 
+ 254:./Drivers/source/lpc17xx_pinsel.c **** /*********************************************************************//**
+ 255:./Drivers/source/lpc17xx_pinsel.c ****  * @brief 		Setup I2C0 pins
+ 256:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in]	i2cPinMode I2C pin mode,
+ 257:./Drivers/source/lpc17xx_pinsel.c ****  * 				should be one of the following:
+ 258:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_I2C_Normal_Mode : The standard drive mode
+ 259:./Drivers/source/lpc17xx_pinsel.c ****  * 				- PINSEL_I2C_Fast_Mode : Fast Mode Plus drive mode
+ 260:./Drivers/source/lpc17xx_pinsel.c ****  *
+ 261:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in]	filterSlewRateEnable  should be:
+ 262:./Drivers/source/lpc17xx_pinsel.c ****  * 				- ENABLE: Enable filter and slew rate.
+ 263:./Drivers/source/lpc17xx_pinsel.c ****  * 				- DISABLE: Disable filter and slew rate.
+ 264:./Drivers/source/lpc17xx_pinsel.c ****  *
+ 265:./Drivers/source/lpc17xx_pinsel.c ****  * @return 		None
+ 266:./Drivers/source/lpc17xx_pinsel.c ****  **********************************************************************/
+ 267:./Drivers/source/lpc17xx_pinsel.c **** void PINSEL_SetI2C0Pins(uint8_t i2cPinMode, FunctionalState filterSlewRateEnable)
+ 268:./Drivers/source/lpc17xx_pinsel.c **** {
+  67              		.loc 1 268 0
+  68              		.cfi_startproc
+  69              		@ args = 0, pretend = 0, frame = 0
+  70              		@ frame_needed = 0, uses_anonymous_args = 0
+  71              		@ link register save eliminated.
+  72              	.LVL1:
+ 269:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t regVal;
+ 270:./Drivers/source/lpc17xx_pinsel.c **** 
+ 271:./Drivers/source/lpc17xx_pinsel.c **** 	if (i2cPinMode == PINSEL_I2C_Fast_Mode){
+ 272:./Drivers/source/lpc17xx_pinsel.c **** 		regVal = PINSEL_I2CPADCFG_SCLDRV0 | PINSEL_I2CPADCFG_SDADRV0;
+ 273:./Drivers/source/lpc17xx_pinsel.c **** 	}
+ 274:./Drivers/source/lpc17xx_pinsel.c **** 
+ 275:./Drivers/source/lpc17xx_pinsel.c **** 	if (filterSlewRateEnable == DISABLE){
+  73              		.loc 1 275 0
+  74 0000 0029     		cmp	r1, #0
+ 276:./Drivers/source/lpc17xx_pinsel.c **** 		regVal = PINSEL_I2CPADCFG_SCLI2C0 | PINSEL_I2CPADCFG_SDAI2C0;
+ 277:./Drivers/source/lpc17xx_pinsel.c **** 	}
+ 278:./Drivers/source/lpc17xx_pinsel.c **** 	LPC_PINCON->I2CPADCFG = regVal;
+  75              		.loc 1 278 0
+  76 0002 034B     		ldr	r3, .L11
+ 275:./Drivers/source/lpc17xx_pinsel.c **** 	if (filterSlewRateEnable == DISABLE){
+  77              		.loc 1 275 0
+  78 0004 0CBF     		ite	eq
+  79 0006 0A22     		moveq	r2, #10
+  80 0008 0522     		movne	r2, #5
+  81              	.LVL2:
+  82              		.loc 1 278 0
+  83 000a DA67     		str	r2, [r3, #124]
+  84 000c 7047     		bx	lr
+  85              	.L12:
+  86 000e 00BF     		.align	2
+  87              	.L11:
+  88 0010 00C00240 		.word	1073922048
+  89              		.cfi_endproc
+  90              	.LFE59:
+  92              		.section	.text.PINSEL_ConfigPin,"ax",%progbits
+  93              		.align	2
+  94              		.global	PINSEL_ConfigPin
+  95              		.thumb
+  96              		.thumb_func
+  98              	PINSEL_ConfigPin:
+  99              	.LFB60:
+ 279:./Drivers/source/lpc17xx_pinsel.c **** }
+ 280:./Drivers/source/lpc17xx_pinsel.c **** 
+ 281:./Drivers/source/lpc17xx_pinsel.c **** 
+ 282:./Drivers/source/lpc17xx_pinsel.c **** /*********************************************************************//**
+ 283:./Drivers/source/lpc17xx_pinsel.c ****  * @brief 		Configure Pin corresponding to specified parameters passed
+ 284:./Drivers/source/lpc17xx_pinsel.c ****  * 				in the PinCfg
+ 285:./Drivers/source/lpc17xx_pinsel.c ****  * @param[in]	PinCfg	Pointer to a PINSEL_CFG_Type structure
+ 286:./Drivers/source/lpc17xx_pinsel.c ****  *                    that contains the configuration information for the
+ 287:./Drivers/source/lpc17xx_pinsel.c ****  *                    specified pin.
+ 288:./Drivers/source/lpc17xx_pinsel.c ****  * @return 		None
+ 289:./Drivers/source/lpc17xx_pinsel.c ****  **********************************************************************/
+ 290:./Drivers/source/lpc17xx_pinsel.c **** void PINSEL_ConfigPin(PINSEL_CFG_Type *PinCfg)
+ 291:./Drivers/source/lpc17xx_pinsel.c **** {
+ 100              		.loc 1 291 0
+ 101              		.cfi_startproc
+ 102              		@ args = 0, pretend = 0, frame = 0
+ 103              		@ frame_needed = 0, uses_anonymous_args = 0
+ 104              		@ link register save eliminated.
+ 105              	.LVL3:
+ 106 0000 30B4     		push	{r4, r5}
+ 107              		.cfi_def_cfa_offset 8
+ 108              		.cfi_offset 4, -8
+ 109              		.cfi_offset 5, -4
+ 110              	.LBB10:
+ 111              	.LBB11:
+  90:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t pinnum_t = pinnum;
+ 112              		.loc 1 90 0
+ 113 0002 4278     		ldrb	r2, [r0, #1]	@ zero_extendqisi2
+ 114              	.LBE11:
+ 115              	.LBE10:
+ 292:./Drivers/source/lpc17xx_pinsel.c **** 	set_PinFunc(PinCfg->Portnum, PinCfg->Pinnum, PinCfg->Funcnum);
+ 116              		.loc 1 292 0
+ 117 0004 8578     		ldrb	r5, [r0, #2]	@ zero_extendqisi2
+ 118              	.LVL4:
+ 119              	.LBB14:
+ 120              	.LBB12:
+  94:./Drivers/source/lpc17xx_pinsel.c **** 	if (pinnum_t >= 16) {
+ 121              		.loc 1 94 0
+ 122 0006 0F2A     		cmp	r2, #15
+  95:./Drivers/source/lpc17xx_pinsel.c **** 		pinnum_t -= 16;
+ 123              		.loc 1 95 0
+ 124 0008 88BF     		it	hi
+ 125 000a 103A     		subhi	r2, r2, #16
+ 126              	.LVL5:
+  98:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinselreg_idx) &= ~(0x03UL << (pinnum_t * 2));
+ 127              		.loc 1 98 0
+ 128 000c 4FEA4202 		lsl	r2, r2, #1
+ 129 0010 4FF00304 		mov	r4, #3
+ 130 0014 04FA02F4 		lsl	r4, r4, r2
+  99:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinselreg_idx) |= ((uint32_t)funcnum) << (pinnum_t * 2);
+ 131              		.loc 1 99 0
+ 132 0018 05FA02F2 		lsl	r2, r5, r2
+  91:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t pinselreg_idx = 2 * portnum;
+ 133              		.loc 1 91 0
+ 134 001c 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 135              	.LBE12:
+ 136              	.LBE14:
+ 137              	.LBB15:
+ 138              	.LBB16:
+ 164:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinmodereg_idx) &= ~(0x03UL << (pinnum_t * 2));
+ 139              		.loc 1 164 0
+ 140 001e 4FF00305 		mov	r5, #3
+ 141              	.LBE16:
+ 142              	.LBE15:
+ 143              	.LBB19:
+ 144              	.LBB13:
+  91:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t pinselreg_idx = 2 * portnum;
+ 145              		.loc 1 91 0
+ 146 0022 4FEA4303 		lsl	r3, r3, #1
+ 147              	.LVL6:
+  96:./Drivers/source/lpc17xx_pinsel.c **** 		pinselreg_idx++;
+ 148              		.loc 1 96 0
+ 149 0026 88BF     		it	hi
+ 150 0028 0133     		addhi	r3, r3, #1
+ 151              	.LVL7:
+  98:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinselreg_idx) &= ~(0x03UL << (pinnum_t * 2));
+ 152              		.loc 1 98 0
+ 153 002a 9B00     		lsls	r3, r3, #2
+ 154              	.LVL8:
+ 155 002c 03F18043 		add	r3, r3, #1073741824
+ 156 0030 03F53033 		add	r3, r3, #180224
+ 157 0034 1968     		ldr	r1, [r3]
+ 158 0036 21EA0401 		bic	r1, r1, r4
+  99:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinselreg_idx) |= ((uint32_t)funcnum) << (pinnum_t * 2);
+ 159              		.loc 1 99 0
+ 160 003a 0A43     		orrs	r2, r2, r1
+ 161 003c 1A60     		str	r2, [r3]
+ 162              	.LVL9:
+ 163              	.LBE13:
+ 164              	.LBE19:
+ 165              	.LBB20:
+ 166              	.LBB17:
+ 155:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t pinnum_t = pinnum;
+ 167              		.loc 1 155 0
+ 168 003e 4278     		ldrb	r2, [r0, #1]	@ zero_extendqisi2
+ 169              	.LBE17:
+ 170              	.LBE20:
+ 293:./Drivers/source/lpc17xx_pinsel.c **** 	set_ResistorMode(PinCfg->Portnum, PinCfg->Pinnum, PinCfg->Pinmode);
+ 171              		.loc 1 293 0
+ 172 0040 C178     		ldrb	r1, [r0, #3]	@ zero_extendqisi2
+ 173              	.LVL10:
+ 174              	.LBB21:
+ 175              	.LBB18:
+ 159:./Drivers/source/lpc17xx_pinsel.c **** 	if (pinnum_t >= 16) {
+ 176              		.loc 1 159 0
+ 177 0042 0F2A     		cmp	r2, #15
+ 160:./Drivers/source/lpc17xx_pinsel.c **** 		pinnum_t -= 16;
+ 178              		.loc 1 160 0
+ 179 0044 88BF     		it	hi
+ 180 0046 103A     		subhi	r2, r2, #16
+ 181              	.LVL11:
+ 164:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinmodereg_idx) &= ~(0x03UL << (pinnum_t * 2));
+ 182              		.loc 1 164 0
+ 183 0048 4FEA4202 		lsl	r2, r2, #1
+ 184 004c 05FA02F5 		lsl	r5, r5, r2
+ 165:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinmodereg_idx) |= ((uint32_t)modenum) << (pinnum_t * 2);
+ 185              		.loc 1 165 0
+ 186 0050 01FA02F2 		lsl	r2, r1, r2
+ 156:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t pinmodereg_idx = 2 * portnum;
+ 187              		.loc 1 156 0
+ 188 0054 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 164:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinmodereg_idx) &= ~(0x03UL << (pinnum_t * 2));
+ 189              		.loc 1 164 0
+ 190 0056 1349     		ldr	r1, .L19
+ 156:./Drivers/source/lpc17xx_pinsel.c **** 	uint32_t pinmodereg_idx = 2 * portnum;
+ 191              		.loc 1 156 0
+ 192 0058 4FEA4303 		lsl	r3, r3, #1
+ 193              	.LVL12:
+ 161:./Drivers/source/lpc17xx_pinsel.c **** 		pinmodereg_idx++ ;
+ 194              		.loc 1 161 0
+ 195 005c 88BF     		it	hi
+ 196 005e 0133     		addhi	r3, r3, #1
+ 197              	.LVL13:
+ 164:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinmodereg_idx) &= ~(0x03UL << (pinnum_t * 2));
+ 198              		.loc 1 164 0
+ 199 0060 51F82340 		ldr	r4, [r1, r3, lsl #2]
+ 200 0064 24EA0504 		bic	r4, r4, r5
+ 165:./Drivers/source/lpc17xx_pinsel.c **** 	*(uint32_t *)(pPinCon + pinmodereg_idx) |= ((uint32_t)modenum) << (pinnum_t * 2);
+ 201              		.loc 1 165 0
+ 202 0068 2243     		orrs	r2, r2, r4
+ 203 006a 41F82320 		str	r2, [r1, r3, lsl #2]
+ 204              	.LVL14:
+ 205              	.LBE18:
+ 206              	.LBE21:
+ 207              	.LBB22:
+ 208              	.LBB23:
+ 223:./Drivers/source/lpc17xx_pinsel.c **** 	if (modenum == PINSEL_PINMODE_OPENDRAIN){
+ 209              		.loc 1 223 0
+ 210 006e 0279     		ldrb	r2, [r0, #4]	@ zero_extendqisi2
+ 211              	.LBE23:
+ 212              	.LBE22:
+ 294:./Drivers/source/lpc17xx_pinsel.c **** 	set_OpenDrainMode(PinCfg->Portnum, PinCfg->Pinnum, PinCfg->OpenDrain);
+ 213              		.loc 1 294 0
+ 214 0070 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 215              	.LVL15:
+ 216              	.LBB28:
+ 217              	.LBB24:
+ 223:./Drivers/source/lpc17xx_pinsel.c **** 	if (modenum == PINSEL_PINMODE_OPENDRAIN){
+ 218              		.loc 1 223 0
+ 219 0072 012A     		cmp	r2, #1
+ 220              	.LBE24:
+ 221              	.LBE28:
+ 222              		.loc 1 294 0
+ 223 0074 4178     		ldrb	r1, [r0, #1]	@ zero_extendqisi2
+ 224              	.LVL16:
+ 225              	.LBB29:
+ 226              	.LBB25:
+ 223:./Drivers/source/lpc17xx_pinsel.c **** 	if (modenum == PINSEL_PINMODE_OPENDRAIN){
+ 227              		.loc 1 223 0
+ 228 0076 0BD0     		beq	.L18
+ 229              	.LBE25:
+ 230              	.LBE29:
+ 295:./Drivers/source/lpc17xx_pinsel.c **** }
+ 231              		.loc 1 295 0
+ 232 0078 30BC     		pop	{r4, r5}
+ 233              	.LBB30:
+ 234              	.LBB26:
+ 226:./Drivers/source/lpc17xx_pinsel.c **** 		*(uint32_t *)(pPinCon + portnum) &= ~(0x01UL << pinnum);
+ 235              		.loc 1 226 0
+ 236 007a 0120     		movs	r0, #1
+ 237              	.LVL17:
+ 238 007c 00FA01F1 		lsl	r1, r0, r1
+ 239              	.LVL18:
+ 240 0080 094A     		ldr	r2, .L19+4
+ 241 0082 52F82300 		ldr	r0, [r2, r3, lsl #2]
+ 242 0086 20EA0100 		bic	r0, r0, r1
+ 243 008a 42F82300 		str	r0, [r2, r3, lsl #2]
+ 244              	.LVL19:
+ 245              	.LBE26:
+ 246              	.LBE30:
+ 247              		.loc 1 295 0
+ 248 008e 7047     		bx	lr
+ 249              	.LVL20:
+ 250              	.L18:
+ 251              	.LBB31:
+ 252              	.LBB27:
+ 224:./Drivers/source/lpc17xx_pinsel.c **** 		*(uint32_t *)(pPinCon + portnum) |= (0x01UL << pinnum);
+ 253              		.loc 1 224 0
+ 254 0090 8A40     		lsls	r2, r2, r1
+ 255 0092 0548     		ldr	r0, .L19+4
+ 256              	.LVL21:
+ 257 0094 50F82340 		ldr	r4, [r0, r3, lsl #2]
+ 258 0098 1443     		orrs	r4, r4, r2
+ 259 009a 40F82340 		str	r4, [r0, r3, lsl #2]
+ 260              	.LVL22:
+ 261              	.LBE27:
+ 262              	.LBE31:
+ 263              		.loc 1 295 0
+ 264 009e 30BC     		pop	{r4, r5}
+ 265 00a0 7047     		bx	lr
+ 266              	.L20:
+ 267 00a2 00BF     		.align	2
+ 268              	.L19:
+ 269 00a4 40C00240 		.word	1073922112
+ 270 00a8 68C00240 		.word	1073922152
+ 271              		.cfi_endproc
+ 272              	.LFE60:
+ 274              		.text
+ 275              	.Letext0:
+ 276              		.file 2 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 277              		.file 3 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+ 278              		.file 4 "./LPC17xx/lpc17xx.h"
+ 279              		.file 5 "./Drivers/include/lpc_types.h"
+ 280              		.file 6 "./Drivers/include/lpc17xx_pinsel.h"
+ 281              		.file 7 "./Core/core_cm3.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 lpc17xx_pinsel.c
+C:\Users\kosmos\AppData\Local\Temp\cc4ig1Og.s:19     .text.PINSEL_ConfigTraceFunc:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cc4ig1Og.s:24     .text.PINSEL_ConfigTraceFunc:00000000 PINSEL_ConfigTraceFunc
+C:\Users\kosmos\AppData\Local\Temp\cc4ig1Og.s:55     .text.PINSEL_ConfigTraceFunc:00000020 $d
+C:\Users\kosmos\AppData\Local\Temp\cc4ig1Og.s:60     .text.PINSEL_SetI2C0Pins:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cc4ig1Og.s:65     .text.PINSEL_SetI2C0Pins:00000000 PINSEL_SetI2C0Pins
+C:\Users\kosmos\AppData\Local\Temp\cc4ig1Og.s:88     .text.PINSEL_SetI2C0Pins:00000010 $d
+C:\Users\kosmos\AppData\Local\Temp\cc4ig1Og.s:93     .text.PINSEL_ConfigPin:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cc4ig1Og.s:98     .text.PINSEL_ConfigPin:00000000 PINSEL_ConfigPin
+C:\Users\kosmos\AppData\Local\Temp\cc4ig1Og.s:269    .text.PINSEL_ConfigPin:000000a4 $d
+                     .debug_frame:00000010 $d
+
+NO UNDEFINED SYMBOLS

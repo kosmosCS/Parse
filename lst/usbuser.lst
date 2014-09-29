@@ -1,0 +1,781 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"usbuser.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.USB_EndPoint2,"ax",%progbits
+  19              		.align	2
+  20              		.global	USB_EndPoint2
+  21              		.thumb
+  22              		.thumb_func
+  24              	USB_EndPoint2:
+  25              	.LFB3:
+  26              		.file 1 "./src/usb/usbuser.c"
+   1:./src/usb/usbuser.c **** /*----------------------------------------------------------------------------
+   2:./src/usb/usbuser.c ****  *      U S B  -  K e r n e l
+   3:./src/usb/usbuser.c ****  *----------------------------------------------------------------------------
+   4:./src/usb/usbuser.c ****  * Name:    usbuser.c
+   5:./src/usb/usbuser.c ****  * Purpose: USB Custom User Module
+   6:./src/usb/usbuser.c ****  * Version: V1.20
+   7:./src/usb/usbuser.c ****  *----------------------------------------------------------------------------
+   8:./src/usb/usbuser.c ****  *      This software is supplied "AS IS" without any warranties, express,
+   9:./src/usb/usbuser.c ****  *      implied or statutory, including but not limited to the implied
+  10:./src/usb/usbuser.c ****  *      warranties of fitness for purpose, satisfactory quality and
+  11:./src/usb/usbuser.c ****  *      noninfringement. Keil extends you a royalty-free right to reproduce
+  12:./src/usb/usbuser.c ****  *      and distribute executable files created using this software for use
+  13:./src/usb/usbuser.c ****  *      on NXP Semiconductors LPC family microcontroller devices only. Nothing
+  14:./src/usb/usbuser.c ****  *      else gives you the right to use this software.
+  15:./src/usb/usbuser.c ****  *
+  16:./src/usb/usbuser.c ****  * Copyright (c) 2009 Keil - An ARM Company. All rights reserved.
+  17:./src/usb/usbuser.c ****  *---------------------------------------------------------------------------*/
+  18:./src/usb/usbuser.c **** #include "lpc_types.h"
+  19:./src/usb/usbuser.c **** 
+  20:./src/usb/usbuser.c **** #include "usb.h"
+  21:./src/usb/usbuser.c **** #include "usbcfg.h"
+  22:./src/usb/usbuser.c **** #include "usbhw.h"
+  23:./src/usb/usbuser.c **** #include "usbcore.h"
+  24:./src/usb/usbuser.c **** #include "usbuser.h"
+  25:./src/usb/usbuser.c **** #include "cdcuser.h"
+  26:./src/usb/usbuser.c **** 
+  27:./src/usb/usbuser.c **** 
+  28:./src/usb/usbuser.c **** /*
+  29:./src/usb/usbuser.c ****  *  USB Power Event Callback
+  30:./src/usb/usbuser.c ****  *   Called automatically on USB Power Event
+  31:./src/usb/usbuser.c ****  *    Parameter:       power: On(TRUE)/Off(FALSE)
+  32:./src/usb/usbuser.c ****  */
+  33:./src/usb/usbuser.c **** 
+  34:./src/usb/usbuser.c **** #if USB_POWER_EVENT
+  35:./src/usb/usbuser.c **** void USB_Power_Event (uint32_t  power) {
+  36:./src/usb/usbuser.c **** }
+  37:./src/usb/usbuser.c **** #endif
+  38:./src/usb/usbuser.c **** 
+  39:./src/usb/usbuser.c **** 
+  40:./src/usb/usbuser.c **** /*
+  41:./src/usb/usbuser.c ****  *  USB Reset Event Callback
+  42:./src/usb/usbuser.c ****  *   Called automatically on USB Reset Event
+  43:./src/usb/usbuser.c ****  */
+  44:./src/usb/usbuser.c **** 
+  45:./src/usb/usbuser.c **** #if USB_RESET_EVENT
+  46:./src/usb/usbuser.c **** void USB_Reset_Event (void) {
+  47:./src/usb/usbuser.c ****   USB_ResetCore();
+  48:./src/usb/usbuser.c **** }
+  49:./src/usb/usbuser.c **** #endif
+  50:./src/usb/usbuser.c **** 
+  51:./src/usb/usbuser.c **** 
+  52:./src/usb/usbuser.c **** /*
+  53:./src/usb/usbuser.c ****  *  USB Suspend Event Callback
+  54:./src/usb/usbuser.c ****  *   Called automatically on USB Suspend Event
+  55:./src/usb/usbuser.c ****  */
+  56:./src/usb/usbuser.c **** 
+  57:./src/usb/usbuser.c **** #if USB_SUSPEND_EVENT
+  58:./src/usb/usbuser.c **** void USB_Suspend_Event (void) {
+  59:./src/usb/usbuser.c **** }
+  60:./src/usb/usbuser.c **** #endif
+  61:./src/usb/usbuser.c **** 
+  62:./src/usb/usbuser.c **** 
+  63:./src/usb/usbuser.c **** /*
+  64:./src/usb/usbuser.c ****  *  USB Resume Event Callback
+  65:./src/usb/usbuser.c ****  *   Called automatically on USB Resume Event
+  66:./src/usb/usbuser.c ****  */
+  67:./src/usb/usbuser.c **** 
+  68:./src/usb/usbuser.c **** #if USB_RESUME_EVENT
+  69:./src/usb/usbuser.c **** void USB_Resume_Event (void) {
+  70:./src/usb/usbuser.c **** }
+  71:./src/usb/usbuser.c **** #endif
+  72:./src/usb/usbuser.c **** 
+  73:./src/usb/usbuser.c **** 
+  74:./src/usb/usbuser.c **** /*
+  75:./src/usb/usbuser.c ****  *  USB Remote Wakeup Event Callback
+  76:./src/usb/usbuser.c ****  *   Called automatically on USB Remote Wakeup Event
+  77:./src/usb/usbuser.c ****  */
+  78:./src/usb/usbuser.c **** 
+  79:./src/usb/usbuser.c **** #if USB_WAKEUP_EVENT
+  80:./src/usb/usbuser.c **** void USB_WakeUp_Event (void) {
+  81:./src/usb/usbuser.c **** }
+  82:./src/usb/usbuser.c **** #endif
+  83:./src/usb/usbuser.c **** 
+  84:./src/usb/usbuser.c **** 
+  85:./src/usb/usbuser.c **** /*
+  86:./src/usb/usbuser.c ****  *  USB Start of Frame Event Callback
+  87:./src/usb/usbuser.c ****  *   Called automatically on USB Start of Frame Event
+  88:./src/usb/usbuser.c ****  */
+  89:./src/usb/usbuser.c **** 
+  90:./src/usb/usbuser.c **** #if USB_SOF_EVENT
+  91:./src/usb/usbuser.c **** void USB_SOF_Event (void) {
+  92:./src/usb/usbuser.c **** }
+  93:./src/usb/usbuser.c **** #endif
+  94:./src/usb/usbuser.c **** 
+  95:./src/usb/usbuser.c **** 
+  96:./src/usb/usbuser.c **** /*
+  97:./src/usb/usbuser.c ****  *  USB Error Event Callback
+  98:./src/usb/usbuser.c ****  *   Called automatically on USB Error Event
+  99:./src/usb/usbuser.c ****  *    Parameter:       error: Error Code
+ 100:./src/usb/usbuser.c ****  */
+ 101:./src/usb/usbuser.c **** 
+ 102:./src/usb/usbuser.c **** #if USB_ERROR_EVENT
+ 103:./src/usb/usbuser.c **** void USB_Error_Event (uint32_t error) {
+ 104:./src/usb/usbuser.c **** }
+ 105:./src/usb/usbuser.c **** #endif
+ 106:./src/usb/usbuser.c **** 
+ 107:./src/usb/usbuser.c **** 
+ 108:./src/usb/usbuser.c **** /*
+ 109:./src/usb/usbuser.c ****  *  USB Set Configuration Event Callback
+ 110:./src/usb/usbuser.c ****  *   Called automatically on USB Set Configuration Request
+ 111:./src/usb/usbuser.c ****  */
+ 112:./src/usb/usbuser.c **** 
+ 113:./src/usb/usbuser.c **** #if USB_CONFIGURE_EVENT
+ 114:./src/usb/usbuser.c **** void USB_Configure_Event (void) {
+ 115:./src/usb/usbuser.c **** 
+ 116:./src/usb/usbuser.c ****   if (USB_Configuration) {                  /* Check if USB is configured */
+ 117:./src/usb/usbuser.c ****     /* add your code here */
+ 118:./src/usb/usbuser.c ****   }
+ 119:./src/usb/usbuser.c **** }
+ 120:./src/usb/usbuser.c **** #endif
+ 121:./src/usb/usbuser.c **** 
+ 122:./src/usb/usbuser.c **** 
+ 123:./src/usb/usbuser.c **** /*
+ 124:./src/usb/usbuser.c ****  *  USB Set Interface Event Callback
+ 125:./src/usb/usbuser.c ****  *   Called automatically on USB Set Interface Request
+ 126:./src/usb/usbuser.c ****  */
+ 127:./src/usb/usbuser.c **** 
+ 128:./src/usb/usbuser.c **** #if USB_INTERFACE_EVENT
+ 129:./src/usb/usbuser.c **** void USB_Interface_Event (void) {
+ 130:./src/usb/usbuser.c **** }
+ 131:./src/usb/usbuser.c **** #endif
+ 132:./src/usb/usbuser.c **** 
+ 133:./src/usb/usbuser.c **** 
+ 134:./src/usb/usbuser.c **** /*
+ 135:./src/usb/usbuser.c ****  *  USB Set/Clear Feature Event Callback
+ 136:./src/usb/usbuser.c ****  *   Called automatically on USB Set/Clear Feature Request
+ 137:./src/usb/usbuser.c ****  */
+ 138:./src/usb/usbuser.c **** 
+ 139:./src/usb/usbuser.c **** #if USB_FEATURE_EVENT
+ 140:./src/usb/usbuser.c **** void USB_Feature_Event (void) {
+ 141:./src/usb/usbuser.c **** }
+ 142:./src/usb/usbuser.c **** #endif
+ 143:./src/usb/usbuser.c **** 
+ 144:./src/usb/usbuser.c **** 
+ 145:./src/usb/usbuser.c **** #define P_EP(n) ((USB_EP_EVENT & (1 << (n))) ? USB_EndPoint##n : NULL)
+ 146:./src/usb/usbuser.c **** 
+ 147:./src/usb/usbuser.c **** /* USB Endpoint Events Callback Pointers */
+ 148:./src/usb/usbuser.c **** void (* const USB_P_EP[16]) (uint32_t event) = {
+ 149:./src/usb/usbuser.c ****   P_EP(0),
+ 150:./src/usb/usbuser.c ****   P_EP(1),
+ 151:./src/usb/usbuser.c ****   P_EP(2),
+ 152:./src/usb/usbuser.c ****   P_EP(3),
+ 153:./src/usb/usbuser.c ****   P_EP(4),
+ 154:./src/usb/usbuser.c ****   P_EP(5),
+ 155:./src/usb/usbuser.c ****   P_EP(6),
+ 156:./src/usb/usbuser.c ****   P_EP(7),
+ 157:./src/usb/usbuser.c ****   P_EP(8),
+ 158:./src/usb/usbuser.c ****   P_EP(9),
+ 159:./src/usb/usbuser.c ****   P_EP(10),
+ 160:./src/usb/usbuser.c ****   P_EP(11),
+ 161:./src/usb/usbuser.c ****   P_EP(12),
+ 162:./src/usb/usbuser.c ****   P_EP(13),
+ 163:./src/usb/usbuser.c ****   P_EP(14),
+ 164:./src/usb/usbuser.c ****   P_EP(15),
+ 165:./src/usb/usbuser.c **** };
+ 166:./src/usb/usbuser.c **** 
+ 167:./src/usb/usbuser.c **** 
+ 168:./src/usb/usbuser.c **** /*
+ 169:./src/usb/usbuser.c ****  *  USB Endpoint 1 Event Callback
+ 170:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 1 Event
+ 171:./src/usb/usbuser.c ****  *    Parameter:       event
+ 172:./src/usb/usbuser.c ****  */
+ 173:./src/usb/usbuser.c **** 
+ 174:./src/usb/usbuser.c **** void USB_EndPoint1 (uint32_t event) {
+ 175:./src/usb/usbuser.c ****   uint16_t temp;
+ 176:./src/usb/usbuser.c ****   static uint16_t serialState;
+ 177:./src/usb/usbuser.c **** 
+ 178:./src/usb/usbuser.c ****   switch (event) {
+ 179:./src/usb/usbuser.c ****     case USB_EVT_IN:
+ 180:./src/usb/usbuser.c ****       temp = CDC_GetSerialState();
+ 181:./src/usb/usbuser.c ****       if (serialState != temp) {
+ 182:./src/usb/usbuser.c ****          serialState = temp;
+ 183:./src/usb/usbuser.c ****          CDC_NotificationIn();            /* send SERIAL_STATE notification */
+ 184:./src/usb/usbuser.c ****       }
+ 185:./src/usb/usbuser.c ****       break;
+ 186:./src/usb/usbuser.c ****   }
+ 187:./src/usb/usbuser.c **** }
+ 188:./src/usb/usbuser.c **** 
+ 189:./src/usb/usbuser.c **** 
+ 190:./src/usb/usbuser.c **** /*
+ 191:./src/usb/usbuser.c ****  *  USB Endpoint 2 Event Callback
+ 192:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 2 Event
+ 193:./src/usb/usbuser.c ****  *    Parameter:       event
+ 194:./src/usb/usbuser.c ****  */
+ 195:./src/usb/usbuser.c **** 
+ 196:./src/usb/usbuser.c **** void USB_EndPoint2 (uint32_t event) {
+  27              		.loc 1 196 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  32              	.LVL0:
+ 197:./src/usb/usbuser.c **** 
+ 198:./src/usb/usbuser.c ****   switch (event) {
+  33              		.loc 1 198 0
+  34 0000 0228     		cmp	r0, #2
+  35 0002 04D0     		beq	.L3
+  36 0004 0328     		cmp	r0, #3
+  37 0006 01D1     		bne	.L7
+ 199:./src/usb/usbuser.c ****     case USB_EVT_OUT:
+ 200:./src/usb/usbuser.c ****       CDC_BulkOut ();                /* data received from Host */
+ 201:./src/usb/usbuser.c ****       break;
+ 202:./src/usb/usbuser.c ****     case USB_EVT_IN:
+ 203:./src/usb/usbuser.c ****       CDC_BulkIn ();                 /* data expected from Host */
+  38              		.loc 1 203 0
+  39 0008 FFF7FEBF 		b	CDC_BulkIn
+  40              	.LVL1:
+  41              	.L7:
+  42 000c 7047     		bx	lr
+  43              	.L3:
+ 200:./src/usb/usbuser.c ****       CDC_BulkOut ();                /* data received from Host */
+  44              		.loc 1 200 0
+  45 000e FFF7FEBF 		b	CDC_BulkOut
+  46              	.LVL2:
+  47              		.cfi_endproc
+  48              	.LFE3:
+  50 0012 00BF     		.section	.text.USB_EndPoint1,"ax",%progbits
+  51              		.align	2
+  52              		.global	USB_EndPoint1
+  53              		.thumb
+  54              		.thumb_func
+  56              	USB_EndPoint1:
+  57              	.LFB2:
+ 174:./src/usb/usbuser.c **** void USB_EndPoint1 (uint32_t event) {
+  58              		.loc 1 174 0
+  59              		.cfi_startproc
+  60              		@ args = 0, pretend = 0, frame = 0
+  61              		@ frame_needed = 0, uses_anonymous_args = 0
+  62              	.LVL3:
+ 178:./src/usb/usbuser.c ****   switch (event) {
+  63              		.loc 1 178 0
+  64 0000 0328     		cmp	r0, #3
+ 174:./src/usb/usbuser.c **** void USB_EndPoint1 (uint32_t event) {
+  65              		.loc 1 174 0
+  66 0002 08B5     		push	{r3, lr}
+  67              		.cfi_def_cfa_offset 8
+  68              		.cfi_offset 3, -8
+  69              		.cfi_offset 14, -4
+ 178:./src/usb/usbuser.c ****   switch (event) {
+  70              		.loc 1 178 0
+  71 0004 00D0     		beq	.L11
+  72              	.LVL4:
+  73              	.L8:
+  74 0006 08BD     		pop	{r3, pc}
+  75              	.LVL5:
+  76              	.L11:
+  77              	.LBB4:
+  78              	.LBB5:
+ 180:./src/usb/usbuser.c ****       temp = CDC_GetSerialState();
+  79              		.loc 1 180 0
+  80 0008 FFF7FEFF 		bl	CDC_GetSerialState
+  81              	.LVL6:
+ 181:./src/usb/usbuser.c ****       if (serialState != temp) {
+  82              		.loc 1 181 0
+  83 000c 044B     		ldr	r3, .L12
+  84 000e 1A88     		ldrh	r2, [r3]
+  85 0010 8242     		cmp	r2, r0
+  86 0012 F8D0     		beq	.L8
+ 182:./src/usb/usbuser.c ****          serialState = temp;
+  87              		.loc 1 182 0
+  88 0014 1880     		strh	r0, [r3]	@ movhi
+  89              	.LBE5:
+  90              	.LBE4:
+ 187:./src/usb/usbuser.c **** }
+  91              		.loc 1 187 0
+  92 0016 BDE80840 		pop	{r3, lr}
+  93              	.LBB7:
+  94              	.LBB6:
+ 183:./src/usb/usbuser.c ****          CDC_NotificationIn();            /* send SERIAL_STATE notification */
+  95              		.loc 1 183 0
+  96 001a FFF7FEBF 		b	CDC_NotificationIn
+  97              	.LVL7:
+  98              	.L13:
+  99 001e 00BF     		.align	2
+ 100              	.L12:
+ 101 0020 00000000 		.word	.LANCHOR0
+ 102              	.LBE6:
+ 103              	.LBE7:
+ 104              		.cfi_endproc
+ 105              	.LFE2:
+ 107              		.section	.text.USB_Reset_Event,"ax",%progbits
+ 108              		.align	2
+ 109              		.global	USB_Reset_Event
+ 110              		.thumb
+ 111              		.thumb_func
+ 113              	USB_Reset_Event:
+ 114              	.LFB0:
+  46:./src/usb/usbuser.c **** void USB_Reset_Event (void) {
+ 115              		.loc 1 46 0
+ 116              		.cfi_startproc
+ 117              		@ args = 0, pretend = 0, frame = 0
+ 118              		@ frame_needed = 0, uses_anonymous_args = 0
+ 119              		@ link register save eliminated.
+  47:./src/usb/usbuser.c ****   USB_ResetCore();
+ 120              		.loc 1 47 0
+ 121 0000 FFF7FEBF 		b	USB_ResetCore
+ 122              	.LVL8:
+ 123              		.cfi_endproc
+ 124              	.LFE0:
+ 126              		.section	.text.USB_Configure_Event,"ax",%progbits
+ 127              		.align	2
+ 128              		.global	USB_Configure_Event
+ 129              		.thumb
+ 130              		.thumb_func
+ 132              	USB_Configure_Event:
+ 133              	.LFB1:
+ 114:./src/usb/usbuser.c **** void USB_Configure_Event (void) {
+ 134              		.loc 1 114 0
+ 135              		.cfi_startproc
+ 136              		@ args = 0, pretend = 0, frame = 0
+ 137              		@ frame_needed = 0, uses_anonymous_args = 0
+ 138              		@ link register save eliminated.
+ 116:./src/usb/usbuser.c ****   if (USB_Configuration) {                  /* Check if USB is configured */
+ 139              		.loc 1 116 0
+ 140 0000 014B     		ldr	r3, .L16
+ 141 0002 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 142 0004 7047     		bx	lr
+ 143              	.L17:
+ 144 0006 00BF     		.align	2
+ 145              	.L16:
+ 146 0008 00000000 		.word	USB_Configuration
+ 147              		.cfi_endproc
+ 148              	.LFE1:
+ 150              		.section	.text.USB_EndPoint3,"ax",%progbits
+ 151              		.align	2
+ 152              		.global	USB_EndPoint3
+ 153              		.thumb
+ 154              		.thumb_func
+ 156              	USB_EndPoint3:
+ 157              	.LFB4:
+ 204:./src/usb/usbuser.c ****       break;
+ 205:./src/usb/usbuser.c ****   }
+ 206:./src/usb/usbuser.c **** }
+ 207:./src/usb/usbuser.c **** 
+ 208:./src/usb/usbuser.c **** 
+ 209:./src/usb/usbuser.c **** /*
+ 210:./src/usb/usbuser.c ****  *  USB Endpoint 3 Event Callback
+ 211:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 3 Event
+ 212:./src/usb/usbuser.c ****  *    Parameter:       event
+ 213:./src/usb/usbuser.c ****  */
+ 214:./src/usb/usbuser.c **** 
+ 215:./src/usb/usbuser.c **** void USB_EndPoint3 (uint32_t event) {
+ 158              		.loc 1 215 0
+ 159              		.cfi_startproc
+ 160              		@ args = 0, pretend = 0, frame = 0
+ 161              		@ frame_needed = 0, uses_anonymous_args = 0
+ 162              		@ link register save eliminated.
+ 163              	.LVL9:
+ 164 0000 7047     		bx	lr
+ 165              		.cfi_endproc
+ 166              	.LFE4:
+ 168 0002 00BF     		.section	.text.USB_EndPoint4,"ax",%progbits
+ 169              		.align	2
+ 170              		.global	USB_EndPoint4
+ 171              		.thumb
+ 172              		.thumb_func
+ 174              	USB_EndPoint4:
+ 175              	.LFB5:
+ 216:./src/usb/usbuser.c **** }
+ 217:./src/usb/usbuser.c **** 
+ 218:./src/usb/usbuser.c **** 
+ 219:./src/usb/usbuser.c **** /*
+ 220:./src/usb/usbuser.c ****  *  USB Endpoint 4 Event Callback
+ 221:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 4 Event
+ 222:./src/usb/usbuser.c ****  *    Parameter:       event
+ 223:./src/usb/usbuser.c ****  */
+ 224:./src/usb/usbuser.c **** 
+ 225:./src/usb/usbuser.c **** void USB_EndPoint4 (uint32_t event) {
+ 176              		.loc 1 225 0
+ 177              		.cfi_startproc
+ 178              		@ args = 0, pretend = 0, frame = 0
+ 179              		@ frame_needed = 0, uses_anonymous_args = 0
+ 180              		@ link register save eliminated.
+ 181              	.LVL10:
+ 182 0000 7047     		bx	lr
+ 183              		.cfi_endproc
+ 184              	.LFE5:
+ 186 0002 00BF     		.section	.text.USB_EndPoint5,"ax",%progbits
+ 187              		.align	2
+ 188              		.global	USB_EndPoint5
+ 189              		.thumb
+ 190              		.thumb_func
+ 192              	USB_EndPoint5:
+ 193              	.LFB6:
+ 226:./src/usb/usbuser.c **** }
+ 227:./src/usb/usbuser.c **** 
+ 228:./src/usb/usbuser.c **** 
+ 229:./src/usb/usbuser.c **** /*
+ 230:./src/usb/usbuser.c ****  *  USB Endpoint 5 Event Callback
+ 231:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 5 Event
+ 232:./src/usb/usbuser.c ****  *    Parameter:       event
+ 233:./src/usb/usbuser.c ****  */
+ 234:./src/usb/usbuser.c **** 
+ 235:./src/usb/usbuser.c **** void USB_EndPoint5 (uint32_t event) {
+ 194              		.loc 1 235 0
+ 195              		.cfi_startproc
+ 196              		@ args = 0, pretend = 0, frame = 0
+ 197              		@ frame_needed = 0, uses_anonymous_args = 0
+ 198              		@ link register save eliminated.
+ 199              	.LVL11:
+ 200 0000 7047     		bx	lr
+ 201              		.cfi_endproc
+ 202              	.LFE6:
+ 204 0002 00BF     		.section	.text.USB_EndPoint6,"ax",%progbits
+ 205              		.align	2
+ 206              		.global	USB_EndPoint6
+ 207              		.thumb
+ 208              		.thumb_func
+ 210              	USB_EndPoint6:
+ 211              	.LFB7:
+ 236:./src/usb/usbuser.c **** }
+ 237:./src/usb/usbuser.c **** 
+ 238:./src/usb/usbuser.c **** 
+ 239:./src/usb/usbuser.c **** /*
+ 240:./src/usb/usbuser.c ****  *  USB Endpoint 6 Event Callback
+ 241:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 6 Event
+ 242:./src/usb/usbuser.c ****  *    Parameter:       event
+ 243:./src/usb/usbuser.c ****  */
+ 244:./src/usb/usbuser.c **** 
+ 245:./src/usb/usbuser.c **** void USB_EndPoint6 (uint32_t event) {
+ 212              		.loc 1 245 0
+ 213              		.cfi_startproc
+ 214              		@ args = 0, pretend = 0, frame = 0
+ 215              		@ frame_needed = 0, uses_anonymous_args = 0
+ 216              		@ link register save eliminated.
+ 217              	.LVL12:
+ 218 0000 7047     		bx	lr
+ 219              		.cfi_endproc
+ 220              	.LFE7:
+ 222 0002 00BF     		.section	.text.USB_EndPoint7,"ax",%progbits
+ 223              		.align	2
+ 224              		.global	USB_EndPoint7
+ 225              		.thumb
+ 226              		.thumb_func
+ 228              	USB_EndPoint7:
+ 229              	.LFB8:
+ 246:./src/usb/usbuser.c **** }
+ 247:./src/usb/usbuser.c **** 
+ 248:./src/usb/usbuser.c **** 
+ 249:./src/usb/usbuser.c **** /*
+ 250:./src/usb/usbuser.c ****  *  USB Endpoint 7 Event Callback
+ 251:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 7 Event
+ 252:./src/usb/usbuser.c ****  *    Parameter:       event
+ 253:./src/usb/usbuser.c ****  */
+ 254:./src/usb/usbuser.c **** 
+ 255:./src/usb/usbuser.c **** void USB_EndPoint7 (uint32_t event) {
+ 230              		.loc 1 255 0
+ 231              		.cfi_startproc
+ 232              		@ args = 0, pretend = 0, frame = 0
+ 233              		@ frame_needed = 0, uses_anonymous_args = 0
+ 234              		@ link register save eliminated.
+ 235              	.LVL13:
+ 236 0000 7047     		bx	lr
+ 237              		.cfi_endproc
+ 238              	.LFE8:
+ 240 0002 00BF     		.section	.text.USB_EndPoint8,"ax",%progbits
+ 241              		.align	2
+ 242              		.global	USB_EndPoint8
+ 243              		.thumb
+ 244              		.thumb_func
+ 246              	USB_EndPoint8:
+ 247              	.LFB9:
+ 256:./src/usb/usbuser.c **** }
+ 257:./src/usb/usbuser.c **** 
+ 258:./src/usb/usbuser.c **** 
+ 259:./src/usb/usbuser.c **** /*
+ 260:./src/usb/usbuser.c ****  *  USB Endpoint 8 Event Callback
+ 261:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 8 Event
+ 262:./src/usb/usbuser.c ****  *    Parameter:       event
+ 263:./src/usb/usbuser.c ****  */
+ 264:./src/usb/usbuser.c **** 
+ 265:./src/usb/usbuser.c **** void USB_EndPoint8 (uint32_t event) {
+ 248              		.loc 1 265 0
+ 249              		.cfi_startproc
+ 250              		@ args = 0, pretend = 0, frame = 0
+ 251              		@ frame_needed = 0, uses_anonymous_args = 0
+ 252              		@ link register save eliminated.
+ 253              	.LVL14:
+ 254 0000 7047     		bx	lr
+ 255              		.cfi_endproc
+ 256              	.LFE9:
+ 258 0002 00BF     		.section	.text.USB_EndPoint9,"ax",%progbits
+ 259              		.align	2
+ 260              		.global	USB_EndPoint9
+ 261              		.thumb
+ 262              		.thumb_func
+ 264              	USB_EndPoint9:
+ 265              	.LFB10:
+ 266:./src/usb/usbuser.c **** }
+ 267:./src/usb/usbuser.c **** 
+ 268:./src/usb/usbuser.c **** 
+ 269:./src/usb/usbuser.c **** /*
+ 270:./src/usb/usbuser.c ****  *  USB Endpoint 9 Event Callback
+ 271:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 9 Event
+ 272:./src/usb/usbuser.c ****  *    Parameter:       event
+ 273:./src/usb/usbuser.c ****  */
+ 274:./src/usb/usbuser.c **** 
+ 275:./src/usb/usbuser.c **** void USB_EndPoint9 (uint32_t event) {
+ 266              		.loc 1 275 0
+ 267              		.cfi_startproc
+ 268              		@ args = 0, pretend = 0, frame = 0
+ 269              		@ frame_needed = 0, uses_anonymous_args = 0
+ 270              		@ link register save eliminated.
+ 271              	.LVL15:
+ 272 0000 7047     		bx	lr
+ 273              		.cfi_endproc
+ 274              	.LFE10:
+ 276 0002 00BF     		.section	.text.USB_EndPoint10,"ax",%progbits
+ 277              		.align	2
+ 278              		.global	USB_EndPoint10
+ 279              		.thumb
+ 280              		.thumb_func
+ 282              	USB_EndPoint10:
+ 283              	.LFB11:
+ 276:./src/usb/usbuser.c **** }
+ 277:./src/usb/usbuser.c **** 
+ 278:./src/usb/usbuser.c **** 
+ 279:./src/usb/usbuser.c **** /*
+ 280:./src/usb/usbuser.c ****  *  USB Endpoint 10 Event Callback
+ 281:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 10 Event
+ 282:./src/usb/usbuser.c ****  *    Parameter:       event
+ 283:./src/usb/usbuser.c ****  */
+ 284:./src/usb/usbuser.c **** 
+ 285:./src/usb/usbuser.c **** void USB_EndPoint10 (uint32_t event) {
+ 284              		.loc 1 285 0
+ 285              		.cfi_startproc
+ 286              		@ args = 0, pretend = 0, frame = 0
+ 287              		@ frame_needed = 0, uses_anonymous_args = 0
+ 288              		@ link register save eliminated.
+ 289              	.LVL16:
+ 290 0000 7047     		bx	lr
+ 291              		.cfi_endproc
+ 292              	.LFE11:
+ 294 0002 00BF     		.section	.text.USB_EndPoint11,"ax",%progbits
+ 295              		.align	2
+ 296              		.global	USB_EndPoint11
+ 297              		.thumb
+ 298              		.thumb_func
+ 300              	USB_EndPoint11:
+ 301              	.LFB12:
+ 286:./src/usb/usbuser.c **** }
+ 287:./src/usb/usbuser.c **** 
+ 288:./src/usb/usbuser.c **** 
+ 289:./src/usb/usbuser.c **** /*
+ 290:./src/usb/usbuser.c ****  *  USB Endpoint 11 Event Callback
+ 291:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 11 Event
+ 292:./src/usb/usbuser.c ****  *    Parameter:       event
+ 293:./src/usb/usbuser.c ****  */
+ 294:./src/usb/usbuser.c **** 
+ 295:./src/usb/usbuser.c **** void USB_EndPoint11 (uint32_t event) {
+ 302              		.loc 1 295 0
+ 303              		.cfi_startproc
+ 304              		@ args = 0, pretend = 0, frame = 0
+ 305              		@ frame_needed = 0, uses_anonymous_args = 0
+ 306              		@ link register save eliminated.
+ 307              	.LVL17:
+ 308 0000 7047     		bx	lr
+ 309              		.cfi_endproc
+ 310              	.LFE12:
+ 312 0002 00BF     		.section	.text.USB_EndPoint12,"ax",%progbits
+ 313              		.align	2
+ 314              		.global	USB_EndPoint12
+ 315              		.thumb
+ 316              		.thumb_func
+ 318              	USB_EndPoint12:
+ 319              	.LFB13:
+ 296:./src/usb/usbuser.c **** }
+ 297:./src/usb/usbuser.c **** 
+ 298:./src/usb/usbuser.c **** 
+ 299:./src/usb/usbuser.c **** /*
+ 300:./src/usb/usbuser.c ****  *  USB Endpoint 12 Event Callback
+ 301:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 12 Event
+ 302:./src/usb/usbuser.c ****  *    Parameter:       event
+ 303:./src/usb/usbuser.c ****  */
+ 304:./src/usb/usbuser.c **** 
+ 305:./src/usb/usbuser.c **** void USB_EndPoint12 (uint32_t event) {
+ 320              		.loc 1 305 0
+ 321              		.cfi_startproc
+ 322              		@ args = 0, pretend = 0, frame = 0
+ 323              		@ frame_needed = 0, uses_anonymous_args = 0
+ 324              		@ link register save eliminated.
+ 325              	.LVL18:
+ 326 0000 7047     		bx	lr
+ 327              		.cfi_endproc
+ 328              	.LFE13:
+ 330 0002 00BF     		.section	.text.USB_EndPoint13,"ax",%progbits
+ 331              		.align	2
+ 332              		.global	USB_EndPoint13
+ 333              		.thumb
+ 334              		.thumb_func
+ 336              	USB_EndPoint13:
+ 337              	.LFB14:
+ 306:./src/usb/usbuser.c **** }
+ 307:./src/usb/usbuser.c **** 
+ 308:./src/usb/usbuser.c **** 
+ 309:./src/usb/usbuser.c **** /*
+ 310:./src/usb/usbuser.c ****  *  USB Endpoint 13 Event Callback
+ 311:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 13 Event
+ 312:./src/usb/usbuser.c ****  *    Parameter:       event
+ 313:./src/usb/usbuser.c ****  */
+ 314:./src/usb/usbuser.c **** 
+ 315:./src/usb/usbuser.c **** void USB_EndPoint13 (uint32_t event) {
+ 338              		.loc 1 315 0
+ 339              		.cfi_startproc
+ 340              		@ args = 0, pretend = 0, frame = 0
+ 341              		@ frame_needed = 0, uses_anonymous_args = 0
+ 342              		@ link register save eliminated.
+ 343              	.LVL19:
+ 344 0000 7047     		bx	lr
+ 345              		.cfi_endproc
+ 346              	.LFE14:
+ 348 0002 00BF     		.section	.text.USB_EndPoint14,"ax",%progbits
+ 349              		.align	2
+ 350              		.global	USB_EndPoint14
+ 351              		.thumb
+ 352              		.thumb_func
+ 354              	USB_EndPoint14:
+ 355              	.LFB15:
+ 316:./src/usb/usbuser.c **** }
+ 317:./src/usb/usbuser.c **** 
+ 318:./src/usb/usbuser.c **** 
+ 319:./src/usb/usbuser.c **** /*
+ 320:./src/usb/usbuser.c ****  *  USB Endpoint 14 Event Callback
+ 321:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 14 Event
+ 322:./src/usb/usbuser.c ****  *    Parameter:       event
+ 323:./src/usb/usbuser.c ****  */
+ 324:./src/usb/usbuser.c **** 
+ 325:./src/usb/usbuser.c **** void USB_EndPoint14 (uint32_t event) {
+ 356              		.loc 1 325 0
+ 357              		.cfi_startproc
+ 358              		@ args = 0, pretend = 0, frame = 0
+ 359              		@ frame_needed = 0, uses_anonymous_args = 0
+ 360              		@ link register save eliminated.
+ 361              	.LVL20:
+ 362 0000 7047     		bx	lr
+ 363              		.cfi_endproc
+ 364              	.LFE15:
+ 366 0002 00BF     		.section	.text.USB_EndPoint15,"ax",%progbits
+ 367              		.align	2
+ 368              		.global	USB_EndPoint15
+ 369              		.thumb
+ 370              		.thumb_func
+ 372              	USB_EndPoint15:
+ 373              	.LFB16:
+ 326:./src/usb/usbuser.c **** }
+ 327:./src/usb/usbuser.c **** 
+ 328:./src/usb/usbuser.c **** 
+ 329:./src/usb/usbuser.c **** /*
+ 330:./src/usb/usbuser.c ****  *  USB Endpoint 15 Event Callback
+ 331:./src/usb/usbuser.c ****  *   Called automatically on USB Endpoint 15 Event
+ 332:./src/usb/usbuser.c ****  *    Parameter:       event
+ 333:./src/usb/usbuser.c ****  */
+ 334:./src/usb/usbuser.c **** 
+ 335:./src/usb/usbuser.c **** void USB_EndPoint15 (uint32_t event) {
+ 374              		.loc 1 335 0
+ 375              		.cfi_startproc
+ 376              		@ args = 0, pretend = 0, frame = 0
+ 377              		@ frame_needed = 0, uses_anonymous_args = 0
+ 378              		@ link register save eliminated.
+ 379              	.LVL21:
+ 380 0000 7047     		bx	lr
+ 381              		.cfi_endproc
+ 382              	.LFE16:
+ 384              		.global	USB_P_EP
+ 385 0002 00BF     		.section	.rodata.USB_P_EP,"a",%progbits
+ 386              		.align	2
+ 389              	USB_P_EP:
+ 390 0000 00000000 		.word	USB_EndPoint0
+ 391 0004 00000000 		.word	USB_EndPoint1
+ 392 0008 00000000 		.word	USB_EndPoint2
+ 393 000c 00000000 		.word	0
+ 394 0010 00000000 		.word	0
+ 395 0014 00000000 		.word	0
+ 396 0018 00000000 		.word	0
+ 397 001c 00000000 		.word	0
+ 398 0020 00000000 		.word	0
+ 399 0024 00000000 		.word	0
+ 400 0028 00000000 		.word	0
+ 401 002c 00000000 		.word	0
+ 402 0030 00000000 		.word	0
+ 403 0034 00000000 		.word	0
+ 404 0038 00000000 		.word	0
+ 405 003c 00000000 		.word	0
+ 406              		.section	.bss.serialState.4435,"aw",%nobits
+ 407              		.align	1
+ 408              		.set	.LANCHOR0,. + 0
+ 411              	serialState.4435:
+ 412 0000 0000     		.space	2
+ 413              		.text
+ 414              	.Letext0:
+ 415              		.file 2 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 416              		.file 3 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+ 417              		.file 4 "./src/usb/usbcore.h"
+ 418              		.file 5 "./src/usb/cdcuser.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 usbuser.c
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:19     .text.USB_EndPoint2:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:24     .text.USB_EndPoint2:00000000 USB_EndPoint2
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:51     .text.USB_EndPoint1:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:56     .text.USB_EndPoint1:00000000 USB_EndPoint1
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:101    .text.USB_EndPoint1:00000020 $d
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:108    .text.USB_Reset_Event:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:113    .text.USB_Reset_Event:00000000 USB_Reset_Event
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:127    .text.USB_Configure_Event:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:132    .text.USB_Configure_Event:00000000 USB_Configure_Event
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:146    .text.USB_Configure_Event:00000008 $d
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:151    .text.USB_EndPoint3:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:156    .text.USB_EndPoint3:00000000 USB_EndPoint3
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:169    .text.USB_EndPoint4:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:174    .text.USB_EndPoint4:00000000 USB_EndPoint4
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:187    .text.USB_EndPoint5:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:192    .text.USB_EndPoint5:00000000 USB_EndPoint5
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:205    .text.USB_EndPoint6:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:210    .text.USB_EndPoint6:00000000 USB_EndPoint6
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:223    .text.USB_EndPoint7:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:228    .text.USB_EndPoint7:00000000 USB_EndPoint7
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:241    .text.USB_EndPoint8:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:246    .text.USB_EndPoint8:00000000 USB_EndPoint8
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:259    .text.USB_EndPoint9:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:264    .text.USB_EndPoint9:00000000 USB_EndPoint9
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:277    .text.USB_EndPoint10:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:282    .text.USB_EndPoint10:00000000 USB_EndPoint10
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:295    .text.USB_EndPoint11:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:300    .text.USB_EndPoint11:00000000 USB_EndPoint11
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:313    .text.USB_EndPoint12:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:318    .text.USB_EndPoint12:00000000 USB_EndPoint12
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:331    .text.USB_EndPoint13:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:336    .text.USB_EndPoint13:00000000 USB_EndPoint13
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:349    .text.USB_EndPoint14:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:354    .text.USB_EndPoint14:00000000 USB_EndPoint14
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:367    .text.USB_EndPoint15:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:372    .text.USB_EndPoint15:00000000 USB_EndPoint15
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:389    .rodata.USB_P_EP:00000000 USB_P_EP
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:386    .rodata.USB_P_EP:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:407    .bss.serialState.4435:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\ccttyuHj.s:411    .bss.serialState.4435:00000000 serialState.4435
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+CDC_BulkIn
+CDC_BulkOut
+CDC_GetSerialState
+CDC_NotificationIn
+USB_ResetCore
+USB_Configuration
+USB_EndPoint0

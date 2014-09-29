@@ -1,0 +1,2775 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"lpc17xx_uart.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.UART_Init,"ax",%progbits
+  19              		.align	2
+  20              		.global	UART_Init
+  21              		.thumb
+  22              		.thumb_func
+  24              	UART_Init:
+  25              	.LFB56:
+  26              		.file 1 "./Drivers/source/lpc17xx_uart.c"
+   1:./Drivers/source/lpc17xx_uart.c **** /***********************************************************************//**
+   2:./Drivers/source/lpc17xx_uart.c ****  * @file		lpc17xx_uart.c
+   3:./Drivers/source/lpc17xx_uart.c ****  * @brief		Contains all functions support for UART firmware library on LPC17xx
+   4:./Drivers/source/lpc17xx_uart.c ****  * @version		3.0
+   5:./Drivers/source/lpc17xx_uart.c ****  * @date		18. June. 2010
+   6:./Drivers/source/lpc17xx_uart.c ****  * @author		NXP MCU SW Application Team
+   7:./Drivers/source/lpc17xx_uart.c ****  **************************************************************************
+   8:./Drivers/source/lpc17xx_uart.c ****  * Software that is described herein is for illustrative purposes only
+   9:./Drivers/source/lpc17xx_uart.c ****  * which provides customers with programming information regarding the
+  10:./Drivers/source/lpc17xx_uart.c ****  * products. This software is supplied "AS IS" without any warranties.
+  11:./Drivers/source/lpc17xx_uart.c ****  * NXP Semiconductors assumes no responsibility or liability for the
+  12:./Drivers/source/lpc17xx_uart.c ****  * use of the software, conveys no license or title under any patent,
+  13:./Drivers/source/lpc17xx_uart.c ****  * copyright, or mask work right to the product. NXP Semiconductors
+  14:./Drivers/source/lpc17xx_uart.c ****  * reserves the right to make changes in the software without
+  15:./Drivers/source/lpc17xx_uart.c ****  * notification. NXP Semiconductors also make no representation or
+  16:./Drivers/source/lpc17xx_uart.c ****  * warranty that such application will be suitable for the specified
+  17:./Drivers/source/lpc17xx_uart.c ****  * use without further testing or modification.
+  18:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+  19:./Drivers/source/lpc17xx_uart.c **** 
+  20:./Drivers/source/lpc17xx_uart.c **** /* Peripheral group ----------------------------------------------------------- */
+  21:./Drivers/source/lpc17xx_uart.c **** /** @addtogroup UART
+  22:./Drivers/source/lpc17xx_uart.c ****  * @{
+  23:./Drivers/source/lpc17xx_uart.c ****  */
+  24:./Drivers/source/lpc17xx_uart.c **** 
+  25:./Drivers/source/lpc17xx_uart.c **** /* Includes ------------------------------------------------------------------- */
+  26:./Drivers/source/lpc17xx_uart.c **** #include "lpc17xx_uart.h"
+  27:./Drivers/source/lpc17xx_uart.c **** #include "lpc17xx_clkpwr.h"
+  28:./Drivers/source/lpc17xx_uart.c **** 
+  29:./Drivers/source/lpc17xx_uart.c **** /* If this source file built with example, the LPC17xx FW library configuration
+  30:./Drivers/source/lpc17xx_uart.c ****  * file in each example directory ("lpc17xx_libcfg.h") must be included,
+  31:./Drivers/source/lpc17xx_uart.c ****  * otherwise the default FW library configuration file must be included instead
+  32:./Drivers/source/lpc17xx_uart.c ****  */
+  33:./Drivers/source/lpc17xx_uart.c **** #ifdef __BUILD_WITH_EXAMPLE__
+  34:./Drivers/source/lpc17xx_uart.c **** #include "lpc17xx_libcfg.h"
+  35:./Drivers/source/lpc17xx_uart.c **** #else
+  36:./Drivers/source/lpc17xx_uart.c **** #include "lpc17xx_libcfg_default.h"
+  37:./Drivers/source/lpc17xx_uart.c **** #endif /* __BUILD_WITH_EXAMPLE__ */
+  38:./Drivers/source/lpc17xx_uart.c **** 
+  39:./Drivers/source/lpc17xx_uart.c **** 
+  40:./Drivers/source/lpc17xx_uart.c **** #ifdef _UART
+  41:./Drivers/source/lpc17xx_uart.c **** 
+  42:./Drivers/source/lpc17xx_uart.c **** /* Private Functions ---------------------------------------------------------- */
+  43:./Drivers/source/lpc17xx_uart.c **** 
+  44:./Drivers/source/lpc17xx_uart.c **** static Status uart_set_divisors(LPC_UART_TypeDef *UARTx, uint32_t baudrate);
+  45:./Drivers/source/lpc17xx_uart.c **** 
+  46:./Drivers/source/lpc17xx_uart.c **** 
+  47:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+  48:./Drivers/source/lpc17xx_uart.c ****  * @brief		Determines best dividers to get a target clock rate
+  49:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	Pointer to selected UART peripheral, should be:
+  50:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART0: UART0 peripheral
+  51:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+  52:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+  53:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+  54:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	baudrate Desired UART baud rate.
+  55:./Drivers/source/lpc17xx_uart.c ****  * @return 		Error status, could be:
+  56:./Drivers/source/lpc17xx_uart.c ****  * 				- SUCCESS
+  57:./Drivers/source/lpc17xx_uart.c ****  * 				- ERROR
+  58:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+  59:./Drivers/source/lpc17xx_uart.c **** static Status uart_set_divisors(LPC_UART_TypeDef *UARTx, uint32_t baudrate)
+  60:./Drivers/source/lpc17xx_uart.c **** {
+  61:./Drivers/source/lpc17xx_uart.c **** 	Status errorStatus = ERROR;
+  62:./Drivers/source/lpc17xx_uart.c **** 
+  63:./Drivers/source/lpc17xx_uart.c **** 	uint32_t uClk;
+  64:./Drivers/source/lpc17xx_uart.c **** 	uint32_t calcBaudrate = 0;
+  65:./Drivers/source/lpc17xx_uart.c **** 	uint32_t temp = 0;
+  66:./Drivers/source/lpc17xx_uart.c **** 
+  67:./Drivers/source/lpc17xx_uart.c **** 	uint32_t mulFracDiv, dividerAddFracDiv;
+  68:./Drivers/source/lpc17xx_uart.c **** 	uint32_t diviser = 0 ;
+  69:./Drivers/source/lpc17xx_uart.c **** 	uint32_t mulFracDivOptimal = 1;
+  70:./Drivers/source/lpc17xx_uart.c **** 	uint32_t dividerAddOptimal = 0;
+  71:./Drivers/source/lpc17xx_uart.c **** 	uint32_t diviserOptimal = 0;
+  72:./Drivers/source/lpc17xx_uart.c **** 
+  73:./Drivers/source/lpc17xx_uart.c **** 	uint32_t relativeError = 0;
+  74:./Drivers/source/lpc17xx_uart.c **** 	uint32_t relativeOptimalError = 100000;
+  75:./Drivers/source/lpc17xx_uart.c **** 
+  76:./Drivers/source/lpc17xx_uart.c **** 	/* get UART block clock */
+  77:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx == LPC_UART0)
+  78:./Drivers/source/lpc17xx_uart.c **** 	{
+  79:./Drivers/source/lpc17xx_uart.c **** 		uClk = CLKPWR_GetPCLK (CLKPWR_PCLKSEL_UART0);
+  80:./Drivers/source/lpc17xx_uart.c **** 	}
+  81:./Drivers/source/lpc17xx_uart.c **** 	else if (UARTx == (LPC_UART_TypeDef *)LPC_UART1)
+  82:./Drivers/source/lpc17xx_uart.c **** 	{
+  83:./Drivers/source/lpc17xx_uart.c **** 		uClk = CLKPWR_GetPCLK (CLKPWR_PCLKSEL_UART1);
+  84:./Drivers/source/lpc17xx_uart.c **** 	}
+  85:./Drivers/source/lpc17xx_uart.c **** 	else if (UARTx == LPC_UART2)
+  86:./Drivers/source/lpc17xx_uart.c **** 	{
+  87:./Drivers/source/lpc17xx_uart.c **** 		uClk = CLKPWR_GetPCLK (CLKPWR_PCLKSEL_UART2);
+  88:./Drivers/source/lpc17xx_uart.c **** 	}
+  89:./Drivers/source/lpc17xx_uart.c **** 	else if (UARTx == LPC_UART3)
+  90:./Drivers/source/lpc17xx_uart.c **** 	{
+  91:./Drivers/source/lpc17xx_uart.c **** 		uClk = CLKPWR_GetPCLK (CLKPWR_PCLKSEL_UART3);
+  92:./Drivers/source/lpc17xx_uart.c **** 	}
+  93:./Drivers/source/lpc17xx_uart.c **** 
+  94:./Drivers/source/lpc17xx_uart.c **** 
+  95:./Drivers/source/lpc17xx_uart.c **** 	uClk = uClk >> 4; /* div by 16 */
+  96:./Drivers/source/lpc17xx_uart.c **** 	/* In the Uart IP block, baud rate is calculated using FDR and DLL-DLM registers
+  97:./Drivers/source/lpc17xx_uart.c **** 	* The formula is :
+  98:./Drivers/source/lpc17xx_uart.c **** 	* BaudRate= uClk * (mulFracDiv/(mulFracDiv+dividerAddFracDiv) / (16 * (DLL)
+  99:./Drivers/source/lpc17xx_uart.c **** 	* It involves floating point calculations. That's the reason the formulae are adjusted with
+ 100:./Drivers/source/lpc17xx_uart.c **** 	* Multiply and divide method.*/
+ 101:./Drivers/source/lpc17xx_uart.c **** 	/* The value of mulFracDiv and dividerAddFracDiv should comply to the following expressions:
+ 102:./Drivers/source/lpc17xx_uart.c **** 	* 0 < mulFracDiv <= 15, 0 <= dividerAddFracDiv <= 15 */
+ 103:./Drivers/source/lpc17xx_uart.c **** 	for (mulFracDiv = 1 ; mulFracDiv <= 15 ;mulFracDiv++)
+ 104:./Drivers/source/lpc17xx_uart.c **** 	{
+ 105:./Drivers/source/lpc17xx_uart.c **** 	for (dividerAddFracDiv = 0 ; dividerAddFracDiv <= 15 ;dividerAddFracDiv++)
+ 106:./Drivers/source/lpc17xx_uart.c **** 	{
+ 107:./Drivers/source/lpc17xx_uart.c **** 	  temp = (mulFracDiv * uClk) / ((mulFracDiv + dividerAddFracDiv));
+ 108:./Drivers/source/lpc17xx_uart.c **** 
+ 109:./Drivers/source/lpc17xx_uart.c **** 	  diviser = temp / baudrate;
+ 110:./Drivers/source/lpc17xx_uart.c **** 	  if ((temp % baudrate) > (baudrate / 2))
+ 111:./Drivers/source/lpc17xx_uart.c **** 		diviser++;
+ 112:./Drivers/source/lpc17xx_uart.c **** 
+ 113:./Drivers/source/lpc17xx_uart.c **** 	  if (diviser > 2 && diviser < 65536)
+ 114:./Drivers/source/lpc17xx_uart.c **** 	  {
+ 115:./Drivers/source/lpc17xx_uart.c **** 		calcBaudrate = temp / diviser;
+ 116:./Drivers/source/lpc17xx_uart.c **** 
+ 117:./Drivers/source/lpc17xx_uart.c **** 		if (calcBaudrate <= baudrate)
+ 118:./Drivers/source/lpc17xx_uart.c **** 		  relativeError = baudrate - calcBaudrate;
+ 119:./Drivers/source/lpc17xx_uart.c **** 		else
+ 120:./Drivers/source/lpc17xx_uart.c **** 		  relativeError = calcBaudrate - baudrate;
+ 121:./Drivers/source/lpc17xx_uart.c **** 
+ 122:./Drivers/source/lpc17xx_uart.c **** 		if ((relativeError < relativeOptimalError))
+ 123:./Drivers/source/lpc17xx_uart.c **** 		{
+ 124:./Drivers/source/lpc17xx_uart.c **** 		  mulFracDivOptimal = mulFracDiv ;
+ 125:./Drivers/source/lpc17xx_uart.c **** 		  dividerAddOptimal = dividerAddFracDiv;
+ 126:./Drivers/source/lpc17xx_uart.c **** 		  diviserOptimal = diviser;
+ 127:./Drivers/source/lpc17xx_uart.c **** 		  relativeOptimalError = relativeError;
+ 128:./Drivers/source/lpc17xx_uart.c **** 		  if (relativeError == 0)
+ 129:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 130:./Drivers/source/lpc17xx_uart.c **** 		}
+ 131:./Drivers/source/lpc17xx_uart.c **** 	  } /* End of if */
+ 132:./Drivers/source/lpc17xx_uart.c **** 	} /* end of inner for loop */
+ 133:./Drivers/source/lpc17xx_uart.c **** 	if (relativeError == 0)
+ 134:./Drivers/source/lpc17xx_uart.c **** 	  break;
+ 135:./Drivers/source/lpc17xx_uart.c **** 	} /* end of outer for loop  */
+ 136:./Drivers/source/lpc17xx_uart.c **** 
+ 137:./Drivers/source/lpc17xx_uart.c **** 	if (relativeOptimalError < ((baudrate * UART_ACCEPTED_BAUDRATE_ERROR)/100))
+ 138:./Drivers/source/lpc17xx_uart.c **** 	{
+ 139:./Drivers/source/lpc17xx_uart.c **** 		if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 140:./Drivers/source/lpc17xx_uart.c **** 		{
+ 141:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR |= UART_LCR_DLAB_EN;
+ 142:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->/*DLIER.*/DLM = UART_LOAD_DLM(diviserOptimal);
+ 143:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/DLL = UART_LOAD_DLL(diviserOptimal);
+ 144:./Drivers/source/lpc17xx_uart.c **** 			/* Then reset DLAB bit */
+ 145:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR &= (~UART_LCR_DLAB_EN) & UART_LCR_BITMASK;
+ 146:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->FDR = (UART_FDR_MULVAL(mulFracDivOptimal) \
+ 147:./Drivers/source/lpc17xx_uart.c **** 					| UART_FDR_DIVADDVAL(dividerAddOptimal)) & UART_FDR_BITMASK;
+ 148:./Drivers/source/lpc17xx_uart.c **** 		}
+ 149:./Drivers/source/lpc17xx_uart.c **** 		else
+ 150:./Drivers/source/lpc17xx_uart.c **** 		{
+ 151:./Drivers/source/lpc17xx_uart.c **** 			UARTx->LCR |= UART_LCR_DLAB_EN;
+ 152:./Drivers/source/lpc17xx_uart.c **** 			UARTx->/*DLIER.*/DLM = UART_LOAD_DLM(diviserOptimal);
+ 153:./Drivers/source/lpc17xx_uart.c **** 			UARTx->/*RBTHDLR.*/DLL = UART_LOAD_DLL(diviserOptimal);
+ 154:./Drivers/source/lpc17xx_uart.c **** 			/* Then reset DLAB bit */
+ 155:./Drivers/source/lpc17xx_uart.c **** 			UARTx->LCR &= (~UART_LCR_DLAB_EN) & UART_LCR_BITMASK;
+ 156:./Drivers/source/lpc17xx_uart.c **** 			UARTx->FDR = (UART_FDR_MULVAL(mulFracDivOptimal) \
+ 157:./Drivers/source/lpc17xx_uart.c **** 					| UART_FDR_DIVADDVAL(dividerAddOptimal)) & UART_FDR_BITMASK;
+ 158:./Drivers/source/lpc17xx_uart.c **** 		}
+ 159:./Drivers/source/lpc17xx_uart.c **** 		errorStatus = SUCCESS;
+ 160:./Drivers/source/lpc17xx_uart.c **** 	}
+ 161:./Drivers/source/lpc17xx_uart.c **** 
+ 162:./Drivers/source/lpc17xx_uart.c **** 	return errorStatus;
+ 163:./Drivers/source/lpc17xx_uart.c **** }
+ 164:./Drivers/source/lpc17xx_uart.c **** 
+ 165:./Drivers/source/lpc17xx_uart.c **** /* End of Private Functions ---------------------------------------------------- */
+ 166:./Drivers/source/lpc17xx_uart.c **** 
+ 167:./Drivers/source/lpc17xx_uart.c **** 
+ 168:./Drivers/source/lpc17xx_uart.c **** /* Public Functions ----------------------------------------------------------- */
+ 169:./Drivers/source/lpc17xx_uart.c **** /** @addtogroup UART_Public_Functions
+ 170:./Drivers/source/lpc17xx_uart.c ****  * @{
+ 171:./Drivers/source/lpc17xx_uart.c ****  */
+ 172:./Drivers/source/lpc17xx_uart.c **** /* UART Init/DeInit functions -------------------------------------------------*/
+ 173:./Drivers/source/lpc17xx_uart.c **** /********************************************************************//**
+ 174:./Drivers/source/lpc17xx_uart.c ****  * @brief		Initializes the UARTx peripheral according to the specified
+ 175:./Drivers/source/lpc17xx_uart.c ****  *               parameters in the UART_ConfigStruct.
+ 176:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be:
+ 177:./Drivers/source/lpc17xx_uart.c ****  *   			- LPC_UART0: UART0 peripheral
+ 178:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 179:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 180:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 181:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UART_ConfigStruct Pointer to a UART_CFG_Type structure
+ 182:./Drivers/source/lpc17xx_uart.c **** *                    that contains the configuration information for the
+ 183:./Drivers/source/lpc17xx_uart.c **** *                    specified UART peripheral.
+ 184:./Drivers/source/lpc17xx_uart.c ****  * @return 		None
+ 185:./Drivers/source/lpc17xx_uart.c ****  *********************************************************************/
+ 186:./Drivers/source/lpc17xx_uart.c **** void UART_Init(LPC_UART_TypeDef *UARTx, UART_CFG_Type *UART_ConfigStruct)
+ 187:./Drivers/source/lpc17xx_uart.c **** {
+  27              		.loc 1 187 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 16
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              	.LVL0:
+  32 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+  33              		.cfi_def_cfa_offset 36
+  34              		.cfi_offset 4, -36
+  35              		.cfi_offset 5, -32
+  36              		.cfi_offset 6, -28
+  37              		.cfi_offset 7, -24
+  38              		.cfi_offset 8, -20
+  39              		.cfi_offset 9, -16
+  40              		.cfi_offset 10, -12
+  41              		.cfi_offset 11, -8
+  42              		.cfi_offset 14, -4
+ 188:./Drivers/source/lpc17xx_uart.c **** 	uint32_t tmp;
+ 189:./Drivers/source/lpc17xx_uart.c **** 
+ 190:./Drivers/source/lpc17xx_uart.c **** 	// For debug mode
+ 191:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 192:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UART_DATABIT(UART_ConfigStruct->Databits));
+ 193:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UART_STOPBIT(UART_ConfigStruct->Stopbits));
+ 194:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UART_PARITY(UART_ConfigStruct->Parity));
+ 195:./Drivers/source/lpc17xx_uart.c **** 
+ 196:./Drivers/source/lpc17xx_uart.c **** #ifdef _UART0
+ 197:./Drivers/source/lpc17xx_uart.c **** 	if(UARTx == LPC_UART0)
+  43              		.loc 1 197 0
+  44 0004 994B     		ldr	r3, .L77
+ 187:./Drivers/source/lpc17xx_uart.c **** {
+  45              		.loc 1 187 0
+  46 0006 85B0     		sub	sp, sp, #20
+  47              		.cfi_def_cfa_offset 56
+  48              		.loc 1 197 0
+  49 0008 9842     		cmp	r0, r3
+ 187:./Drivers/source/lpc17xx_uart.c **** {
+  50              		.loc 1 187 0
+  51 000a 8246     		mov	r10, r0
+  52 000c 0291     		str	r1, [sp, #8]
+  53              		.loc 1 197 0
+  54 000e 00F02881 		beq	.L69
+ 198:./Drivers/source/lpc17xx_uart.c **** 	{
+ 199:./Drivers/source/lpc17xx_uart.c **** 		/* Set up clock and power for UART module */
+ 200:./Drivers/source/lpc17xx_uart.c **** 		CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCUART0, ENABLE);
+ 201:./Drivers/source/lpc17xx_uart.c **** 	}
+ 202:./Drivers/source/lpc17xx_uart.c **** #endif
+ 203:./Drivers/source/lpc17xx_uart.c **** 
+ 204:./Drivers/source/lpc17xx_uart.c **** #ifdef _UART1
+ 205:./Drivers/source/lpc17xx_uart.c **** 	if(((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 206:./Drivers/source/lpc17xx_uart.c **** 	{
+ 207:./Drivers/source/lpc17xx_uart.c **** 		/* Set up clock and power for UART module */
+ 208:./Drivers/source/lpc17xx_uart.c **** 		CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCUART1, ENABLE);
+ 209:./Drivers/source/lpc17xx_uart.c **** 	}
+ 210:./Drivers/source/lpc17xx_uart.c **** #endif
+ 211:./Drivers/source/lpc17xx_uart.c **** 
+ 212:./Drivers/source/lpc17xx_uart.c **** #ifdef _UART2
+ 213:./Drivers/source/lpc17xx_uart.c **** 	if(UARTx == LPC_UART2)
+ 214:./Drivers/source/lpc17xx_uart.c **** 	{
+ 215:./Drivers/source/lpc17xx_uart.c **** 		/* Set up clock and power for UART module */
+ 216:./Drivers/source/lpc17xx_uart.c **** 		CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCUART2, ENABLE);
+ 217:./Drivers/source/lpc17xx_uart.c **** 	}
+ 218:./Drivers/source/lpc17xx_uart.c **** #endif
+ 219:./Drivers/source/lpc17xx_uart.c **** 
+ 220:./Drivers/source/lpc17xx_uart.c **** #ifdef _UART3
+ 221:./Drivers/source/lpc17xx_uart.c **** 	if(UARTx == LPC_UART3)
+ 222:./Drivers/source/lpc17xx_uart.c **** 	{
+ 223:./Drivers/source/lpc17xx_uart.c **** 		/* Set up clock and power for UART module */
+ 224:./Drivers/source/lpc17xx_uart.c **** 		CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCUART3, ENABLE);
+ 225:./Drivers/source/lpc17xx_uart.c **** 	}
+ 226:./Drivers/source/lpc17xx_uart.c **** #endif
+ 227:./Drivers/source/lpc17xx_uart.c **** 
+ 228:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+  55              		.loc 1 228 0
+  56 0012 974B     		ldr	r3, .L77+4
+  57 0014 9842     		cmp	r0, r3
+  58 0016 00F0DF80 		beq	.L70
+  59              	.LVL1:
+  60              	.L3:
+ 229:./Drivers/source/lpc17xx_uart.c **** 	{
+ 230:./Drivers/source/lpc17xx_uart.c **** 		/* FIFOs are empty */
+ 231:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*IIFCR.*/FCR = ( UART_FCR_FIFO_EN \
+ 232:./Drivers/source/lpc17xx_uart.c **** 				| UART_FCR_RX_RS | UART_FCR_TX_RS);
+ 233:./Drivers/source/lpc17xx_uart.c **** 		// Disable FIFO
+ 234:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*IIFCR.*/FCR = 0;
+ 235:./Drivers/source/lpc17xx_uart.c **** 
+ 236:./Drivers/source/lpc17xx_uart.c **** 		// Dummy reading
+ 237:./Drivers/source/lpc17xx_uart.c **** 		while (((LPC_UART1_TypeDef *)UARTx)->LSR & UART_LSR_RDR)
+ 238:./Drivers/source/lpc17xx_uart.c **** 		{
+ 239:./Drivers/source/lpc17xx_uart.c **** 			tmp = ((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/RBR;
+ 240:./Drivers/source/lpc17xx_uart.c **** 		}
+ 241:./Drivers/source/lpc17xx_uart.c **** 
+ 242:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->TER = UART_TER_TXEN;
+ 243:./Drivers/source/lpc17xx_uart.c **** 		// Wait for current transmit complete
+ 244:./Drivers/source/lpc17xx_uart.c **** 		while (!(((LPC_UART1_TypeDef *)UARTx)->LSR & UART_LSR_THRE));
+ 245:./Drivers/source/lpc17xx_uart.c **** 		// Disable Tx
+ 246:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->TER = 0;
+ 247:./Drivers/source/lpc17xx_uart.c **** 
+ 248:./Drivers/source/lpc17xx_uart.c **** 		// Disable interrupt
+ 249:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*DLIER.*/IER = 0;
+ 250:./Drivers/source/lpc17xx_uart.c **** 		// Set LCR to default state
+ 251:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->LCR = 0;
+ 252:./Drivers/source/lpc17xx_uart.c **** 		// Set ACR to default state
+ 253:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->ACR = 0;
+ 254:./Drivers/source/lpc17xx_uart.c **** 		// Set Modem Control to default state
+ 255:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->MCR = 0;
+ 256:./Drivers/source/lpc17xx_uart.c **** 		// Set RS485 control to default state
+ 257:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->RS485CTRL = 0;
+ 258:./Drivers/source/lpc17xx_uart.c **** 		// Set RS485 delay timer to default state
+ 259:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->RS485DLY = 0;
+ 260:./Drivers/source/lpc17xx_uart.c **** 		// Set RS485 addr match to default state
+ 261:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->ADRMATCH = 0;
+ 262:./Drivers/source/lpc17xx_uart.c **** 		//Dummy Reading to Clear Status
+ 263:./Drivers/source/lpc17xx_uart.c **** 		tmp = ((LPC_UART1_TypeDef *)UARTx)->MSR;
+ 264:./Drivers/source/lpc17xx_uart.c **** 		tmp = ((LPC_UART1_TypeDef *)UARTx)->LSR;
+ 265:./Drivers/source/lpc17xx_uart.c **** 	}
+ 266:./Drivers/source/lpc17xx_uart.c **** 	else
+ 267:./Drivers/source/lpc17xx_uart.c **** 	{
+ 268:./Drivers/source/lpc17xx_uart.c **** 		/* FIFOs are empty */
+ 269:./Drivers/source/lpc17xx_uart.c **** 		UARTx->/*IIFCR.*/FCR = ( UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS);
+ 270:./Drivers/source/lpc17xx_uart.c **** 		// Disable FIFO
+ 271:./Drivers/source/lpc17xx_uart.c **** 		UARTx->/*IIFCR.*/FCR = 0;
+  61              		.loc 1 271 0
+  62 001a 0023     		movs	r3, #0
+ 269:./Drivers/source/lpc17xx_uart.c **** 		UARTx->/*IIFCR.*/FCR = ( UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS);
+  63              		.loc 1 269 0
+  64 001c 0722     		movs	r2, #7
+  65 001e 8AF80820 		strb	r2, [r10, #8]
+  66              		.loc 1 271 0
+  67 0022 8AF80830 		strb	r3, [r10, #8]
+ 272:./Drivers/source/lpc17xx_uart.c **** 
+ 273:./Drivers/source/lpc17xx_uart.c **** 		// Dummy reading
+ 274:./Drivers/source/lpc17xx_uart.c **** 		while (UARTx->LSR & UART_LSR_RDR)
+  68              		.loc 1 274 0
+  69 0026 9AF81430 		ldrb	r3, [r10, #20]	@ zero_extendqisi2
+  70 002a D907     		lsls	r1, r3, #31
+  71 002c 05D5     		bpl	.L9
+  72              	.L10:
+ 275:./Drivers/source/lpc17xx_uart.c **** 		{
+ 276:./Drivers/source/lpc17xx_uart.c **** 			tmp = UARTx->/*RBTHDLR.*/RBR;
+  73              		.loc 1 276 0
+  74 002e 9AF80030 		ldrb	r3, [r10]	@ zero_extendqisi2
+  75              	.LVL2:
+ 274:./Drivers/source/lpc17xx_uart.c **** 		while (UARTx->LSR & UART_LSR_RDR)
+  76              		.loc 1 274 0
+  77 0032 9AF81430 		ldrb	r3, [r10, #20]	@ zero_extendqisi2
+  78 0036 DA07     		lsls	r2, r3, #31
+  79 0038 F9D4     		bmi	.L10
+  80              	.L9:
+ 277:./Drivers/source/lpc17xx_uart.c **** 		}
+ 278:./Drivers/source/lpc17xx_uart.c **** 
+ 279:./Drivers/source/lpc17xx_uart.c **** 		UARTx->TER = UART_TER_TXEN;
+  81              		.loc 1 279 0
+  82 003a 8023     		movs	r3, #128
+  83 003c 8AF83030 		strb	r3, [r10, #48]
+  84              	.L12:
+ 280:./Drivers/source/lpc17xx_uart.c **** 		// Wait for current transmit complete
+ 281:./Drivers/source/lpc17xx_uart.c **** 		while (!(UARTx->LSR & UART_LSR_THRE));
+  85              		.loc 1 281 0 discriminator 1
+  86 0040 9AF81430 		ldrb	r3, [r10, #20]	@ zero_extendqisi2
+  87 0044 9B06     		lsls	r3, r3, #26
+  88 0046 FBD5     		bpl	.L12
+ 282:./Drivers/source/lpc17xx_uart.c **** 		// Disable Tx
+ 283:./Drivers/source/lpc17xx_uart.c **** 		UARTx->TER = 0;
+ 284:./Drivers/source/lpc17xx_uart.c **** 
+ 285:./Drivers/source/lpc17xx_uart.c **** 		// Disable interrupt
+ 286:./Drivers/source/lpc17xx_uart.c **** 		UARTx->/*DLIER.*/IER = 0;
+ 287:./Drivers/source/lpc17xx_uart.c **** 		// Set LCR to default state
+ 288:./Drivers/source/lpc17xx_uart.c **** 		UARTx->LCR = 0;
+ 289:./Drivers/source/lpc17xx_uart.c **** 		// Set ACR to default state
+ 290:./Drivers/source/lpc17xx_uart.c **** 		UARTx->ACR = 0;
+ 291:./Drivers/source/lpc17xx_uart.c **** 		// Dummy reading
+ 292:./Drivers/source/lpc17xx_uart.c **** 		tmp = UARTx->LSR;
+ 293:./Drivers/source/lpc17xx_uart.c **** 	}
+ 294:./Drivers/source/lpc17xx_uart.c **** 
+ 295:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx == LPC_UART3)
+  89              		.loc 1 295 0
+  90 0048 8A4A     		ldr	r2, .L77+8
+ 283:./Drivers/source/lpc17xx_uart.c **** 		UARTx->TER = 0;
+  91              		.loc 1 283 0
+  92 004a 0023     		movs	r3, #0
+  93 004c 8AF83030 		strb	r3, [r10, #48]
+  94              		.loc 1 295 0
+  95 0050 9245     		cmp	r10, r2
+ 286:./Drivers/source/lpc17xx_uart.c **** 		UARTx->/*DLIER.*/IER = 0;
+  96              		.loc 1 286 0
+  97 0052 CAF80430 		str	r3, [r10, #4]
+ 288:./Drivers/source/lpc17xx_uart.c **** 		UARTx->LCR = 0;
+  98              		.loc 1 288 0
+  99 0056 8AF80C30 		strb	r3, [r10, #12]
+ 290:./Drivers/source/lpc17xx_uart.c **** 		UARTx->ACR = 0;
+ 100              		.loc 1 290 0
+ 101 005a CAF82030 		str	r3, [r10, #32]
+ 292:./Drivers/source/lpc17xx_uart.c **** 		tmp = UARTx->LSR;
+ 102              		.loc 1 292 0
+ 103 005e 9AF81410 		ldrb	r1, [r10, #20]	@ zero_extendqisi2
+ 104              		.loc 1 295 0
+ 105 0062 00F0B080 		beq	.L71
+ 106              	.LBB14:
+ 107              	.LBB15:
+  77:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx == LPC_UART0)
+ 108              		.loc 1 77 0
+ 109 0066 814B     		ldr	r3, .L77
+ 110              	.LBE15:
+ 111              	.LBE14:
+ 296:./Drivers/source/lpc17xx_uart.c **** 	{
+ 297:./Drivers/source/lpc17xx_uart.c **** 		// Set IrDA to default state
+ 298:./Drivers/source/lpc17xx_uart.c **** 		UARTx->ICR = 0;
+ 299:./Drivers/source/lpc17xx_uart.c **** 	}
+ 300:./Drivers/source/lpc17xx_uart.c **** 
+ 301:./Drivers/source/lpc17xx_uart.c **** 	// Set Line Control register ----------------------------
+ 302:./Drivers/source/lpc17xx_uart.c **** 
+ 303:./Drivers/source/lpc17xx_uart.c **** 	uart_set_divisors(UARTx, (UART_ConfigStruct->Baud_rate));
+ 112              		.loc 1 303 0
+ 113 0068 0298     		ldr	r0, [sp, #8]
+ 114              	.LBB22:
+ 115              	.LBB16:
+  77:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx == LPC_UART0)
+ 116              		.loc 1 77 0
+ 117 006a 9A45     		cmp	r10, r3
+ 118              	.LBE16:
+ 119              	.LBE22:
+ 120              		.loc 1 303 0
+ 121 006c 0468     		ldr	r4, [r0]
+ 122              	.LVL3:
+ 123              	.LBB23:
+ 124              	.LBB17:
+  77:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx == LPC_UART0)
+ 125              		.loc 1 77 0
+ 126 006e 00F0E580 		beq	.L72
+  81:./Drivers/source/lpc17xx_uart.c **** 	else if (UARTx == (LPC_UART_TypeDef *)LPC_UART1)
+ 127              		.loc 1 81 0
+ 128 0072 7F4B     		ldr	r3, .L77+4
+ 129 0074 9A45     		cmp	r10, r3
+ 130 0076 00F0D480 		beq	.L8
+  85:./Drivers/source/lpc17xx_uart.c **** 	else if (UARTx == LPC_UART2)
+ 131              		.loc 1 85 0
+ 132 007a 7F4B     		ldr	r3, .L77+12
+ 133 007c 9A45     		cmp	r10, r3
+ 134 007e 00F0D880 		beq	.L73
+  89:./Drivers/source/lpc17xx_uart.c **** 	else if (UARTx == LPC_UART3)
+ 135              		.loc 1 89 0
+ 136 0082 9245     		cmp	r10, r2
+ 137 0084 00F0A380 		beq	.L14
+ 138              	.LVL4:
+ 139              	.L16:
+ 103:./Drivers/source/lpc17xx_uart.c **** 	for (mulFracDiv = 1 ; mulFracDiv <= 15 ;mulFracDiv++)
+ 140              		.loc 1 103 0
+ 141 0088 0127     		movs	r7, #1
+ 142 008a 24FA07F9 		lsr	r9, r4, r7
+  95:./Drivers/source/lpc17xx_uart.c **** 	uClk = uClk >> 4; /* div by 16 */
+ 143              		.loc 1 95 0
+ 144 008e 2909     		lsrs	r1, r5, #4
+  73:./Drivers/source/lpc17xx_uart.c **** 	uint32_t relativeError = 0;
+ 145              		.loc 1 73 0
+ 146 0090 0026     		movs	r6, #0
+  74:./Drivers/source/lpc17xx_uart.c **** 	uint32_t relativeOptimalError = 100000;
+ 147              		.loc 1 74 0
+ 148 0092 7A48     		ldr	r0, .L77+16
+ 149 0094 CDF80CA0 		str	r10, [sp, #12]
+  95:./Drivers/source/lpc17xx_uart.c **** 	uClk = uClk >> 4; /* div by 16 */
+ 150              		.loc 1 95 0
+ 151 0098 0191     		str	r1, [sp, #4]
+ 152              	.LVL5:
+ 153 009a 8C46     		mov	ip, r1
+  69:./Drivers/source/lpc17xx_uart.c **** 	uint32_t mulFracDivOptimal = 1;
+ 154              		.loc 1 69 0
+ 155 009c 0097     		str	r7, [sp]
+  71:./Drivers/source/lpc17xx_uart.c **** 	uint32_t diviserOptimal = 0;
+ 156              		.loc 1 71 0
+ 157 009e B346     		mov	fp, r6
+ 113:./Drivers/source/lpc17xx_uart.c **** 	  if (diviser > 2 && diviser < 65536)
+ 158              		.loc 1 113 0
+ 159 00a0 4FF6FC78 		movw	r8, #65532
+ 160 00a4 B246     		mov	r10, r6
+ 161              	.LVL6:
+ 162              	.L19:
+ 163              	.LBE17:
+ 164              	.LBE23:
+ 187:./Drivers/source/lpc17xx_uart.c **** {
+ 165              		.loc 1 187 0
+ 166 00a6 0022     		movs	r2, #0
+ 167              	.LVL7:
+ 168              	.L26:
+ 169 00a8 D119     		adds	r1, r2, r7
+ 170              	.LBB24:
+ 171              	.LBB18:
+ 107:./Drivers/source/lpc17xx_uart.c **** 	  temp = (mulFracDiv * uClk) / ((mulFracDiv + dividerAddFracDiv));
+ 172              		.loc 1 107 0
+ 173 00aa BCFBF1F1 		udiv	r1, ip, r1
+ 174              	.LVL8:
+ 109:./Drivers/source/lpc17xx_uart.c **** 	  diviser = temp / baudrate;
+ 175              		.loc 1 109 0
+ 176 00ae B1FBF4F3 		udiv	r3, r1, r4
+ 177              	.LVL9:
+ 110:./Drivers/source/lpc17xx_uart.c **** 	  if ((temp % baudrate) > (baudrate / 2))
+ 178              		.loc 1 110 0
+ 179 00b2 04FB1315 		mls	r5, r4, r3, r1
+ 180 00b6 4D45     		cmp	r5, r9
+ 111:./Drivers/source/lpc17xx_uart.c **** 		diviser++;
+ 181              		.loc 1 111 0
+ 182 00b8 88BF     		it	hi
+ 183 00ba 0133     		addhi	r3, r3, #1
+ 184              	.LVL10:
+ 113:./Drivers/source/lpc17xx_uart.c **** 	  if (diviser > 2 && diviser < 65536)
+ 185              		.loc 1 113 0
+ 186 00bc DD1E     		subs	r5, r3, #3
+ 187 00be 4545     		cmp	r5, r8
+ 188 00c0 0FD8     		bhi	.L21
+ 115:./Drivers/source/lpc17xx_uart.c **** 		calcBaudrate = temp / diviser;
+ 189              		.loc 1 115 0
+ 190 00c2 B1FBF3F1 		udiv	r1, r1, r3
+ 191              	.LVL11:
+ 117:./Drivers/source/lpc17xx_uart.c **** 		if (calcBaudrate <= baudrate)
+ 192              		.loc 1 117 0
+ 193 00c6 A142     		cmp	r1, r4
+ 118:./Drivers/source/lpc17xx_uart.c **** 		  relativeError = baudrate - calcBaudrate;
+ 194              		.loc 1 118 0
+ 195 00c8 94BF     		ite	ls
+ 196 00ca C1EB0406 		rsbls	r6, r1, r4
+ 197              	.LVL12:
+ 120:./Drivers/source/lpc17xx_uart.c **** 		  relativeError = calcBaudrate - baudrate;
+ 198              		.loc 1 120 0
+ 199 00ce C4EB0106 		rsbhi	r6, r4, r1
+ 200              	.LVL13:
+ 122:./Drivers/source/lpc17xx_uart.c **** 		if ((relativeError < relativeOptimalError))
+ 201              		.loc 1 122 0
+ 202 00d2 8642     		cmp	r6, r0
+ 203 00d4 05D2     		bcs	.L21
+ 128:./Drivers/source/lpc17xx_uart.c **** 		  if (relativeError == 0)
+ 204              		.loc 1 128 0
+ 205 00d6 002E     		cmp	r6, #0
+ 206 00d8 5ED0     		beq	.L67
+ 207 00da 9B46     		mov	fp, r3
+ 208 00dc 3046     		mov	r0, r6
+ 209 00de 9246     		mov	r10, r2
+ 210 00e0 0097     		str	r7, [sp]
+ 211              	.LVL14:
+ 212              	.L21:
+ 105:./Drivers/source/lpc17xx_uart.c **** 	for (dividerAddFracDiv = 0 ; dividerAddFracDiv <= 15 ;dividerAddFracDiv++)
+ 213              		.loc 1 105 0
+ 214 00e2 0132     		adds	r2, r2, #1
+ 215              	.LVL15:
+ 216 00e4 102A     		cmp	r2, #16
+ 217 00e6 DFD1     		bne	.L26
+ 218              	.LVL16:
+ 133:./Drivers/source/lpc17xx_uart.c **** 	if (relativeError == 0)
+ 219              		.loc 1 133 0
+ 220 00e8 26B1     		cbz	r6, .L46
+ 103:./Drivers/source/lpc17xx_uart.c **** 	for (mulFracDiv = 1 ; mulFracDiv <= 15 ;mulFracDiv++)
+ 221              		.loc 1 103 0
+ 222 00ea 0137     		adds	r7, r7, #1
+ 223              	.LVL17:
+ 224 00ec 019B     		ldr	r3, [sp, #4]
+ 225              	.LVL18:
+ 226 00ee 102F     		cmp	r7, #16
+ 227 00f0 9C44     		add	ip, ip, r3
+ 228              	.LVL19:
+ 229 00f2 D8D1     		bne	.L19
+ 230              	.L46:
+ 231 00f4 5246     		mov	r2, r10
+ 232              	.LVL20:
+ 233 00f6 009F     		ldr	r7, [sp]
+ 234              	.LVL21:
+ 235 00f8 DDF80CA0 		ldr	r10, [sp, #12]
+ 236 00fc 0646     		mov	r6, r0
+ 237              	.LVL22:
+ 238 00fe 5B46     		mov	r3, fp
+ 239              	.LVL23:
+ 240              	.L24:
+ 137:./Drivers/source/lpc17xx_uart.c **** 	if (relativeOptimalError < ((baudrate * UART_ACCEPTED_BAUDRATE_ERROR)/100))
+ 241              		.loc 1 137 0
+ 242 0100 5F49     		ldr	r1, .L77+20
+ 243 0102 04EB4404 		add	r4, r4, r4, lsl #1
+ 244              	.LVL24:
+ 245 0106 A1FB0401 		umull	r0, r1, r1, r4
+ 246 010a B6EB511F 		cmp	r6, r1, lsr #5
+ 247 010e 49D2     		bcs	.L27
+ 141:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR |= UART_LCR_DLAB_EN;
+ 248              		.loc 1 141 0
+ 249 0110 9AF80C00 		ldrb	r0, [r10, #12]	@ zero_extendqisi2
+ 139:./Drivers/source/lpc17xx_uart.c **** 		if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 250              		.loc 1 139 0
+ 251 0114 5649     		ldr	r1, .L77+4
+ 141:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR |= UART_LCR_DLAB_EN;
+ 252              		.loc 1 141 0
+ 253 0116 40F08000 		orr	r0, r0, #128
+ 139:./Drivers/source/lpc17xx_uart.c **** 		if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 254              		.loc 1 139 0
+ 255 011a 8A45     		cmp	r10, r1
+ 142:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->/*DLIER.*/DLM = UART_LOAD_DLM(diviserOptimal);
+ 256              		.loc 1 142 0
+ 257 011c C3F30721 		ubfx	r1, r3, #8, #8
+ 143:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/DLL = UART_LOAD_DLL(diviserOptimal);
+ 258              		.loc 1 143 0
+ 259 0120 DBB2     		uxtb	r3, r3
+ 260              	.LVL25:
+ 141:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR |= UART_LCR_DLAB_EN;
+ 261              		.loc 1 141 0
+ 262 0122 8AF80C00 		strb	r0, [r10, #12]
+ 263              	.LVL26:
+ 142:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->/*DLIER.*/DLM = UART_LOAD_DLM(diviserOptimal);
+ 264              		.loc 1 142 0
+ 265 0126 8AF80410 		strb	r1, [r10, #4]
+ 143:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/DLL = UART_LOAD_DLL(diviserOptimal);
+ 266              		.loc 1 143 0
+ 267 012a 8AF80030 		strb	r3, [r10]
+ 139:./Drivers/source/lpc17xx_uart.c **** 		if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 268              		.loc 1 139 0
+ 269 012e 00F08A80 		beq	.L74
+ 156:./Drivers/source/lpc17xx_uart.c **** 			UARTx->FDR = (UART_FDR_MULVAL(mulFracDivOptimal) \
+ 270              		.loc 1 156 0
+ 271 0132 02F00F03 		and	r3, r2, #15
+ 155:./Drivers/source/lpc17xx_uart.c **** 			UARTx->LCR &= (~UART_LCR_DLAB_EN) & UART_LCR_BITMASK;
+ 272              		.loc 1 155 0
+ 273 0136 9AF80C20 		ldrb	r2, [r10, #12]	@ zero_extendqisi2
+ 274              	.LVL27:
+ 156:./Drivers/source/lpc17xx_uart.c **** 			UARTx->FDR = (UART_FDR_MULVAL(mulFracDivOptimal) \
+ 275              		.loc 1 156 0
+ 276 013a 43EA0713 		orr	r3, r3, r7, lsl #4
+ 277 013e DBB2     		uxtb	r3, r3
+ 155:./Drivers/source/lpc17xx_uart.c **** 			UARTx->LCR &= (~UART_LCR_DLAB_EN) & UART_LCR_BITMASK;
+ 278              		.loc 1 155 0
+ 279 0140 02F07F02 		and	r2, r2, #127
+ 280 0144 8AF80C20 		strb	r2, [r10, #12]
+ 156:./Drivers/source/lpc17xx_uart.c **** 			UARTx->FDR = (UART_FDR_MULVAL(mulFracDivOptimal) \
+ 281              		.loc 1 156 0
+ 282 0148 8AF82830 		strb	r3, [r10, #40]
+ 283              	.LVL28:
+ 284              	.L30:
+ 285              	.LBE18:
+ 286              	.LBE24:
+ 304:./Drivers/source/lpc17xx_uart.c **** 
+ 305:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 306:./Drivers/source/lpc17xx_uart.c **** 	{
+ 307:./Drivers/source/lpc17xx_uart.c **** 		tmp = (((LPC_UART1_TypeDef *)UARTx)->LCR & (UART_LCR_DLAB_EN | UART_LCR_BREAK_EN)) \
+ 308:./Drivers/source/lpc17xx_uart.c **** 				& UART_LCR_BITMASK;
+ 309:./Drivers/source/lpc17xx_uart.c **** 	}
+ 310:./Drivers/source/lpc17xx_uart.c **** 	else
+ 311:./Drivers/source/lpc17xx_uart.c **** 	{
+ 312:./Drivers/source/lpc17xx_uart.c **** 		tmp = (UARTx->LCR & (UART_LCR_DLAB_EN | UART_LCR_BREAK_EN)) & UART_LCR_BITMASK;
+ 313:./Drivers/source/lpc17xx_uart.c **** 	}
+ 314:./Drivers/source/lpc17xx_uart.c **** 
+ 315:./Drivers/source/lpc17xx_uart.c **** 	switch (UART_ConfigStruct->Databits){
+ 287              		.loc 1 315 0
+ 288 014c 0299     		ldr	r1, [sp, #8]
+ 312:./Drivers/source/lpc17xx_uart.c **** 		tmp = (UARTx->LCR & (UART_LCR_DLAB_EN | UART_LCR_BREAK_EN)) & UART_LCR_BITMASK;
+ 289              		.loc 1 312 0
+ 290 014e 9AF80C30 		ldrb	r3, [r10, #12]	@ zero_extendqisi2
+ 291              		.loc 1 315 0
+ 292 0152 4A79     		ldrb	r2, [r1, #5]	@ zero_extendqisi2
+ 312:./Drivers/source/lpc17xx_uart.c **** 		tmp = (UARTx->LCR & (UART_LCR_DLAB_EN | UART_LCR_BREAK_EN)) & UART_LCR_BITMASK;
+ 293              		.loc 1 312 0
+ 294 0154 03F0C003 		and	r3, r3, #192
+ 295              	.LVL29:
+ 296              		.loc 1 315 0
+ 297 0158 012A     		cmp	r2, #1
+ 298 015a 2ED0     		beq	.L33
+ 299              	.L76:
+ 300 015c 03D3     		bcc	.L34
+ 301 015e 022A     		cmp	r2, #2
+ 302 0160 1DD1     		bne	.L75
+ 316:./Drivers/source/lpc17xx_uart.c **** 	case UART_DATABIT_5:
+ 317:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_LCR_WLEN5;
+ 318:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 319:./Drivers/source/lpc17xx_uart.c **** 	case UART_DATABIT_6:
+ 320:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_LCR_WLEN6;
+ 321:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 322:./Drivers/source/lpc17xx_uart.c **** 	case UART_DATABIT_7:
+ 323:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_LCR_WLEN7;
+ 303              		.loc 1 323 0
+ 304 0162 43F00203 		orr	r3, r3, #2
+ 305              	.LVL30:
+ 306              	.L34:
+ 324:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 325:./Drivers/source/lpc17xx_uart.c **** 	case UART_DATABIT_8:
+ 326:./Drivers/source/lpc17xx_uart.c **** 	default:
+ 327:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_LCR_WLEN8;
+ 328:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 329:./Drivers/source/lpc17xx_uart.c **** 	}
+ 330:./Drivers/source/lpc17xx_uart.c **** 
+ 331:./Drivers/source/lpc17xx_uart.c **** 	if (UART_ConfigStruct->Parity == UART_PARITY_NONE)
+ 307              		.loc 1 331 0
+ 308 0166 0298     		ldr	r0, [sp, #8]
+ 309 0168 0279     		ldrb	r2, [r0, #4]	@ zero_extendqisi2
+ 310 016a 4AB1     		cbz	r2, .L36
+ 311              	.LVL31:
+ 332:./Drivers/source/lpc17xx_uart.c **** 	{
+ 333:./Drivers/source/lpc17xx_uart.c **** 		// Do nothing...
+ 334:./Drivers/source/lpc17xx_uart.c **** 	}
+ 335:./Drivers/source/lpc17xx_uart.c **** 	else
+ 336:./Drivers/source/lpc17xx_uart.c **** 	{
+ 337:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_LCR_PARITY_EN;
+ 338:./Drivers/source/lpc17xx_uart.c **** 		switch (UART_ConfigStruct->Parity)
+ 312              		.loc 1 338 0
+ 313 016c 032A     		cmp	r2, #3
+ 314 016e 27D0     		beq	.L38
+ 315 0170 042A     		cmp	r2, #4
+ 316 0172 5BD0     		beq	.L39
+ 317 0174 022A     		cmp	r2, #2
+ 337:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_LCR_PARITY_EN;
+ 318              		.loc 1 337 0
+ 319 0176 14BF     		ite	ne
+ 320 0178 43F00803 		orrne	r3, r3, #8
+ 321              	.LVL32:
+ 339:./Drivers/source/lpc17xx_uart.c **** 		{
+ 340:./Drivers/source/lpc17xx_uart.c **** 		case UART_PARITY_ODD:
+ 341:./Drivers/source/lpc17xx_uart.c **** 			tmp |= UART_LCR_PARITY_ODD;
+ 342:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 343:./Drivers/source/lpc17xx_uart.c **** 
+ 344:./Drivers/source/lpc17xx_uart.c **** 		case UART_PARITY_EVEN:
+ 345:./Drivers/source/lpc17xx_uart.c **** 			tmp |= UART_LCR_PARITY_EVEN;
+ 322              		.loc 1 345 0
+ 323 017c 43F01803 		orreq	r3, r3, #24
+ 324              	.LVL33:
+ 325              	.L36:
+ 346:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 347:./Drivers/source/lpc17xx_uart.c **** 
+ 348:./Drivers/source/lpc17xx_uart.c **** 		case UART_PARITY_SP_1:
+ 349:./Drivers/source/lpc17xx_uart.c **** 			tmp |= UART_LCR_PARITY_F_1;
+ 350:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 351:./Drivers/source/lpc17xx_uart.c **** 
+ 352:./Drivers/source/lpc17xx_uart.c **** 		case UART_PARITY_SP_0:
+ 353:./Drivers/source/lpc17xx_uart.c **** 			tmp |= UART_LCR_PARITY_F_0;
+ 354:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 355:./Drivers/source/lpc17xx_uart.c **** 		default:
+ 356:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 357:./Drivers/source/lpc17xx_uart.c **** 		}
+ 358:./Drivers/source/lpc17xx_uart.c **** 	}
+ 359:./Drivers/source/lpc17xx_uart.c **** 
+ 360:./Drivers/source/lpc17xx_uart.c **** 	switch (UART_ConfigStruct->Stopbits){
+ 326              		.loc 1 360 0
+ 327 0180 0299     		ldr	r1, [sp, #8]
+ 328 0182 8A79     		ldrb	r2, [r1, #6]	@ zero_extendqisi2
+ 329 0184 012A     		cmp	r2, #1
+ 361:./Drivers/source/lpc17xx_uart.c **** 	case UART_STOPBIT_2:
+ 362:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_LCR_STOPBIT_SEL;
+ 330              		.loc 1 362 0
+ 331 0186 08BF     		it	eq
+ 332 0188 43F00403 		orreq	r3, r3, #4
+ 333              	.LVL34:
+ 363:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 364:./Drivers/source/lpc17xx_uart.c **** 	case UART_STOPBIT_1:
+ 365:./Drivers/source/lpc17xx_uart.c **** 	default:
+ 366:./Drivers/source/lpc17xx_uart.c **** 		// Do no thing
+ 367:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 368:./Drivers/source/lpc17xx_uart.c **** 	}
+ 369:./Drivers/source/lpc17xx_uart.c **** 
+ 370:./Drivers/source/lpc17xx_uart.c **** 
+ 371:./Drivers/source/lpc17xx_uart.c **** 	// Write back to LCR, configure FIFO and Disable Tx
+ 372:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) ==  LPC_UART1)
+ 373:./Drivers/source/lpc17xx_uart.c **** 	{
+ 374:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->LCR = (uint8_t)(tmp & UART_LCR_BITMASK);
+ 334              		.loc 1 374 0
+ 335 018c DBB2     		uxtb	r3, r3
+ 336              	.LVL35:
+ 337 018e 8AF80C30 		strb	r3, [r10, #12]
+ 375:./Drivers/source/lpc17xx_uart.c **** 	}
+ 376:./Drivers/source/lpc17xx_uart.c **** 	else
+ 377:./Drivers/source/lpc17xx_uart.c **** 	{
+ 378:./Drivers/source/lpc17xx_uart.c **** 		UARTx->LCR = (uint8_t)(tmp & UART_LCR_BITMASK);
+ 379:./Drivers/source/lpc17xx_uart.c **** 	}
+ 380:./Drivers/source/lpc17xx_uart.c **** }
+ 338              		.loc 1 380 0
+ 339 0192 05B0     		add	sp, sp, #20
+ 340              		@ sp needed
+ 341 0194 BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 342              	.LVL36:
+ 343              	.L67:
+ 344 0198 DDF80CA0 		ldr	r10, [sp, #12]
+ 345 019c B0E7     		b	.L24
+ 346              	.LVL37:
+ 347              	.L75:
+ 327:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_LCR_WLEN8;
+ 348              		.loc 1 327 0
+ 349 019e 43F00303 		orr	r3, r3, #3
+ 350              	.LVL38:
+ 328:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 351              		.loc 1 328 0
+ 352 01a2 E0E7     		b	.L34
+ 353              	.LVL39:
+ 354              	.L27:
+ 305:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 355              		.loc 1 305 0
+ 356 01a4 324B     		ldr	r3, .L77+4
+ 357              	.LVL40:
+ 358 01a6 9A45     		cmp	r10, r3
+ 359 01a8 D0D1     		bne	.L30
+ 360              	.LVL41:
+ 361              	.L29:
+ 315:./Drivers/source/lpc17xx_uart.c **** 	switch (UART_ConfigStruct->Databits){
+ 362              		.loc 1 315 0
+ 363 01aa 0299     		ldr	r1, [sp, #8]
+ 307:./Drivers/source/lpc17xx_uart.c **** 		tmp = (((LPC_UART1_TypeDef *)UARTx)->LCR & (UART_LCR_DLAB_EN | UART_LCR_BREAK_EN)) \
+ 364              		.loc 1 307 0
+ 365 01ac 304B     		ldr	r3, .L77+4
+ 315:./Drivers/source/lpc17xx_uart.c **** 	switch (UART_ConfigStruct->Databits){
+ 366              		.loc 1 315 0
+ 367 01ae 4A79     		ldrb	r2, [r1, #5]	@ zero_extendqisi2
+ 307:./Drivers/source/lpc17xx_uart.c **** 		tmp = (((LPC_UART1_TypeDef *)UARTx)->LCR & (UART_LCR_DLAB_EN | UART_LCR_BREAK_EN)) \
+ 368              		.loc 1 307 0
+ 369 01b0 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 315:./Drivers/source/lpc17xx_uart.c **** 	switch (UART_ConfigStruct->Databits){
+ 370              		.loc 1 315 0
+ 371 01b2 012A     		cmp	r2, #1
+ 307:./Drivers/source/lpc17xx_uart.c **** 		tmp = (((LPC_UART1_TypeDef *)UARTx)->LCR & (UART_LCR_DLAB_EN | UART_LCR_BREAK_EN)) \
+ 372              		.loc 1 307 0
+ 373 01b4 03F0C003 		and	r3, r3, #192
+ 374              	.LVL42:
+ 315:./Drivers/source/lpc17xx_uart.c **** 	switch (UART_ConfigStruct->Databits){
+ 375              		.loc 1 315 0
+ 376 01b8 D0D1     		bne	.L76
+ 377              	.L33:
+ 320:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_LCR_WLEN6;
+ 378              		.loc 1 320 0
+ 379 01ba 43F00103 		orr	r3, r3, #1
+ 380              	.LVL43:
+ 321:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 381              		.loc 1 321 0
+ 382 01be D2E7     		b	.L34
+ 383              	.LVL44:
+ 384              	.L38:
+ 349:./Drivers/source/lpc17xx_uart.c **** 			tmp |= UART_LCR_PARITY_F_1;
+ 385              		.loc 1 349 0
+ 386 01c0 43F02803 		orr	r3, r3, #40
+ 387              	.LVL45:
+ 350:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 388              		.loc 1 350 0
+ 389 01c4 DCE7     		b	.L36
+ 390              	.LVL46:
+ 391              	.L71:
+ 298:./Drivers/source/lpc17xx_uart.c **** 		UARTx->ICR = 0;
+ 392              		.loc 1 298 0
+ 393 01c6 8AF82430 		strb	r3, [r10, #36]
+ 394              	.LVL47:
+ 303:./Drivers/source/lpc17xx_uart.c **** 	uart_set_divisors(UARTx, (UART_ConfigStruct->Baud_rate));
+ 395              		.loc 1 303 0
+ 396 01ca 029B     		ldr	r3, [sp, #8]
+ 397 01cc 1C68     		ldr	r4, [r3]
+ 398              	.LVL48:
+ 399              	.L14:
+ 400              	.LBB25:
+ 401              	.LBB19:
+  91:./Drivers/source/lpc17xx_uart.c **** 		uClk = CLKPWR_GetPCLK (CLKPWR_PCLKSEL_UART3);
+ 402              		.loc 1 91 0
+ 403 01ce 3220     		movs	r0, #50
+ 404 01d0 FFF7FEFF 		bl	CLKPWR_GetPCLK
+ 405              	.LVL49:
+ 406 01d4 0546     		mov	r5, r0
+ 407              	.LVL50:
+ 408 01d6 57E7     		b	.L16
+ 409              	.LVL51:
+ 410              	.L70:
+ 411              	.LBE19:
+ 412              	.LBE25:
+ 234:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*IIFCR.*/FCR = 0;
+ 413              		.loc 1 234 0
+ 414 01d8 0023     		movs	r3, #0
+ 231:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*IIFCR.*/FCR = ( UART_FCR_FIFO_EN \
+ 415              		.loc 1 231 0
+ 416 01da 0722     		movs	r2, #7
+ 417 01dc 0272     		strb	r2, [r0, #8]
+ 234:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*IIFCR.*/FCR = 0;
+ 418              		.loc 1 234 0
+ 419 01de 0372     		strb	r3, [r0, #8]
+ 237:./Drivers/source/lpc17xx_uart.c **** 		while (((LPC_UART1_TypeDef *)UARTx)->LSR & UART_LSR_RDR)
+ 420              		.loc 1 237 0
+ 421 01e0 037D     		ldrb	r3, [r0, #20]	@ zero_extendqisi2
+ 422 01e2 DD07     		lsls	r5, r3, #31
+ 423 01e4 04D5     		bpl	.L4
+ 239:./Drivers/source/lpc17xx_uart.c **** 			tmp = ((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/RBR;
+ 424              		.loc 1 239 0
+ 425 01e6 0346     		mov	r3, r0
+ 426              	.L5:
+ 427 01e8 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 237:./Drivers/source/lpc17xx_uart.c **** 		while (((LPC_UART1_TypeDef *)UARTx)->LSR & UART_LSR_RDR)
+ 428              		.loc 1 237 0
+ 429 01ea 1A7D     		ldrb	r2, [r3, #20]	@ zero_extendqisi2
+ 430 01ec D407     		lsls	r4, r2, #31
+ 431 01ee FBD4     		bmi	.L5
+ 432              	.L4:
+ 242:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->TER = UART_TER_TXEN;
+ 433              		.loc 1 242 0
+ 434 01f0 1F49     		ldr	r1, .L77+4
+ 435              	.LVL52:
+ 436 01f2 8023     		movs	r3, #128
+ 437 01f4 81F83030 		strb	r3, [r1, #48]
+ 438              	.LVL53:
+ 439              	.L7:
+ 244:./Drivers/source/lpc17xx_uart.c **** 		while (!(((LPC_UART1_TypeDef *)UARTx)->LSR & UART_LSR_THRE));
+ 440              		.loc 1 244 0 discriminator 1
+ 441 01f8 0B7D     		ldrb	r3, [r1, #20]	@ zero_extendqisi2
+ 442 01fa 1D4A     		ldr	r2, .L77+4
+ 443 01fc 9806     		lsls	r0, r3, #26
+ 444 01fe FBD5     		bpl	.L7
+ 246:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->TER = 0;
+ 445              		.loc 1 246 0
+ 446 0200 0023     		movs	r3, #0
+ 447 0202 82F83030 		strb	r3, [r2, #48]
+ 249:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*DLIER.*/IER = 0;
+ 448              		.loc 1 249 0
+ 449 0206 5360     		str	r3, [r2, #4]
+ 251:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->LCR = 0;
+ 450              		.loc 1 251 0
+ 451 0208 1373     		strb	r3, [r2, #12]
+ 253:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->ACR = 0;
+ 452              		.loc 1 253 0
+ 453 020a 1362     		str	r3, [r2, #32]
+ 255:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->MCR = 0;
+ 454              		.loc 1 255 0
+ 455 020c 1374     		strb	r3, [r2, #16]
+ 257:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->RS485CTRL = 0;
+ 456              		.loc 1 257 0
+ 457 020e 82F84C30 		strb	r3, [r2, #76]
+ 259:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->RS485DLY = 0;
+ 458              		.loc 1 259 0
+ 459 0212 82F85430 		strb	r3, [r2, #84]
+ 261:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->ADRMATCH = 0;
+ 460              		.loc 1 261 0
+ 461 0216 82F85030 		strb	r3, [r2, #80]
+ 263:./Drivers/source/lpc17xx_uart.c **** 		tmp = ((LPC_UART1_TypeDef *)UARTx)->MSR;
+ 462              		.loc 1 263 0
+ 463 021a 137E     		ldrb	r3, [r2, #24]	@ zero_extendqisi2
+ 303:./Drivers/source/lpc17xx_uart.c **** 	uart_set_divisors(UARTx, (UART_ConfigStruct->Baud_rate));
+ 464              		.loc 1 303 0
+ 465 021c 029B     		ldr	r3, [sp, #8]
+ 466 021e 1C68     		ldr	r4, [r3]
+ 264:./Drivers/source/lpc17xx_uart.c **** 		tmp = ((LPC_UART1_TypeDef *)UARTx)->LSR;
+ 467              		.loc 1 264 0
+ 468 0220 137D     		ldrb	r3, [r2, #20]	@ zero_extendqisi2
+ 469              	.LVL54:
+ 470              	.L8:
+ 471              	.LBB26:
+ 472              	.LBB20:
+  83:./Drivers/source/lpc17xx_uart.c **** 		uClk = CLKPWR_GetPCLK (CLKPWR_PCLKSEL_UART1);
+ 473              		.loc 1 83 0
+ 474 0222 0820     		movs	r0, #8
+ 475 0224 FFF7FEFF 		bl	CLKPWR_GetPCLK
+ 476              	.LVL55:
+ 477 0228 0546     		mov	r5, r0
+ 478              	.LVL56:
+ 479 022a 2DE7     		b	.L16
+ 480              	.LVL57:
+ 481              	.L39:
+ 482              	.LBE20:
+ 483              	.LBE26:
+ 353:./Drivers/source/lpc17xx_uart.c **** 			tmp |= UART_LCR_PARITY_F_0;
+ 484              		.loc 1 353 0
+ 485 022c 43F03803 		orr	r3, r3, #56
+ 486              	.LVL58:
+ 354:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 487              		.loc 1 354 0
+ 488 0230 A6E7     		b	.L36
+ 489              	.LVL59:
+ 490              	.L73:
+ 491              	.LBB27:
+ 492              	.LBB21:
+  87:./Drivers/source/lpc17xx_uart.c **** 		uClk = CLKPWR_GetPCLK (CLKPWR_PCLKSEL_UART2);
+ 493              		.loc 1 87 0
+ 494 0232 3020     		movs	r0, #48
+ 495 0234 FFF7FEFF 		bl	CLKPWR_GetPCLK
+ 496              	.LVL60:
+ 497 0238 0546     		mov	r5, r0
+ 498              	.LVL61:
+ 499 023a 25E7     		b	.L16
+ 500              	.LVL62:
+ 501              	.L72:
+  79:./Drivers/source/lpc17xx_uart.c **** 		uClk = CLKPWR_GetPCLK (CLKPWR_PCLKSEL_UART0);
+ 502              		.loc 1 79 0
+ 503 023c 0620     		movs	r0, #6
+ 504 023e FFF7FEFF 		bl	CLKPWR_GetPCLK
+ 505              	.LVL63:
+ 506 0242 0546     		mov	r5, r0
+ 507              	.LVL64:
+ 508 0244 20E7     		b	.L16
+ 509              	.LVL65:
+ 510              	.L74:
+ 145:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR &= (~UART_LCR_DLAB_EN) & UART_LCR_BITMASK;
+ 511              		.loc 1 145 0
+ 512 0246 9AF80C10 		ldrb	r1, [r10, #12]	@ zero_extendqisi2
+ 146:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->FDR = (UART_FDR_MULVAL(mulFracDivOptimal) \
+ 513              		.loc 1 146 0
+ 514 024a 3B01     		lsls	r3, r7, #4
+ 147:./Drivers/source/lpc17xx_uart.c **** 					| UART_FDR_DIVADDVAL(dividerAddOptimal)) & UART_FDR_BITMASK;
+ 515              		.loc 1 147 0
+ 516 024c 02F00F02 		and	r2, r2, #15
+ 517              	.LVL66:
+ 146:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->FDR = (UART_FDR_MULVAL(mulFracDivOptimal) \
+ 518              		.loc 1 146 0
+ 519 0250 DBB2     		uxtb	r3, r3
+ 147:./Drivers/source/lpc17xx_uart.c **** 					| UART_FDR_DIVADDVAL(dividerAddOptimal)) & UART_FDR_BITMASK;
+ 520              		.loc 1 147 0
+ 521 0252 1343     		orrs	r3, r3, r2
+ 145:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR &= (~UART_LCR_DLAB_EN) & UART_LCR_BITMASK;
+ 522              		.loc 1 145 0
+ 523 0254 01F07F02 		and	r2, r1, #127
+ 524 0258 8AF80C20 		strb	r2, [r10, #12]
+ 146:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->FDR = (UART_FDR_MULVAL(mulFracDivOptimal) \
+ 525              		.loc 1 146 0
+ 526 025c CAF82830 		str	r3, [r10, #40]
+ 527              	.LVL67:
+ 528 0260 A3E7     		b	.L29
+ 529              	.LVL68:
+ 530              	.L69:
+ 531              	.LBE21:
+ 532              	.LBE27:
+ 200:./Drivers/source/lpc17xx_uart.c **** 		CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCUART0, ENABLE);
+ 533              		.loc 1 200 0
+ 534 0262 0820     		movs	r0, #8
+ 535              	.LVL69:
+ 536 0264 0121     		movs	r1, #1
+ 537              	.LVL70:
+ 538 0266 FFF7FEFF 		bl	CLKPWR_ConfigPPWR
+ 539              	.LVL71:
+ 540 026a D6E6     		b	.L3
+ 541              	.L78:
+ 542              		.align	2
+ 543              	.L77:
+ 544 026c 00C00040 		.word	1073790976
+ 545 0270 00000140 		.word	1073807360
+ 546 0274 00C00940 		.word	1074380800
+ 547 0278 00800940 		.word	1074364416
+ 548 027c A0860100 		.word	100000
+ 549 0280 1F85EB51 		.word	1374389535
+ 550              		.cfi_endproc
+ 551              	.LFE56:
+ 553              		.section	.text.UART_DeInit,"ax",%progbits
+ 554              		.align	2
+ 555              		.global	UART_DeInit
+ 556              		.thumb
+ 557              		.thumb_func
+ 559              	UART_DeInit:
+ 560              	.LFB57:
+ 381:./Drivers/source/lpc17xx_uart.c **** 
+ 382:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+ 383:./Drivers/source/lpc17xx_uart.c ****  * @brief		De-initializes the UARTx peripheral registers to their
+ 384:./Drivers/source/lpc17xx_uart.c ****  *                  default reset values.
+ 385:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be:
+ 386:./Drivers/source/lpc17xx_uart.c ****  *   			- LPC_UART0: UART0 peripheral
+ 387:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 388:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 389:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 390:./Drivers/source/lpc17xx_uart.c ****  * @return 		None
+ 391:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+ 392:./Drivers/source/lpc17xx_uart.c **** void UART_DeInit(LPC_UART_TypeDef* UARTx)
+ 393:./Drivers/source/lpc17xx_uart.c **** {
+ 561              		.loc 1 393 0
+ 562              		.cfi_startproc
+ 563              		@ args = 0, pretend = 0, frame = 0
+ 564              		@ frame_needed = 0, uses_anonymous_args = 0
+ 565              		@ link register save eliminated.
+ 566              	.LVL72:
+ 567              	.LBB28:
+ 568              	.LBB29:
+ 394:./Drivers/source/lpc17xx_uart.c **** 	// For debug mode
+ 395:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 396:./Drivers/source/lpc17xx_uart.c **** 
+ 397:./Drivers/source/lpc17xx_uart.c **** 	UART_TxCmd(UARTx, DISABLE);
+ 398:./Drivers/source/lpc17xx_uart.c **** 
+ 399:./Drivers/source/lpc17xx_uart.c **** #ifdef _UART0
+ 400:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx == LPC_UART0)
+ 401:./Drivers/source/lpc17xx_uart.c **** 	{
+ 402:./Drivers/source/lpc17xx_uart.c **** 		/* Set up clock and power for UART module */
+ 403:./Drivers/source/lpc17xx_uart.c **** 		CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCUART0, DISABLE);
+ 404:./Drivers/source/lpc17xx_uart.c **** 	}
+ 405:./Drivers/source/lpc17xx_uart.c **** #endif
+ 406:./Drivers/source/lpc17xx_uart.c **** 
+ 407:./Drivers/source/lpc17xx_uart.c **** #ifdef _UART1
+ 408:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 409:./Drivers/source/lpc17xx_uart.c **** 	{
+ 410:./Drivers/source/lpc17xx_uart.c **** 		/* Set up clock and power for UART module */
+ 411:./Drivers/source/lpc17xx_uart.c **** 		CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCUART1, DISABLE);
+ 412:./Drivers/source/lpc17xx_uart.c **** 	}
+ 413:./Drivers/source/lpc17xx_uart.c **** #endif
+ 414:./Drivers/source/lpc17xx_uart.c **** 
+ 415:./Drivers/source/lpc17xx_uart.c **** #ifdef _UART2
+ 416:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx == LPC_UART2)
+ 417:./Drivers/source/lpc17xx_uart.c **** 	{
+ 418:./Drivers/source/lpc17xx_uart.c **** 		/* Set up clock and power for UART module */
+ 419:./Drivers/source/lpc17xx_uart.c **** 		CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCUART2, DISABLE);
+ 420:./Drivers/source/lpc17xx_uart.c **** 	}
+ 421:./Drivers/source/lpc17xx_uart.c **** #endif
+ 422:./Drivers/source/lpc17xx_uart.c **** 
+ 423:./Drivers/source/lpc17xx_uart.c **** #ifdef _UART3
+ 424:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx == LPC_UART3)
+ 425:./Drivers/source/lpc17xx_uart.c **** 	{
+ 426:./Drivers/source/lpc17xx_uart.c **** 		/* Set up clock and power for UART module */
+ 427:./Drivers/source/lpc17xx_uart.c **** 		CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCUART3, DISABLE);
+ 428:./Drivers/source/lpc17xx_uart.c **** 	}
+ 429:./Drivers/source/lpc17xx_uart.c **** #endif
+ 430:./Drivers/source/lpc17xx_uart.c **** }
+ 431:./Drivers/source/lpc17xx_uart.c **** 
+ 432:./Drivers/source/lpc17xx_uart.c **** /*****************************************************************************//**
+ 433:./Drivers/source/lpc17xx_uart.c **** * @brief		Fills each UART_InitStruct member with its default value:
+ 434:./Drivers/source/lpc17xx_uart.c **** * 				- 9600 bps
+ 435:./Drivers/source/lpc17xx_uart.c **** * 				- 8-bit data
+ 436:./Drivers/source/lpc17xx_uart.c **** * 				- 1 Stopbit
+ 437:./Drivers/source/lpc17xx_uart.c **** * 				- None Parity
+ 438:./Drivers/source/lpc17xx_uart.c **** * @param[in]	UART_InitStruct Pointer to a UART_CFG_Type structure
+ 439:./Drivers/source/lpc17xx_uart.c **** *                    which will be initialized.
+ 440:./Drivers/source/lpc17xx_uart.c **** * @return		None
+ 441:./Drivers/source/lpc17xx_uart.c **** *******************************************************************************/
+ 442:./Drivers/source/lpc17xx_uart.c **** void UART_ConfigStructInit(UART_CFG_Type *UART_InitStruct)
+ 443:./Drivers/source/lpc17xx_uart.c **** {
+ 444:./Drivers/source/lpc17xx_uart.c **** 	UART_InitStruct->Baud_rate = 9600;
+ 445:./Drivers/source/lpc17xx_uart.c **** 	UART_InitStruct->Databits = UART_DATABIT_8;
+ 446:./Drivers/source/lpc17xx_uart.c **** 	UART_InitStruct->Parity = UART_PARITY_NONE;
+ 447:./Drivers/source/lpc17xx_uart.c **** 	UART_InitStruct->Stopbits = UART_STOPBIT_1;
+ 448:./Drivers/source/lpc17xx_uart.c **** }
+ 449:./Drivers/source/lpc17xx_uart.c **** 
+ 450:./Drivers/source/lpc17xx_uart.c **** /* UART Send/Recieve functions -------------------------------------------------*/
+ 451:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+ 452:./Drivers/source/lpc17xx_uart.c ****  * @brief		Transmit a single data through UART peripheral
+ 453:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be:
+ 454:./Drivers/source/lpc17xx_uart.c ****  *   			- LPC_UART0: UART0 peripheral
+ 455:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 456:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 457:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 458:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	Data	Data to transmit (must be 8-bit long)
+ 459:./Drivers/source/lpc17xx_uart.c ****  * @return 		None
+ 460:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+ 461:./Drivers/source/lpc17xx_uart.c **** void UART_SendByte(LPC_UART_TypeDef* UARTx, uint8_t Data)
+ 462:./Drivers/source/lpc17xx_uart.c **** {
+ 463:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 464:./Drivers/source/lpc17xx_uart.c **** 
+ 465:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 466:./Drivers/source/lpc17xx_uart.c **** 	{
+ 467:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/THR = Data & UART_THR_MASKBIT;
+ 468:./Drivers/source/lpc17xx_uart.c **** 	}
+ 469:./Drivers/source/lpc17xx_uart.c **** 	else
+ 470:./Drivers/source/lpc17xx_uart.c **** 	{
+ 471:./Drivers/source/lpc17xx_uart.c **** 		UARTx->/*RBTHDLR.*/THR = Data & UART_THR_MASKBIT;
+ 472:./Drivers/source/lpc17xx_uart.c **** 	}
+ 473:./Drivers/source/lpc17xx_uart.c **** 
+ 474:./Drivers/source/lpc17xx_uart.c **** }
+ 475:./Drivers/source/lpc17xx_uart.c **** 
+ 476:./Drivers/source/lpc17xx_uart.c **** 
+ 477:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+ 478:./Drivers/source/lpc17xx_uart.c ****  * @brief		Receive a single data from UART peripheral
+ 479:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be:
+ 480:./Drivers/source/lpc17xx_uart.c ****  *  			- LPC_UART0: UART0 peripheral
+ 481:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 482:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 483:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 484:./Drivers/source/lpc17xx_uart.c ****  * @return 		Data received
+ 485:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+ 486:./Drivers/source/lpc17xx_uart.c **** uint8_t UART_ReceiveByte(LPC_UART_TypeDef* UARTx)
+ 487:./Drivers/source/lpc17xx_uart.c **** {
+ 488:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 489:./Drivers/source/lpc17xx_uart.c **** 
+ 490:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 491:./Drivers/source/lpc17xx_uart.c **** 	{
+ 492:./Drivers/source/lpc17xx_uart.c **** 		return (((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/RBR & UART_RBR_MASKBIT);
+ 493:./Drivers/source/lpc17xx_uart.c **** 	}
+ 494:./Drivers/source/lpc17xx_uart.c **** 	else
+ 495:./Drivers/source/lpc17xx_uart.c **** 	{
+ 496:./Drivers/source/lpc17xx_uart.c **** 		return (UARTx->/*RBTHDLR.*/RBR & UART_RBR_MASKBIT);
+ 497:./Drivers/source/lpc17xx_uart.c **** 	}
+ 498:./Drivers/source/lpc17xx_uart.c **** }
+ 499:./Drivers/source/lpc17xx_uart.c **** 
+ 500:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+ 501:./Drivers/source/lpc17xx_uart.c ****  * @brief		Send a block of data via UART peripheral
+ 502:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	Selected UART peripheral used to send data, should be:
+ 503:./Drivers/source/lpc17xx_uart.c ****  *   			- LPC_UART0: UART0 peripheral
+ 504:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 505:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 506:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 507:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	txbuf 	Pointer to Transmit buffer
+ 508:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	buflen 	Length of Transmit buffer
+ 509:./Drivers/source/lpc17xx_uart.c ****  * @param[in] 	flag 	Flag used in  UART transfer, should be
+ 510:./Drivers/source/lpc17xx_uart.c ****  * 						NONE_BLOCKING or BLOCKING
+ 511:./Drivers/source/lpc17xx_uart.c ****  * @return 		Number of bytes sent.
+ 512:./Drivers/source/lpc17xx_uart.c ****  *
+ 513:./Drivers/source/lpc17xx_uart.c ****  * Note: when using UART in BLOCKING mode, a time-out condition is used
+ 514:./Drivers/source/lpc17xx_uart.c ****  * via defined symbol UART_BLOCKING_TIMEOUT.
+ 515:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+ 516:./Drivers/source/lpc17xx_uart.c **** uint32_t UART_Send(LPC_UART_TypeDef *UARTx, uint8_t *txbuf,
+ 517:./Drivers/source/lpc17xx_uart.c **** 		uint32_t buflen, TRANSFER_BLOCK_Type flag)
+ 518:./Drivers/source/lpc17xx_uart.c **** {
+ 519:./Drivers/source/lpc17xx_uart.c **** 	uint32_t bToSend, bSent, timeOut, fifo_cnt;
+ 520:./Drivers/source/lpc17xx_uart.c **** 	uint8_t *pChar = txbuf;
+ 521:./Drivers/source/lpc17xx_uart.c **** 
+ 522:./Drivers/source/lpc17xx_uart.c **** 	bToSend = buflen;
+ 523:./Drivers/source/lpc17xx_uart.c **** 
+ 524:./Drivers/source/lpc17xx_uart.c **** 	// blocking mode
+ 525:./Drivers/source/lpc17xx_uart.c **** 	if (flag == BLOCKING) {
+ 526:./Drivers/source/lpc17xx_uart.c **** 		bSent = 0;
+ 527:./Drivers/source/lpc17xx_uart.c **** 		while (bToSend){
+ 528:./Drivers/source/lpc17xx_uart.c **** 			timeOut = UART_BLOCKING_TIMEOUT;
+ 529:./Drivers/source/lpc17xx_uart.c **** 			// Wait for THR empty with timeout
+ 530:./Drivers/source/lpc17xx_uart.c **** 			while (!(UARTx->LSR & UART_LSR_THRE)) {
+ 531:./Drivers/source/lpc17xx_uart.c **** 				if (timeOut == 0) break;
+ 532:./Drivers/source/lpc17xx_uart.c **** 				timeOut--;
+ 533:./Drivers/source/lpc17xx_uart.c **** 			}
+ 534:./Drivers/source/lpc17xx_uart.c **** 			// Time out!
+ 535:./Drivers/source/lpc17xx_uart.c **** 			if(timeOut == 0) break;
+ 536:./Drivers/source/lpc17xx_uart.c **** 			fifo_cnt = UART_TX_FIFO_SIZE;
+ 537:./Drivers/source/lpc17xx_uart.c **** 			while (fifo_cnt && bToSend){
+ 538:./Drivers/source/lpc17xx_uart.c **** 				UART_SendByte(UARTx, (*pChar++));
+ 539:./Drivers/source/lpc17xx_uart.c **** 				fifo_cnt--;
+ 540:./Drivers/source/lpc17xx_uart.c **** 				bToSend--;
+ 541:./Drivers/source/lpc17xx_uart.c **** 				bSent++;
+ 542:./Drivers/source/lpc17xx_uart.c **** 			}
+ 543:./Drivers/source/lpc17xx_uart.c **** 		}
+ 544:./Drivers/source/lpc17xx_uart.c **** 	}
+ 545:./Drivers/source/lpc17xx_uart.c **** 	// None blocking mode
+ 546:./Drivers/source/lpc17xx_uart.c **** 	else {
+ 547:./Drivers/source/lpc17xx_uart.c **** 		bSent = 0;
+ 548:./Drivers/source/lpc17xx_uart.c **** 		while (bToSend) {
+ 549:./Drivers/source/lpc17xx_uart.c **** 			if (!(UARTx->LSR & UART_LSR_THRE)){
+ 550:./Drivers/source/lpc17xx_uart.c **** 				break;
+ 551:./Drivers/source/lpc17xx_uart.c **** 			}
+ 552:./Drivers/source/lpc17xx_uart.c **** 			fifo_cnt = UART_TX_FIFO_SIZE;
+ 553:./Drivers/source/lpc17xx_uart.c **** 			while (fifo_cnt && bToSend) {
+ 554:./Drivers/source/lpc17xx_uart.c **** 				UART_SendByte(UARTx, (*pChar++));
+ 555:./Drivers/source/lpc17xx_uart.c **** 				bToSend--;
+ 556:./Drivers/source/lpc17xx_uart.c **** 				fifo_cnt--;
+ 557:./Drivers/source/lpc17xx_uart.c **** 				bSent++;
+ 558:./Drivers/source/lpc17xx_uart.c **** 			}
+ 559:./Drivers/source/lpc17xx_uart.c **** 		}
+ 560:./Drivers/source/lpc17xx_uart.c **** 	}
+ 561:./Drivers/source/lpc17xx_uart.c **** 	return bSent;
+ 562:./Drivers/source/lpc17xx_uart.c **** }
+ 563:./Drivers/source/lpc17xx_uart.c **** 
+ 564:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+ 565:./Drivers/source/lpc17xx_uart.c ****  * @brief		Receive a block of data via UART peripheral
+ 566:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	Selected UART peripheral used to send data,
+ 567:./Drivers/source/lpc17xx_uart.c ****  * 				should be:
+ 568:./Drivers/source/lpc17xx_uart.c ****  *   			- LPC_UART0: UART0 peripheral
+ 569:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 570:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 571:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 572:./Drivers/source/lpc17xx_uart.c ****  * @param[out]	rxbuf 	Pointer to Received buffer
+ 573:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	buflen 	Length of Received buffer
+ 574:./Drivers/source/lpc17xx_uart.c ****  * @param[in] 	flag 	Flag mode, should be NONE_BLOCKING or BLOCKING
+ 575:./Drivers/source/lpc17xx_uart.c **** 
+ 576:./Drivers/source/lpc17xx_uart.c ****  * @return 		Number of bytes received
+ 577:./Drivers/source/lpc17xx_uart.c ****  *
+ 578:./Drivers/source/lpc17xx_uart.c ****  * Note: when using UART in BLOCKING mode, a time-out condition is used
+ 579:./Drivers/source/lpc17xx_uart.c ****  * via defined symbol UART_BLOCKING_TIMEOUT.
+ 580:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+ 581:./Drivers/source/lpc17xx_uart.c **** uint32_t UART_Receive(LPC_UART_TypeDef *UARTx, uint8_t *rxbuf, \
+ 582:./Drivers/source/lpc17xx_uart.c **** 		uint32_t buflen, TRANSFER_BLOCK_Type flag)
+ 583:./Drivers/source/lpc17xx_uart.c **** {
+ 584:./Drivers/source/lpc17xx_uart.c **** 	uint32_t bToRecv, bRecv, timeOut;
+ 585:./Drivers/source/lpc17xx_uart.c **** 	uint8_t *pChar = rxbuf;
+ 586:./Drivers/source/lpc17xx_uart.c **** 
+ 587:./Drivers/source/lpc17xx_uart.c **** 	bToRecv = buflen;
+ 588:./Drivers/source/lpc17xx_uart.c **** 
+ 589:./Drivers/source/lpc17xx_uart.c **** 	// Blocking mode
+ 590:./Drivers/source/lpc17xx_uart.c **** 	if (flag == BLOCKING) {
+ 591:./Drivers/source/lpc17xx_uart.c **** 		bRecv = 0;
+ 592:./Drivers/source/lpc17xx_uart.c **** 		while (bToRecv){
+ 593:./Drivers/source/lpc17xx_uart.c **** 			timeOut = UART_BLOCKING_TIMEOUT;
+ 594:./Drivers/source/lpc17xx_uart.c **** 			while (!(UARTx->LSR & UART_LSR_RDR)){
+ 595:./Drivers/source/lpc17xx_uart.c **** 				if (timeOut == 0) break;
+ 596:./Drivers/source/lpc17xx_uart.c **** 				timeOut--;
+ 597:./Drivers/source/lpc17xx_uart.c **** 			}
+ 598:./Drivers/source/lpc17xx_uart.c **** 			// Time out!
+ 599:./Drivers/source/lpc17xx_uart.c **** 			if(timeOut == 0) break;
+ 600:./Drivers/source/lpc17xx_uart.c **** 			// Get data from the buffer
+ 601:./Drivers/source/lpc17xx_uart.c **** 			(*pChar++) = UART_ReceiveByte(UARTx);
+ 602:./Drivers/source/lpc17xx_uart.c **** 			bToRecv--;
+ 603:./Drivers/source/lpc17xx_uart.c **** 			bRecv++;
+ 604:./Drivers/source/lpc17xx_uart.c **** 		}
+ 605:./Drivers/source/lpc17xx_uart.c **** 	}
+ 606:./Drivers/source/lpc17xx_uart.c **** 	// None blocking mode
+ 607:./Drivers/source/lpc17xx_uart.c **** 	else {
+ 608:./Drivers/source/lpc17xx_uart.c **** 		bRecv = 0;
+ 609:./Drivers/source/lpc17xx_uart.c **** 		while (bToRecv) {
+ 610:./Drivers/source/lpc17xx_uart.c **** 			if (!(UARTx->LSR & UART_LSR_RDR)) {
+ 611:./Drivers/source/lpc17xx_uart.c **** 				break;
+ 612:./Drivers/source/lpc17xx_uart.c **** 			} else {
+ 613:./Drivers/source/lpc17xx_uart.c **** 				(*pChar++) = UART_ReceiveByte(UARTx);
+ 614:./Drivers/source/lpc17xx_uart.c **** 				bRecv++;
+ 615:./Drivers/source/lpc17xx_uart.c **** 				bToRecv--;
+ 616:./Drivers/source/lpc17xx_uart.c **** 			}
+ 617:./Drivers/source/lpc17xx_uart.c **** 		}
+ 618:./Drivers/source/lpc17xx_uart.c **** 	}
+ 619:./Drivers/source/lpc17xx_uart.c **** 	return bRecv;
+ 620:./Drivers/source/lpc17xx_uart.c **** }
+ 621:./Drivers/source/lpc17xx_uart.c **** 
+ 622:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+ 623:./Drivers/source/lpc17xx_uart.c ****  * @brief		Force BREAK character on UART line, output pin UARTx TXD is
+ 624:./Drivers/source/lpc17xx_uart.c **** 				forced to logic 0.
+ 625:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be:
+ 626:./Drivers/source/lpc17xx_uart.c ****  *  			- LPC_UART0: UART0 peripheral
+ 627:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 628:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 629:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 630:./Drivers/source/lpc17xx_uart.c ****  * @return 		None
+ 631:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+ 632:./Drivers/source/lpc17xx_uart.c **** void UART_ForceBreak(LPC_UART_TypeDef* UARTx)
+ 633:./Drivers/source/lpc17xx_uart.c **** {
+ 634:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 635:./Drivers/source/lpc17xx_uart.c **** 
+ 636:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 637:./Drivers/source/lpc17xx_uart.c **** 	{
+ 638:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->LCR |= UART_LCR_BREAK_EN;
+ 639:./Drivers/source/lpc17xx_uart.c **** 	}
+ 640:./Drivers/source/lpc17xx_uart.c **** 	else
+ 641:./Drivers/source/lpc17xx_uart.c **** 	{
+ 642:./Drivers/source/lpc17xx_uart.c **** 		UARTx->LCR |= UART_LCR_BREAK_EN;
+ 643:./Drivers/source/lpc17xx_uart.c **** 	}
+ 644:./Drivers/source/lpc17xx_uart.c **** }
+ 645:./Drivers/source/lpc17xx_uart.c **** 
+ 646:./Drivers/source/lpc17xx_uart.c **** 
+ 647:./Drivers/source/lpc17xx_uart.c **** /********************************************************************//**
+ 648:./Drivers/source/lpc17xx_uart.c ****  * @brief 		Enable or disable specified UART interrupt.
+ 649:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be
+ 650:./Drivers/source/lpc17xx_uart.c ****  *  			- LPC_UART0: UART0 peripheral
+ 651:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 652:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 653:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 654:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTIntCfg	Specifies the interrupt flag,
+ 655:./Drivers/source/lpc17xx_uart.c ****  * 				should be one of the following:
+ 656:./Drivers/source/lpc17xx_uart.c **** 				- UART_INTCFG_RBR 	:  RBR Interrupt enable
+ 657:./Drivers/source/lpc17xx_uart.c **** 				- UART_INTCFG_THRE 	:  THR Interrupt enable
+ 658:./Drivers/source/lpc17xx_uart.c **** 				- UART_INTCFG_RLS 	:  RX line status interrupt enable
+ 659:./Drivers/source/lpc17xx_uart.c **** 				- UART1_INTCFG_MS	:  Modem status interrupt enable (UART1 only)
+ 660:./Drivers/source/lpc17xx_uart.c **** 				- UART1_INTCFG_CTS	:  CTS1 signal transition interrupt enable (UART1 only)
+ 661:./Drivers/source/lpc17xx_uart.c **** 				- UART_INTCFG_ABEO 	:  Enables the end of auto-baud interrupt
+ 662:./Drivers/source/lpc17xx_uart.c **** 				- UART_INTCFG_ABTO 	:  Enables the auto-baud time-out interrupt
+ 663:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	NewState New state of specified UART interrupt type,
+ 664:./Drivers/source/lpc17xx_uart.c ****  * 				should be:
+ 665:./Drivers/source/lpc17xx_uart.c ****  * 				- ENALBE: Enable this UART interrupt type.
+ 666:./Drivers/source/lpc17xx_uart.c **** * 				- DISALBE: Disable this UART interrupt type.
+ 667:./Drivers/source/lpc17xx_uart.c ****  * @return 		None
+ 668:./Drivers/source/lpc17xx_uart.c ****  *********************************************************************/
+ 669:./Drivers/source/lpc17xx_uart.c **** void UART_IntConfig(LPC_UART_TypeDef *UARTx, UART_INT_Type UARTIntCfg, FunctionalState NewState)
+ 670:./Drivers/source/lpc17xx_uart.c **** {
+ 671:./Drivers/source/lpc17xx_uart.c **** 	uint32_t tmp;
+ 672:./Drivers/source/lpc17xx_uart.c **** 
+ 673:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 674:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_FUNCTIONALSTATE(NewState));
+ 675:./Drivers/source/lpc17xx_uart.c **** 
+ 676:./Drivers/source/lpc17xx_uart.c **** 	switch(UARTIntCfg){
+ 677:./Drivers/source/lpc17xx_uart.c **** 		case UART_INTCFG_RBR:
+ 678:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART_IER_RBRINT_EN;
+ 679:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 680:./Drivers/source/lpc17xx_uart.c **** 		case UART_INTCFG_THRE:
+ 681:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART_IER_THREINT_EN;
+ 682:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 683:./Drivers/source/lpc17xx_uart.c **** 		case UART_INTCFG_RLS:
+ 684:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART_IER_RLSINT_EN;
+ 685:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 686:./Drivers/source/lpc17xx_uart.c **** 		case UART1_INTCFG_MS:
+ 687:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART1_IER_MSINT_EN;
+ 688:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 689:./Drivers/source/lpc17xx_uart.c **** 		case UART1_INTCFG_CTS:
+ 690:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART1_IER_CTSINT_EN;
+ 691:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 692:./Drivers/source/lpc17xx_uart.c **** 		case UART_INTCFG_ABEO:
+ 693:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART_IER_ABEOINT_EN;
+ 694:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 695:./Drivers/source/lpc17xx_uart.c **** 		case UART_INTCFG_ABTO:
+ 696:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART_IER_ABTOINT_EN;
+ 697:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 698:./Drivers/source/lpc17xx_uart.c **** 	}
+ 699:./Drivers/source/lpc17xx_uart.c **** 
+ 700:./Drivers/source/lpc17xx_uart.c **** 	if ((LPC_UART1_TypeDef *) UARTx == LPC_UART1)
+ 701:./Drivers/source/lpc17xx_uart.c **** 	{
+ 702:./Drivers/source/lpc17xx_uart.c **** 		CHECK_PARAM((PARAM_UART_INTCFG(UARTIntCfg)) || (PARAM_UART1_INTCFG(UARTIntCfg)));
+ 703:./Drivers/source/lpc17xx_uart.c **** 	}
+ 704:./Drivers/source/lpc17xx_uart.c **** 	else
+ 705:./Drivers/source/lpc17xx_uart.c **** 	{
+ 706:./Drivers/source/lpc17xx_uart.c **** 		CHECK_PARAM(PARAM_UART_INTCFG(UARTIntCfg));
+ 707:./Drivers/source/lpc17xx_uart.c **** 	}
+ 708:./Drivers/source/lpc17xx_uart.c **** 
+ 709:./Drivers/source/lpc17xx_uart.c **** 	if (NewState == ENABLE)
+ 710:./Drivers/source/lpc17xx_uart.c **** 	{
+ 711:./Drivers/source/lpc17xx_uart.c **** 		if ((LPC_UART1_TypeDef *) UARTx == LPC_UART1)
+ 712:./Drivers/source/lpc17xx_uart.c **** 		{
+ 713:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->/*DLIER.*/IER |= tmp;
+ 714:./Drivers/source/lpc17xx_uart.c **** 		}
+ 715:./Drivers/source/lpc17xx_uart.c **** 		else
+ 716:./Drivers/source/lpc17xx_uart.c **** 		{
+ 717:./Drivers/source/lpc17xx_uart.c **** 			UARTx->/*DLIER.*/IER |= tmp;
+ 718:./Drivers/source/lpc17xx_uart.c **** 		}
+ 719:./Drivers/source/lpc17xx_uart.c **** 	}
+ 720:./Drivers/source/lpc17xx_uart.c **** 	else
+ 721:./Drivers/source/lpc17xx_uart.c **** 	{
+ 722:./Drivers/source/lpc17xx_uart.c **** 		if ((LPC_UART1_TypeDef *) UARTx == LPC_UART1)
+ 723:./Drivers/source/lpc17xx_uart.c **** 		{
+ 724:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->/*DLIER.*/IER &= (~tmp) & UART1_IER_BITMASK;
+ 725:./Drivers/source/lpc17xx_uart.c **** 		}
+ 726:./Drivers/source/lpc17xx_uart.c **** 		else
+ 727:./Drivers/source/lpc17xx_uart.c **** 		{
+ 728:./Drivers/source/lpc17xx_uart.c **** 			UARTx->/*DLIER.*/IER &= (~tmp) & UART_IER_BITMASK;
+ 729:./Drivers/source/lpc17xx_uart.c **** 		}
+ 730:./Drivers/source/lpc17xx_uart.c **** 	}
+ 731:./Drivers/source/lpc17xx_uart.c **** }
+ 732:./Drivers/source/lpc17xx_uart.c **** 
+ 733:./Drivers/source/lpc17xx_uart.c **** 
+ 734:./Drivers/source/lpc17xx_uart.c **** /********************************************************************//**
+ 735:./Drivers/source/lpc17xx_uart.c ****  * @brief 		Get current value of Line Status register in UART peripheral.
+ 736:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be:
+ 737:./Drivers/source/lpc17xx_uart.c ****  *  			- LPC_UART0: UART0 peripheral
+ 738:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 739:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 740:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 741:./Drivers/source/lpc17xx_uart.c ****  * @return		Current value of Line Status register in UART peripheral.
+ 742:./Drivers/source/lpc17xx_uart.c ****  * Note:	The return value of this function must be ANDed with each member in
+ 743:./Drivers/source/lpc17xx_uart.c ****  * 			UART_LS_Type enumeration to determine current flag status
+ 744:./Drivers/source/lpc17xx_uart.c ****  * 			corresponding to each Line status type. Because some flags in
+ 745:./Drivers/source/lpc17xx_uart.c ****  * 			Line Status register will be cleared after reading, the next reading
+ 746:./Drivers/source/lpc17xx_uart.c ****  * 			Line Status register could not be correct. So this function used to
+ 747:./Drivers/source/lpc17xx_uart.c ****  * 			read Line status register in one time only, then the return value
+ 748:./Drivers/source/lpc17xx_uart.c ****  * 			used to check all flags.
+ 749:./Drivers/source/lpc17xx_uart.c ****  *********************************************************************/
+ 750:./Drivers/source/lpc17xx_uart.c **** uint8_t UART_GetLineStatus(LPC_UART_TypeDef* UARTx)
+ 751:./Drivers/source/lpc17xx_uart.c **** {
+ 752:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 753:./Drivers/source/lpc17xx_uart.c **** 
+ 754:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 755:./Drivers/source/lpc17xx_uart.c **** 	{
+ 756:./Drivers/source/lpc17xx_uart.c **** 		return ((((LPC_UART1_TypeDef *)LPC_UART1)->LSR) & UART_LSR_BITMASK);
+ 757:./Drivers/source/lpc17xx_uart.c **** 	}
+ 758:./Drivers/source/lpc17xx_uart.c **** 	else
+ 759:./Drivers/source/lpc17xx_uart.c **** 	{
+ 760:./Drivers/source/lpc17xx_uart.c **** 		return ((UARTx->LSR) & UART_LSR_BITMASK);
+ 761:./Drivers/source/lpc17xx_uart.c **** 	}
+ 762:./Drivers/source/lpc17xx_uart.c **** }
+ 763:./Drivers/source/lpc17xx_uart.c **** 
+ 764:./Drivers/source/lpc17xx_uart.c **** /********************************************************************//**
+ 765:./Drivers/source/lpc17xx_uart.c ****  * @brief 		Get Interrupt Identification value
+ 766:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be:
+ 767:./Drivers/source/lpc17xx_uart.c ****  *  			- LPC_UART0: UART0 peripheral
+ 768:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 769:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 770:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 771:./Drivers/source/lpc17xx_uart.c ****  * @return		Current value of UART UIIR register in UART peripheral.
+ 772:./Drivers/source/lpc17xx_uart.c ****  *********************************************************************/
+ 773:./Drivers/source/lpc17xx_uart.c **** uint32_t UART_GetIntId(LPC_UART_TypeDef* UARTx)
+ 774:./Drivers/source/lpc17xx_uart.c **** {
+ 775:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 776:./Drivers/source/lpc17xx_uart.c **** 	return (UARTx->IIR & 0x03CF);
+ 777:./Drivers/source/lpc17xx_uart.c **** }
+ 778:./Drivers/source/lpc17xx_uart.c **** 
+ 779:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+ 780:./Drivers/source/lpc17xx_uart.c ****  * @brief		Check whether if UART is busy or not
+ 781:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be:
+ 782:./Drivers/source/lpc17xx_uart.c ****  *  			- LPC_UART0: UART0 peripheral
+ 783:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 784:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 785:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 786:./Drivers/source/lpc17xx_uart.c ****  * @return		RESET if UART is not busy, otherwise return SET.
+ 787:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+ 788:./Drivers/source/lpc17xx_uart.c **** FlagStatus UART_CheckBusy(LPC_UART_TypeDef *UARTx)
+ 789:./Drivers/source/lpc17xx_uart.c **** {
+ 790:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx->LSR & UART_LSR_TEMT){
+ 791:./Drivers/source/lpc17xx_uart.c **** 		return RESET;
+ 792:./Drivers/source/lpc17xx_uart.c **** 	} else {
+ 793:./Drivers/source/lpc17xx_uart.c **** 		return SET;
+ 794:./Drivers/source/lpc17xx_uart.c **** 	}
+ 795:./Drivers/source/lpc17xx_uart.c **** }
+ 796:./Drivers/source/lpc17xx_uart.c **** 
+ 797:./Drivers/source/lpc17xx_uart.c **** 
+ 798:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+ 799:./Drivers/source/lpc17xx_uart.c ****  * @brief		Configure FIFO function on selected UART peripheral
+ 800:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be:
+ 801:./Drivers/source/lpc17xx_uart.c ****  *  			- LPC_UART0: UART0 peripheral
+ 802:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 803:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 804:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 805:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	FIFOCfg	Pointer to a UART_FIFO_CFG_Type Structure that
+ 806:./Drivers/source/lpc17xx_uart.c ****  * 						contains specified information about FIFO configuration
+ 807:./Drivers/source/lpc17xx_uart.c ****  * @return 		none
+ 808:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+ 809:./Drivers/source/lpc17xx_uart.c **** void UART_FIFOConfig(LPC_UART_TypeDef *UARTx, UART_FIFO_CFG_Type *FIFOCfg)
+ 810:./Drivers/source/lpc17xx_uart.c **** {
+ 811:./Drivers/source/lpc17xx_uart.c **** 	uint8_t tmp = 0;
+ 812:./Drivers/source/lpc17xx_uart.c **** 
+ 813:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 814:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UART_FIFO_LEVEL(FIFOCfg->FIFO_Level));
+ 815:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_FUNCTIONALSTATE(FIFOCfg->FIFO_DMAMode));
+ 816:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_FUNCTIONALSTATE(FIFOCfg->FIFO_ResetRxBuf));
+ 817:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_FUNCTIONALSTATE(FIFOCfg->FIFO_ResetTxBuf));
+ 818:./Drivers/source/lpc17xx_uart.c **** 
+ 819:./Drivers/source/lpc17xx_uart.c **** 	tmp |= UART_FCR_FIFO_EN;
+ 820:./Drivers/source/lpc17xx_uart.c **** 	switch (FIFOCfg->FIFO_Level){
+ 821:./Drivers/source/lpc17xx_uart.c **** 	case UART_FIFO_TRGLEV0:
+ 822:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_FCR_TRG_LEV0;
+ 823:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 824:./Drivers/source/lpc17xx_uart.c **** 	case UART_FIFO_TRGLEV1:
+ 825:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_FCR_TRG_LEV1;
+ 826:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 827:./Drivers/source/lpc17xx_uart.c **** 	case UART_FIFO_TRGLEV2:
+ 828:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_FCR_TRG_LEV2;
+ 829:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 830:./Drivers/source/lpc17xx_uart.c **** 	case UART_FIFO_TRGLEV3:
+ 831:./Drivers/source/lpc17xx_uart.c **** 	default:
+ 832:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_FCR_TRG_LEV3;
+ 833:./Drivers/source/lpc17xx_uart.c **** 		break;
+ 834:./Drivers/source/lpc17xx_uart.c **** 	}
+ 835:./Drivers/source/lpc17xx_uart.c **** 
+ 836:./Drivers/source/lpc17xx_uart.c **** 	if (FIFOCfg->FIFO_ResetTxBuf == ENABLE)
+ 837:./Drivers/source/lpc17xx_uart.c **** 	{
+ 838:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_FCR_TX_RS;
+ 839:./Drivers/source/lpc17xx_uart.c **** 	}
+ 840:./Drivers/source/lpc17xx_uart.c **** 	if (FIFOCfg->FIFO_ResetRxBuf == ENABLE)
+ 841:./Drivers/source/lpc17xx_uart.c **** 	{
+ 842:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_FCR_RX_RS;
+ 843:./Drivers/source/lpc17xx_uart.c **** 	}
+ 844:./Drivers/source/lpc17xx_uart.c **** 	if (FIFOCfg->FIFO_DMAMode == ENABLE)
+ 845:./Drivers/source/lpc17xx_uart.c **** 	{
+ 846:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_FCR_DMAMODE_SEL;
+ 847:./Drivers/source/lpc17xx_uart.c **** 	}
+ 848:./Drivers/source/lpc17xx_uart.c **** 
+ 849:./Drivers/source/lpc17xx_uart.c **** 
+ 850:./Drivers/source/lpc17xx_uart.c **** 	//write to FIFO control register
+ 851:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 852:./Drivers/source/lpc17xx_uart.c **** 	{
+ 853:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*IIFCR.*/FCR = tmp & UART_FCR_BITMASK;
+ 854:./Drivers/source/lpc17xx_uart.c **** 	}
+ 855:./Drivers/source/lpc17xx_uart.c **** 	else
+ 856:./Drivers/source/lpc17xx_uart.c **** 	{
+ 857:./Drivers/source/lpc17xx_uart.c **** 		UARTx->/*IIFCR.*/FCR = tmp & UART_FCR_BITMASK;
+ 858:./Drivers/source/lpc17xx_uart.c **** 	}
+ 859:./Drivers/source/lpc17xx_uart.c **** }
+ 860:./Drivers/source/lpc17xx_uart.c **** 
+ 861:./Drivers/source/lpc17xx_uart.c **** /*****************************************************************************//**
+ 862:./Drivers/source/lpc17xx_uart.c **** * @brief		Fills each UART_FIFOInitStruct member with its default value:
+ 863:./Drivers/source/lpc17xx_uart.c **** * 				- FIFO_DMAMode = DISABLE
+ 864:./Drivers/source/lpc17xx_uart.c **** * 				- FIFO_Level = UART_FIFO_TRGLEV0
+ 865:./Drivers/source/lpc17xx_uart.c **** * 				- FIFO_ResetRxBuf = ENABLE
+ 866:./Drivers/source/lpc17xx_uart.c **** * 				- FIFO_ResetTxBuf = ENABLE
+ 867:./Drivers/source/lpc17xx_uart.c **** * 				- FIFO_State = ENABLE
+ 868:./Drivers/source/lpc17xx_uart.c **** 
+ 869:./Drivers/source/lpc17xx_uart.c **** * @param[in]	UART_FIFOInitStruct Pointer to a UART_FIFO_CFG_Type structure
+ 870:./Drivers/source/lpc17xx_uart.c **** *                    which will be initialized.
+ 871:./Drivers/source/lpc17xx_uart.c **** * @return		None
+ 872:./Drivers/source/lpc17xx_uart.c **** *******************************************************************************/
+ 873:./Drivers/source/lpc17xx_uart.c **** void UART_FIFOConfigStructInit(UART_FIFO_CFG_Type *UART_FIFOInitStruct)
+ 874:./Drivers/source/lpc17xx_uart.c **** {
+ 875:./Drivers/source/lpc17xx_uart.c **** 	UART_FIFOInitStruct->FIFO_DMAMode = DISABLE;
+ 876:./Drivers/source/lpc17xx_uart.c **** 	UART_FIFOInitStruct->FIFO_Level = UART_FIFO_TRGLEV0;
+ 877:./Drivers/source/lpc17xx_uart.c **** 	UART_FIFOInitStruct->FIFO_ResetRxBuf = ENABLE;
+ 878:./Drivers/source/lpc17xx_uart.c **** 	UART_FIFOInitStruct->FIFO_ResetTxBuf = ENABLE;
+ 879:./Drivers/source/lpc17xx_uart.c **** }
+ 880:./Drivers/source/lpc17xx_uart.c **** 
+ 881:./Drivers/source/lpc17xx_uart.c **** 
+ 882:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+ 883:./Drivers/source/lpc17xx_uart.c ****  * @brief		Start/Stop Auto Baudrate activity
+ 884:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be
+ 885:./Drivers/source/lpc17xx_uart.c ****  *   			- LPC_UART0: UART0 peripheral
+ 886:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 887:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 888:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 889:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	ABConfigStruct	A pointer to UART_AB_CFG_Type structure that
+ 890:./Drivers/source/lpc17xx_uart.c ****  * 								contains specified information about UART
+ 891:./Drivers/source/lpc17xx_uart.c ****  * 								auto baudrate configuration
+ 892:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	NewState New State of Auto baudrate activity, should be:
+ 893:./Drivers/source/lpc17xx_uart.c ****  * 				- ENABLE: Start this activity
+ 894:./Drivers/source/lpc17xx_uart.c ****  *				- DISABLE: Stop this activity
+ 895:./Drivers/source/lpc17xx_uart.c ****  * Note:		Auto-baudrate mode enable bit will be cleared once this mode
+ 896:./Drivers/source/lpc17xx_uart.c ****  * 				completed.
+ 897:./Drivers/source/lpc17xx_uart.c ****  * @return 		none
+ 898:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+ 899:./Drivers/source/lpc17xx_uart.c **** void UART_ABCmd(LPC_UART_TypeDef *UARTx, UART_AB_CFG_Type *ABConfigStruct, \
+ 900:./Drivers/source/lpc17xx_uart.c **** 				FunctionalState NewState)
+ 901:./Drivers/source/lpc17xx_uart.c **** {
+ 902:./Drivers/source/lpc17xx_uart.c **** 	uint32_t tmp;
+ 903:./Drivers/source/lpc17xx_uart.c **** 
+ 904:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 905:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_FUNCTIONALSTATE(NewState));
+ 906:./Drivers/source/lpc17xx_uart.c **** 
+ 907:./Drivers/source/lpc17xx_uart.c **** 	tmp = 0;
+ 908:./Drivers/source/lpc17xx_uart.c **** 	if (NewState == ENABLE) {
+ 909:./Drivers/source/lpc17xx_uart.c **** 		if (ABConfigStruct->ABMode == UART_AUTOBAUD_MODE1){
+ 910:./Drivers/source/lpc17xx_uart.c **** 			tmp |= UART_ACR_MODE;
+ 911:./Drivers/source/lpc17xx_uart.c **** 		}
+ 912:./Drivers/source/lpc17xx_uart.c **** 		if (ABConfigStruct->AutoRestart == ENABLE){
+ 913:./Drivers/source/lpc17xx_uart.c **** 			tmp |= UART_ACR_AUTO_RESTART;
+ 914:./Drivers/source/lpc17xx_uart.c **** 		}
+ 915:./Drivers/source/lpc17xx_uart.c **** 	}
+ 916:./Drivers/source/lpc17xx_uart.c **** 
+ 917:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 918:./Drivers/source/lpc17xx_uart.c **** 	{
+ 919:./Drivers/source/lpc17xx_uart.c **** 		if (NewState == ENABLE)
+ 920:./Drivers/source/lpc17xx_uart.c **** 		{
+ 921:./Drivers/source/lpc17xx_uart.c **** 			// Clear DLL and DLM value
+ 922:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR |= UART_LCR_DLAB_EN;
+ 923:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->DLL = 0;
+ 924:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->DLM = 0;
+ 925:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR &= ~UART_LCR_DLAB_EN;
+ 926:./Drivers/source/lpc17xx_uart.c **** 			// FDR value must be reset to default value
+ 927:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->FDR = 0x10;
+ 928:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->ACR = UART_ACR_START | tmp;
+ 929:./Drivers/source/lpc17xx_uart.c **** 		}
+ 930:./Drivers/source/lpc17xx_uart.c **** 		else
+ 931:./Drivers/source/lpc17xx_uart.c **** 		{
+ 932:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->ACR = 0;
+ 933:./Drivers/source/lpc17xx_uart.c **** 		}
+ 934:./Drivers/source/lpc17xx_uart.c **** 	}
+ 935:./Drivers/source/lpc17xx_uart.c **** 	else
+ 936:./Drivers/source/lpc17xx_uart.c **** 	{
+ 937:./Drivers/source/lpc17xx_uart.c **** 		if (NewState == ENABLE)
+ 938:./Drivers/source/lpc17xx_uart.c **** 		{
+ 939:./Drivers/source/lpc17xx_uart.c **** 			// Clear DLL and DLM value
+ 940:./Drivers/source/lpc17xx_uart.c **** 			UARTx->LCR |= UART_LCR_DLAB_EN;
+ 941:./Drivers/source/lpc17xx_uart.c **** 			UARTx->DLL = 0;
+ 942:./Drivers/source/lpc17xx_uart.c **** 			UARTx->DLM = 0;
+ 943:./Drivers/source/lpc17xx_uart.c **** 			UARTx->LCR &= ~UART_LCR_DLAB_EN;
+ 944:./Drivers/source/lpc17xx_uart.c **** 			// FDR value must be reset to default value
+ 945:./Drivers/source/lpc17xx_uart.c **** 			UARTx->FDR = 0x10;
+ 946:./Drivers/source/lpc17xx_uart.c **** 			UARTx->ACR = UART_ACR_START | tmp;
+ 947:./Drivers/source/lpc17xx_uart.c **** 		}
+ 948:./Drivers/source/lpc17xx_uart.c **** 		else
+ 949:./Drivers/source/lpc17xx_uart.c **** 		{
+ 950:./Drivers/source/lpc17xx_uart.c **** 			UARTx->ACR = 0;
+ 951:./Drivers/source/lpc17xx_uart.c **** 		}
+ 952:./Drivers/source/lpc17xx_uart.c **** 	}
+ 953:./Drivers/source/lpc17xx_uart.c **** }
+ 954:./Drivers/source/lpc17xx_uart.c **** 
+ 955:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+ 956:./Drivers/source/lpc17xx_uart.c ****  * @brief		Clear Autobaud Interrupt Pending
+ 957:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be
+ 958:./Drivers/source/lpc17xx_uart.c ****  *   			- LPC_UART0: UART0 peripheral
+ 959:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 960:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 961:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 962:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	ABIntType	type of auto-baud interrupt, should be:
+ 963:./Drivers/source/lpc17xx_uart.c ****  * 				- UART_AUTOBAUD_INTSTAT_ABEO: End of Auto-baud interrupt
+ 964:./Drivers/source/lpc17xx_uart.c ****  * 				- UART_AUTOBAUD_INTSTAT_ABTO: Auto-baud time out interrupt
+ 965:./Drivers/source/lpc17xx_uart.c ****  * @return 		none
+ 966:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+ 967:./Drivers/source/lpc17xx_uart.c **** void UART_ABClearIntPending(LPC_UART_TypeDef *UARTx, UART_ABEO_Type ABIntType)
+ 968:./Drivers/source/lpc17xx_uart.c **** {
+ 969:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 970:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 971:./Drivers/source/lpc17xx_uart.c **** 	{
+ 972:./Drivers/source/lpc17xx_uart.c **** 		UARTx->ACR |= ABIntType;
+ 973:./Drivers/source/lpc17xx_uart.c **** 	}
+ 974:./Drivers/source/lpc17xx_uart.c **** 	else
+ 975:./Drivers/source/lpc17xx_uart.c **** 		UARTx->ACR |= ABIntType;
+ 976:./Drivers/source/lpc17xx_uart.c **** }
+ 977:./Drivers/source/lpc17xx_uart.c **** 
+ 978:./Drivers/source/lpc17xx_uart.c **** /*********************************************************************//**
+ 979:./Drivers/source/lpc17xx_uart.c ****  * @brief		Enable/Disable transmission on UART TxD pin
+ 980:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	UARTx	UART peripheral selected, should be:
+ 981:./Drivers/source/lpc17xx_uart.c ****  *   			- LPC_UART0: UART0 peripheral
+ 982:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART1: UART1 peripheral
+ 983:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART2: UART2 peripheral
+ 984:./Drivers/source/lpc17xx_uart.c ****  * 				- LPC_UART3: UART3 peripheral
+ 985:./Drivers/source/lpc17xx_uart.c ****  * @param[in]	NewState New State of Tx transmission function, should be:
+ 986:./Drivers/source/lpc17xx_uart.c ****  * 				- ENABLE: Enable this function
+ 987:./Drivers/source/lpc17xx_uart.c **** 				- DISABLE: Disable this function
+ 988:./Drivers/source/lpc17xx_uart.c ****  * @return none
+ 989:./Drivers/source/lpc17xx_uart.c ****  **********************************************************************/
+ 990:./Drivers/source/lpc17xx_uart.c **** void UART_TxCmd(LPC_UART_TypeDef *UARTx, FunctionalState NewState)
+ 991:./Drivers/source/lpc17xx_uart.c **** {
+ 992:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_UARTx(UARTx));
+ 993:./Drivers/source/lpc17xx_uart.c **** 	CHECK_PARAM(PARAM_FUNCTIONALSTATE(NewState));
+ 994:./Drivers/source/lpc17xx_uart.c **** 
+ 995:./Drivers/source/lpc17xx_uart.c **** 	if (NewState == ENABLE)
+ 996:./Drivers/source/lpc17xx_uart.c **** 	{
+ 997:./Drivers/source/lpc17xx_uart.c **** 		if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 998:./Drivers/source/lpc17xx_uart.c **** 		{
+ 999:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->TER |= UART_TER_TXEN;
+1000:./Drivers/source/lpc17xx_uart.c **** 		}
+1001:./Drivers/source/lpc17xx_uart.c **** 		else
+1002:./Drivers/source/lpc17xx_uart.c **** 		{
+1003:./Drivers/source/lpc17xx_uart.c **** 			UARTx->TER |= UART_TER_TXEN;
+1004:./Drivers/source/lpc17xx_uart.c **** 		}
+1005:./Drivers/source/lpc17xx_uart.c **** 	}
+1006:./Drivers/source/lpc17xx_uart.c **** 	else
+1007:./Drivers/source/lpc17xx_uart.c **** 	{
+1008:./Drivers/source/lpc17xx_uart.c **** 		if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 569              		.loc 1 1008 0
+ 570 0000 0A4B     		ldr	r3, .L84
+ 571              	.LVL73:
+ 572 0002 9842     		cmp	r0, r3
+ 573 0004 08D0     		beq	.L82
+ 574              	.LBE29:
+ 575              	.LBE28:
+ 400:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx == LPC_UART0)
+ 576              		.loc 1 400 0
+ 577 0006 0A4B     		ldr	r3, .L84+4
+ 578              	.LBB33:
+ 579              	.LBB30:
+1009:./Drivers/source/lpc17xx_uart.c **** 		{
+1010:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->TER &= (~UART_TER_TXEN) & UART_TER_BITMASK;
+1011:./Drivers/source/lpc17xx_uart.c **** 		}
+1012:./Drivers/source/lpc17xx_uart.c **** 		else
+1013:./Drivers/source/lpc17xx_uart.c **** 		{
+1014:./Drivers/source/lpc17xx_uart.c **** 			UARTx->TER &= (~UART_TER_TXEN) & UART_TER_BITMASK;
+ 580              		.loc 1 1014 0
+ 581 0008 0021     		movs	r1, #0
+ 582              	.LBE30:
+ 583              	.LBE33:
+ 400:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx == LPC_UART0)
+ 584              		.loc 1 400 0
+ 585 000a 9842     		cmp	r0, r3
+ 586              	.LBB34:
+ 587              	.LBB31:
+ 588              		.loc 1 1014 0
+ 589 000c 90F83020 		ldrb	r2, [r0, #48]	@ zero_extendqisi2
+ 590 0010 80F83010 		strb	r1, [r0, #48]
+ 591              	.LBE31:
+ 592              	.LBE34:
+ 400:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx == LPC_UART0)
+ 593              		.loc 1 400 0
+ 594 0014 06D0     		beq	.L83
+ 595 0016 7047     		bx	lr
+ 596              	.L82:
+ 597              	.LBB35:
+ 598              	.LBB32:
+1010:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->TER &= (~UART_TER_TXEN) & UART_TER_BITMASK;
+ 599              		.loc 1 1010 0
+ 600 0018 0023     		movs	r3, #0
+ 601 001a 90F83020 		ldrb	r2, [r0, #48]	@ zero_extendqisi2
+ 602 001e 80F83030 		strb	r3, [r0, #48]
+ 603 0022 7047     		bx	lr
+ 604              	.L83:
+ 605              	.LBE32:
+ 606              	.LBE35:
+ 403:./Drivers/source/lpc17xx_uart.c **** 		CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCUART0, DISABLE);
+ 607              		.loc 1 403 0
+ 608 0024 0820     		movs	r0, #8
+ 609              	.LVL74:
+ 610 0026 FFF7FEBF 		b	CLKPWR_ConfigPPWR
+ 611              	.LVL75:
+ 612              	.L85:
+ 613 002a 00BF     		.align	2
+ 614              	.L84:
+ 615 002c 00000140 		.word	1073807360
+ 616 0030 00C00040 		.word	1073790976
+ 617              		.cfi_endproc
+ 618              	.LFE57:
+ 620              		.section	.text.UART_ConfigStructInit,"ax",%progbits
+ 621              		.align	2
+ 622              		.global	UART_ConfigStructInit
+ 623              		.thumb
+ 624              		.thumb_func
+ 626              	UART_ConfigStructInit:
+ 627              	.LFB58:
+ 443:./Drivers/source/lpc17xx_uart.c **** {
+ 628              		.loc 1 443 0
+ 629              		.cfi_startproc
+ 630              		@ args = 0, pretend = 0, frame = 0
+ 631              		@ frame_needed = 0, uses_anonymous_args = 0
+ 632              		@ link register save eliminated.
+ 633              	.LVL76:
+ 446:./Drivers/source/lpc17xx_uart.c **** 	UART_InitStruct->Parity = UART_PARITY_NONE;
+ 634              		.loc 1 446 0
+ 635 0000 0023     		movs	r3, #0
+ 444:./Drivers/source/lpc17xx_uart.c **** 	UART_InitStruct->Baud_rate = 9600;
+ 636              		.loc 1 444 0
+ 637 0002 4FF41651 		mov	r1, #9600
+ 445:./Drivers/source/lpc17xx_uart.c **** 	UART_InitStruct->Databits = UART_DATABIT_8;
+ 638              		.loc 1 445 0
+ 639 0006 0322     		movs	r2, #3
+ 444:./Drivers/source/lpc17xx_uart.c **** 	UART_InitStruct->Baud_rate = 9600;
+ 640              		.loc 1 444 0
+ 641 0008 0160     		str	r1, [r0]
+ 445:./Drivers/source/lpc17xx_uart.c **** 	UART_InitStruct->Databits = UART_DATABIT_8;
+ 642              		.loc 1 445 0
+ 643 000a 4271     		strb	r2, [r0, #5]
+ 446:./Drivers/source/lpc17xx_uart.c **** 	UART_InitStruct->Parity = UART_PARITY_NONE;
+ 644              		.loc 1 446 0
+ 645 000c 0371     		strb	r3, [r0, #4]
+ 447:./Drivers/source/lpc17xx_uart.c **** 	UART_InitStruct->Stopbits = UART_STOPBIT_1;
+ 646              		.loc 1 447 0
+ 647 000e 8371     		strb	r3, [r0, #6]
+ 648 0010 7047     		bx	lr
+ 649              		.cfi_endproc
+ 650              	.LFE58:
+ 652 0012 00BF     		.section	.text.UART_SendByte,"ax",%progbits
+ 653              		.align	2
+ 654              		.global	UART_SendByte
+ 655              		.thumb
+ 656              		.thumb_func
+ 658              	UART_SendByte:
+ 659              	.LFB59:
+ 462:./Drivers/source/lpc17xx_uart.c **** {
+ 660              		.loc 1 462 0
+ 661              		.cfi_startproc
+ 662              		@ args = 0, pretend = 0, frame = 0
+ 663              		@ frame_needed = 0, uses_anonymous_args = 0
+ 664              		@ link register save eliminated.
+ 665              	.LVL77:
+ 467:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/THR = Data & UART_THR_MASKBIT;
+ 666              		.loc 1 467 0
+ 667 0000 0170     		strb	r1, [r0]
+ 668 0002 7047     		bx	lr
+ 669              		.cfi_endproc
+ 670              	.LFE59:
+ 672              		.section	.text.UART_ReceiveByte,"ax",%progbits
+ 673              		.align	2
+ 674              		.global	UART_ReceiveByte
+ 675              		.thumb
+ 676              		.thumb_func
+ 678              	UART_ReceiveByte:
+ 679              	.LFB60:
+ 487:./Drivers/source/lpc17xx_uart.c **** {
+ 680              		.loc 1 487 0
+ 681              		.cfi_startproc
+ 682              		@ args = 0, pretend = 0, frame = 0
+ 683              		@ frame_needed = 0, uses_anonymous_args = 0
+ 684              		@ link register save eliminated.
+ 685              	.LVL78:
+ 492:./Drivers/source/lpc17xx_uart.c **** 		return (((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/RBR & UART_RBR_MASKBIT);
+ 686              		.loc 1 492 0
+ 687 0000 0078     		ldrb	r0, [r0]	@ zero_extendqisi2
+ 688              	.LVL79:
+ 689 0002 C0B2     		uxtb	r0, r0
+ 498:./Drivers/source/lpc17xx_uart.c **** }
+ 690              		.loc 1 498 0
+ 691 0004 7047     		bx	lr
+ 692              		.cfi_endproc
+ 693              	.LFE60:
+ 695 0006 00BF     		.section	.text.UART_Send,"ax",%progbits
+ 696              		.align	2
+ 697              		.global	UART_Send
+ 698              		.thumb
+ 699              		.thumb_func
+ 701              	UART_Send:
+ 702              	.LFB61:
+ 518:./Drivers/source/lpc17xx_uart.c **** {
+ 703              		.loc 1 518 0
+ 704              		.cfi_startproc
+ 705              		@ args = 0, pretend = 0, frame = 0
+ 706              		@ frame_needed = 0, uses_anonymous_args = 0
+ 707              		@ link register save eliminated.
+ 708              	.LVL80:
+ 525:./Drivers/source/lpc17xx_uart.c **** 	if (flag == BLOCKING) {
+ 709              		.loc 1 525 0
+ 710 0000 012B     		cmp	r3, #1
+ 518:./Drivers/source/lpc17xx_uart.c **** {
+ 711              		.loc 1 518 0
+ 712 0002 F0B4     		push	{r4, r5, r6, r7}
+ 713              		.cfi_def_cfa_offset 16
+ 714              		.cfi_offset 4, -16
+ 715              		.cfi_offset 5, -12
+ 716              		.cfi_offset 6, -8
+ 717              		.cfi_offset 7, -4
+ 518:./Drivers/source/lpc17xx_uart.c **** {
+ 718              		.loc 1 518 0
+ 719 0004 0446     		mov	r4, r0
+ 720              	.LVL81:
+ 525:./Drivers/source/lpc17xx_uart.c **** 	if (flag == BLOCKING) {
+ 721              		.loc 1 525 0
+ 722 0006 1AD0     		beq	.L94
+ 723              	.LVL82:
+ 548:./Drivers/source/lpc17xx_uart.c **** 		while (bToSend) {
+ 724              		.loc 1 548 0 discriminator 1
+ 725 0008 002A     		cmp	r2, #0
+ 726 000a 3FD0     		beq	.L114
+ 549:./Drivers/source/lpc17xx_uart.c **** 			if (!(UARTx->LSR & UART_LSR_THRE)){
+ 727              		.loc 1 549 0
+ 728 000c 037D     		ldrb	r3, [r0, #20]	@ zero_extendqisi2
+ 729              	.LVL83:
+ 730 000e 03F02003 		and	r3, r3, #32
+ 731 0012 03F0FF00 		and	r0, r3, #255
+ 732              	.LVL84:
+ 733 0016 83B1     		cbz	r3, .L120
+ 734 0018 1023     		movs	r3, #16
+ 735 001a 0020     		movs	r0, #0
+ 736 001c 00E0     		b	.L96
+ 737              	.LVL85:
+ 738              	.L127:
+ 553:./Drivers/source/lpc17xx_uart.c **** 			while (fifo_cnt && bToSend) {
+ 739              		.loc 1 553 0 discriminator 2
+ 740 001e 62B1     		cbz	r2, .L120
+ 741              	.LVL86:
+ 742              	.L96:
+ 554:./Drivers/source/lpc17xx_uart.c **** 				UART_SendByte(UARTx, (*pChar++));
+ 743              		.loc 1 554 0
+ 744 0020 0D5C     		ldrb	r5, [r1, r0]	@ zero_extendqisi2
+ 745              	.LVL87:
+ 553:./Drivers/source/lpc17xx_uart.c **** 			while (fifo_cnt && bToSend) {
+ 746              		.loc 1 553 0
+ 747 0022 013B     		subs	r3, r3, #1
+ 748              	.LVL88:
+ 749              	.LBB36:
+ 750              	.LBB37:
+ 467:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/THR = Data & UART_THR_MASKBIT;
+ 751              		.loc 1 467 0
+ 752 0024 2570     		strb	r5, [r4]
+ 753              	.LVL89:
+ 754              	.LBE37:
+ 755              	.LBE36:
+ 555:./Drivers/source/lpc17xx_uart.c **** 				bToSend--;
+ 756              		.loc 1 555 0
+ 757 0026 02F1FF32 		add	r2, r2, #-1
+ 758              	.LVL90:
+ 557:./Drivers/source/lpc17xx_uart.c **** 				bSent++;
+ 759              		.loc 1 557 0
+ 760 002a 00F10100 		add	r0, r0, #1
+ 761              	.LVL91:
+ 553:./Drivers/source/lpc17xx_uart.c **** 			while (fifo_cnt && bToSend) {
+ 762              		.loc 1 553 0
+ 763 002e F6D1     		bne	.L127
+ 548:./Drivers/source/lpc17xx_uart.c **** 		while (bToSend) {
+ 764              		.loc 1 548 0 discriminator 1
+ 765 0030 1AB1     		cbz	r2, .L120
+ 549:./Drivers/source/lpc17xx_uart.c **** 			if (!(UARTx->LSR & UART_LSR_THRE)){
+ 766              		.loc 1 549 0
+ 767 0032 257D     		ldrb	r5, [r4, #20]	@ zero_extendqisi2
+ 768              	.LVL92:
+ 769 0034 1023     		movs	r3, #16
+ 770              	.LVL93:
+ 771 0036 AD06     		lsls	r5, r5, #26
+ 772 0038 F2D4     		bmi	.L96
+ 773              	.LVL94:
+ 774              	.L120:
+ 562:./Drivers/source/lpc17xx_uart.c **** }
+ 775              		.loc 1 562 0
+ 776 003a F0BC     		pop	{r4, r5, r6, r7}
+ 777              	.LVL95:
+ 778 003c 7047     		bx	lr
+ 779              	.LVL96:
+ 780              	.L94:
+ 527:./Drivers/source/lpc17xx_uart.c **** 		while (bToSend){
+ 781              		.loc 1 527 0 discriminator 1
+ 782 003e 2AB3     		cbz	r2, .L114
+ 527:./Drivers/source/lpc17xx_uart.c **** 		while (bToSend){
+ 783              		.loc 1 527 0 is_stmt 0
+ 784 0040 0026     		movs	r6, #0
+ 785              	.LVL97:
+ 786              	.L97:
+ 530:./Drivers/source/lpc17xx_uart.c **** 			while (!(UARTx->LSR & UART_LSR_THRE)) {
+ 787              		.loc 1 530 0 is_stmt 1 discriminator 1
+ 788 0042 237D     		ldrb	r3, [r4, #20]	@ zero_extendqisi2
+ 789 0044 9B06     		lsls	r3, r3, #26
+ 790 0046 08D4     		bmi	.L99
+ 530:./Drivers/source/lpc17xx_uart.c **** 			while (!(UARTx->LSR & UART_LSR_THRE)) {
+ 791              		.loc 1 530 0 is_stmt 0
+ 792 0048 4FF0FF33 		mov	r3, #-1
+ 793 004c 00E0     		b	.L105
+ 794              	.LVL98:
+ 795              	.L98:
+ 531:./Drivers/source/lpc17xx_uart.c **** 				if (timeOut == 0) break;
+ 796              		.loc 1 531 0 is_stmt 1
+ 797 004e D3B1     		cbz	r3, .L117
+ 798              	.LVL99:
+ 799              	.L105:
+ 530:./Drivers/source/lpc17xx_uart.c **** 			while (!(UARTx->LSR & UART_LSR_THRE)) {
+ 800              		.loc 1 530 0
+ 801 0050 207D     		ldrb	r0, [r4, #20]	@ zero_extendqisi2
+ 532:./Drivers/source/lpc17xx_uart.c **** 				timeOut--;
+ 802              		.loc 1 532 0
+ 803 0052 013B     		subs	r3, r3, #1
+ 804              	.LVL100:
+ 530:./Drivers/source/lpc17xx_uart.c **** 			while (!(UARTx->LSR & UART_LSR_THRE)) {
+ 805              		.loc 1 530 0
+ 806 0054 8006     		lsls	r0, r0, #26
+ 807 0056 FAD5     		bpl	.L98
+ 535:./Drivers/source/lpc17xx_uart.c **** 			if(timeOut == 0) break;
+ 808              		.loc 1 535 0
+ 809 0058 ABB1     		cbz	r3, .L117
+ 810              	.LVL101:
+ 811              	.L99:
+ 537:./Drivers/source/lpc17xx_uart.c **** 			while (fifo_cnt && bToSend){
+ 812              		.loc 1 537 0
+ 813 005a A2B1     		cbz	r2, .L117
+ 814 005c 01F11005 		add	r5, r1, #16
+ 815 0060 0B46     		mov	r3, r1
+ 816 0062 01E0     		b	.L111
+ 817              	.LVL102:
+ 818              	.L128:
+ 537:./Drivers/source/lpc17xx_uart.c **** 			while (fifo_cnt && bToSend){
+ 819              		.loc 1 537 0 is_stmt 0 discriminator 2
+ 820 0064 002A     		cmp	r2, #0
+ 821 0066 E8D0     		beq	.L120
+ 822              	.LVL103:
+ 823              	.L111:
+ 538:./Drivers/source/lpc17xx_uart.c **** 				UART_SendByte(UARTx, (*pChar++));
+ 824              		.loc 1 538 0 is_stmt 1
+ 825 0068 13F8010B 		ldrb	r0, [r3], #1	@ zero_extendqisi2
+ 826              	.LVL104:
+ 540:./Drivers/source/lpc17xx_uart.c **** 				bToSend--;
+ 827              		.loc 1 540 0
+ 828 006c 013A     		subs	r2, r2, #1
+ 829              	.LVL105:
+ 830              	.LBB38:
+ 831              	.LBB39:
+ 467:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/THR = Data & UART_THR_MASKBIT;
+ 832              		.loc 1 467 0
+ 833 006e 2070     		strb	r0, [r4]
+ 834              	.LVL106:
+ 835              	.LBE39:
+ 836              	.LBE38:
+ 537:./Drivers/source/lpc17xx_uart.c **** 			while (fifo_cnt && bToSend){
+ 837              		.loc 1 537 0
+ 838 0070 AB42     		cmp	r3, r5
+ 839 0072 03EB0600 		add	r0, r3, r6
+ 840              	.LVL107:
+ 841 0076 C1EB0000 		rsb	r0, r1, r0
+ 842              	.LVL108:
+ 843 007a F3D1     		bne	.L128
+ 527:./Drivers/source/lpc17xx_uart.c **** 		while (bToSend){
+ 844              		.loc 1 527 0 discriminator 1
+ 845 007c 002A     		cmp	r2, #0
+ 846 007e DCD0     		beq	.L120
+ 538:./Drivers/source/lpc17xx_uart.c **** 				UART_SendByte(UARTx, (*pChar++));
+ 847              		.loc 1 538 0
+ 848 0080 1946     		mov	r1, r3
+ 541:./Drivers/source/lpc17xx_uart.c **** 				bSent++;
+ 849              		.loc 1 541 0
+ 850 0082 0646     		mov	r6, r0
+ 851 0084 DDE7     		b	.L97
+ 852              	.LVL109:
+ 853              	.L117:
+ 537:./Drivers/source/lpc17xx_uart.c **** 			while (fifo_cnt && bToSend){
+ 854              		.loc 1 537 0
+ 855 0086 3046     		mov	r0, r6
+ 856              	.LVL110:
+ 562:./Drivers/source/lpc17xx_uart.c **** }
+ 857              		.loc 1 562 0
+ 858 0088 F0BC     		pop	{r4, r5, r6, r7}
+ 859              	.LVL111:
+ 860 008a 7047     		bx	lr
+ 861              	.LVL112:
+ 862              	.L114:
+ 527:./Drivers/source/lpc17xx_uart.c **** 		while (bToSend){
+ 863              		.loc 1 527 0
+ 864 008c 1046     		mov	r0, r2
+ 865              	.LVL113:
+ 866 008e D4E7     		b	.L120
+ 867              		.cfi_endproc
+ 868              	.LFE61:
+ 870              		.section	.text.UART_Receive,"ax",%progbits
+ 871              		.align	2
+ 872              		.global	UART_Receive
+ 873              		.thumb
+ 874              		.thumb_func
+ 876              	UART_Receive:
+ 877              	.LFB62:
+ 583:./Drivers/source/lpc17xx_uart.c **** {
+ 878              		.loc 1 583 0
+ 879              		.cfi_startproc
+ 880              		@ args = 0, pretend = 0, frame = 0
+ 881              		@ frame_needed = 0, uses_anonymous_args = 0
+ 882              		@ link register save eliminated.
+ 883              	.LVL114:
+ 590:./Drivers/source/lpc17xx_uart.c **** 	if (flag == BLOCKING) {
+ 884              		.loc 1 590 0
+ 885 0000 012B     		cmp	r3, #1
+ 583:./Drivers/source/lpc17xx_uart.c **** {
+ 886              		.loc 1 583 0
+ 887 0002 F0B4     		push	{r4, r5, r6, r7}
+ 888              		.cfi_def_cfa_offset 16
+ 889              		.cfi_offset 4, -16
+ 890              		.cfi_offset 5, -12
+ 891              		.cfi_offset 6, -8
+ 892              		.cfi_offset 7, -4
+ 590:./Drivers/source/lpc17xx_uart.c **** 	if (flag == BLOCKING) {
+ 893              		.loc 1 590 0
+ 894 0004 19D0     		beq	.L130
+ 895              	.LVL115:
+ 609:./Drivers/source/lpc17xx_uart.c **** 		while (bToRecv) {
+ 896              		.loc 1 609 0 discriminator 1
+ 897 0006 002A     		cmp	r2, #0
+ 898 0008 30D0     		beq	.L144
+ 610:./Drivers/source/lpc17xx_uart.c **** 			if (!(UARTx->LSR & UART_LSR_RDR)) {
+ 899              		.loc 1 610 0
+ 900 000a 037D     		ldrb	r3, [r0, #20]	@ zero_extendqisi2
+ 901              	.LVL116:
+ 902 000c 13F00103 		ands	r3, r3, #1
+ 903 0010 2ED0     		beq	.L143
+ 904 0012 8C18     		adds	r4, r1, r2
+ 905 0014 4B1C     		adds	r3, r1, #1
+ 906 0016 0025     		movs	r5, #0
+ 907 0018 02E0     		b	.L132
+ 908              	.LVL117:
+ 909              	.L141:
+ 910 001a 027D     		ldrb	r2, [r0, #20]	@ zero_extendqisi2
+ 911 001c D207     		lsls	r2, r2, #31
+ 912 001e 09D5     		bpl	.L131
+ 913              	.LVL118:
+ 914              	.L132:
+ 915              	.LBB40:
+ 916              	.LBB41:
+ 492:./Drivers/source/lpc17xx_uart.c **** 		return (((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/RBR & UART_RBR_MASKBIT);
+ 917              		.loc 1 492 0
+ 918 0020 0278     		ldrb	r2, [r0]	@ zero_extendqisi2
+ 919              	.LBE41:
+ 920              	.LBE40:
+ 609:./Drivers/source/lpc17xx_uart.c **** 		while (bToRecv) {
+ 921              		.loc 1 609 0
+ 922 0022 A342     		cmp	r3, r4
+ 923              	.LBB43:
+ 924              	.LBB42:
+ 492:./Drivers/source/lpc17xx_uart.c **** 		return (((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/RBR & UART_RBR_MASKBIT);
+ 925              		.loc 1 492 0
+ 926 0024 D2B2     		uxtb	r2, r2
+ 927              	.LBE42:
+ 928              	.LBE43:
+ 613:./Drivers/source/lpc17xx_uart.c **** 				(*pChar++) = UART_ReceiveByte(UARTx);
+ 929              		.loc 1 613 0
+ 930 0026 03F8012C 		strb	r2, [r3, #-1]
+ 614:./Drivers/source/lpc17xx_uart.c **** 				bRecv++;
+ 931              		.loc 1 614 0
+ 932 002a 05F10105 		add	r5, r5, #1
+ 933              	.LVL119:
+ 934 002e 03F10103 		add	r3, r3, #1
+ 609:./Drivers/source/lpc17xx_uart.c **** 		while (bToRecv) {
+ 935              		.loc 1 609 0
+ 936 0032 F2D1     		bne	.L141
+ 937              	.LVL120:
+ 938              	.L131:
+ 620:./Drivers/source/lpc17xx_uart.c **** }
+ 939              		.loc 1 620 0
+ 940 0034 2846     		mov	r0, r5
+ 941              	.LVL121:
+ 942 0036 F0BC     		pop	{r4, r5, r6, r7}
+ 943              	.LVL122:
+ 944 0038 7047     		bx	lr
+ 945              	.LVL123:
+ 946              	.L130:
+ 592:./Drivers/source/lpc17xx_uart.c **** 		while (bToRecv){
+ 947              		.loc 1 592 0 discriminator 1
+ 948 003a BAB1     		cbz	r2, .L144
+ 592:./Drivers/source/lpc17xx_uart.c **** 		while (bToRecv){
+ 949              		.loc 1 592 0 is_stmt 0
+ 950 003c 0025     		movs	r5, #0
+ 951              	.LVL124:
+ 952              	.L133:
+ 594:./Drivers/source/lpc17xx_uart.c **** 			while (!(UARTx->LSR & UART_LSR_RDR)){
+ 953              		.loc 1 594 0 is_stmt 1 discriminator 1
+ 954 003e 067D     		ldrb	r6, [r0, #20]	@ zero_extendqisi2
+ 955 0040 F407     		lsls	r4, r6, #31
+ 956 0042 0AD4     		bmi	.L137
+ 594:./Drivers/source/lpc17xx_uart.c **** 			while (!(UARTx->LSR & UART_LSR_RDR)){
+ 957              		.loc 1 594 0 is_stmt 0
+ 958 0044 4FF0FF33 		mov	r3, #-1
+ 959 0048 01E0     		b	.L138
+ 960              	.LVL125:
+ 961              	.L134:
+ 595:./Drivers/source/lpc17xx_uart.c **** 				if (timeOut == 0) break;
+ 962              		.loc 1 595 0 is_stmt 1
+ 963 004a 002B     		cmp	r3, #0
+ 964 004c F2D0     		beq	.L131
+ 965              	.LVL126:
+ 966              	.L138:
+ 594:./Drivers/source/lpc17xx_uart.c **** 			while (!(UARTx->LSR & UART_LSR_RDR)){
+ 967              		.loc 1 594 0
+ 968 004e 047D     		ldrb	r4, [r0, #20]	@ zero_extendqisi2
+ 596:./Drivers/source/lpc17xx_uart.c **** 				timeOut--;
+ 969              		.loc 1 596 0
+ 970 0050 013B     		subs	r3, r3, #1
+ 971              	.LVL127:
+ 594:./Drivers/source/lpc17xx_uart.c **** 			while (!(UARTx->LSR & UART_LSR_RDR)){
+ 972              		.loc 1 594 0
+ 973 0052 E607     		lsls	r6, r4, #31
+ 974 0054 F9D5     		bpl	.L134
+ 599:./Drivers/source/lpc17xx_uart.c **** 			if(timeOut == 0) break;
+ 975              		.loc 1 599 0
+ 976 0056 002B     		cmp	r3, #0
+ 977 0058 ECD0     		beq	.L131
+ 978              	.LVL128:
+ 979              	.L137:
+ 980              	.LBB44:
+ 981              	.LBB45:
+ 492:./Drivers/source/lpc17xx_uart.c **** 		return (((LPC_UART1_TypeDef *)UARTx)->/*RBTHDLR.*/RBR & UART_RBR_MASKBIT);
+ 982              		.loc 1 492 0
+ 983 005a 0678     		ldrb	r6, [r0]	@ zero_extendqisi2
+ 984 005c F6B2     		uxtb	r6, r6
+ 985              	.LBE45:
+ 986              	.LBE44:
+ 601:./Drivers/source/lpc17xx_uart.c **** 			(*pChar++) = UART_ReceiveByte(UARTx);
+ 987              		.loc 1 601 0
+ 988 005e 4E55     		strb	r6, [r1, r5]
+ 989              	.LVL129:
+ 603:./Drivers/source/lpc17xx_uart.c **** 			bRecv++;
+ 990              		.loc 1 603 0
+ 991 0060 0135     		adds	r5, r5, #1
+ 992              	.LVL130:
+ 592:./Drivers/source/lpc17xx_uart.c **** 		while (bToRecv){
+ 993              		.loc 1 592 0
+ 994 0062 AA42     		cmp	r2, r5
+ 995 0064 EBD1     		bne	.L133
+ 620:./Drivers/source/lpc17xx_uart.c **** }
+ 996              		.loc 1 620 0
+ 997 0066 2846     		mov	r0, r5
+ 998              	.LVL131:
+ 999 0068 F0BC     		pop	{r4, r5, r6, r7}
+ 1000              	.LVL132:
+ 1001 006a 7047     		bx	lr
+ 1002              	.LVL133:
+ 1003              	.L144:
+ 592:./Drivers/source/lpc17xx_uart.c **** 		while (bToRecv){
+ 1004              		.loc 1 592 0
+ 1005 006c 1546     		mov	r5, r2
+ 1006 006e E1E7     		b	.L131
+ 1007              	.LVL134:
+ 1008              	.L143:
+ 610:./Drivers/source/lpc17xx_uart.c **** 			if (!(UARTx->LSR & UART_LSR_RDR)) {
+ 1009              		.loc 1 610 0
+ 1010 0070 1D46     		mov	r5, r3
+ 1011 0072 DFE7     		b	.L131
+ 1012              		.cfi_endproc
+ 1013              	.LFE62:
+ 1015              		.section	.text.UART_ForceBreak,"ax",%progbits
+ 1016              		.align	2
+ 1017              		.global	UART_ForceBreak
+ 1018              		.thumb
+ 1019              		.thumb_func
+ 1021              	UART_ForceBreak:
+ 1022              	.LFB63:
+ 633:./Drivers/source/lpc17xx_uart.c **** {
+ 1023              		.loc 1 633 0
+ 1024              		.cfi_startproc
+ 1025              		@ args = 0, pretend = 0, frame = 0
+ 1026              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1027              		@ link register save eliminated.
+ 1028              	.LVL135:
+ 638:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->LCR |= UART_LCR_BREAK_EN;
+ 1029              		.loc 1 638 0
+ 1030 0000 037B     		ldrb	r3, [r0, #12]	@ zero_extendqisi2
+ 1031 0002 43F04003 		orr	r3, r3, #64
+ 1032 0006 0373     		strb	r3, [r0, #12]
+ 1033 0008 7047     		bx	lr
+ 1034              		.cfi_endproc
+ 1035              	.LFE63:
+ 1037 000a 00BF     		.section	.text.UART_IntConfig,"ax",%progbits
+ 1038              		.align	2
+ 1039              		.global	UART_IntConfig
+ 1040              		.thumb
+ 1041              		.thumb_func
+ 1043              	UART_IntConfig:
+ 1044              	.LFB64:
+ 670:./Drivers/source/lpc17xx_uart.c **** {
+ 1045              		.loc 1 670 0
+ 1046              		.cfi_startproc
+ 1047              		@ args = 0, pretend = 0, frame = 0
+ 1048              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1049              		@ link register save eliminated.
+ 1050              	.LVL136:
+ 1051 0000 10B4     		push	{r4}
+ 1052              		.cfi_def_cfa_offset 4
+ 1053              		.cfi_offset 4, -4
+ 676:./Drivers/source/lpc17xx_uart.c **** 	switch(UARTIntCfg){
+ 1054              		.loc 1 676 0
+ 1055 0002 0629     		cmp	r1, #6
+ 1056 0004 06D8     		bhi	.L162
+ 1057 0006 DFE801F0 		tbb	[pc, r1]
+ 1058              	.L163:
+ 1059 000a 04       		.byte	(.L174-.L163)/2
+ 1060 000b 1C       		.byte	(.L164-.L163)/2
+ 1061 000c 1E       		.byte	(.L165-.L163)/2
+ 1062 000d 20       		.byte	(.L166-.L163)/2
+ 1063 000e 22       		.byte	(.L167-.L163)/2
+ 1064 000f 24       		.byte	(.L168-.L163)/2
+ 1065 0010 27       		.byte	(.L169-.L163)/2
+ 1066 0011 00       		.align	1
+ 1067              	.L174:
+ 678:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART_IER_RBRINT_EN;
+ 1068              		.loc 1 678 0
+ 1069 0012 0124     		movs	r4, #1
+ 1070              	.L162:
+ 1071              	.LVL137:
+ 709:./Drivers/source/lpc17xx_uart.c **** 	if (NewState == ENABLE)
+ 1072              		.loc 1 709 0
+ 1073 0014 012A     		cmp	r2, #1
+ 711:./Drivers/source/lpc17xx_uart.c **** 		if ((LPC_UART1_TypeDef *) UARTx == LPC_UART1)
+ 1074              		.loc 1 711 0
+ 1075 0016 124B     		ldr	r3, .L176
+ 709:./Drivers/source/lpc17xx_uart.c **** 	if (NewState == ENABLE)
+ 1076              		.loc 1 709 0
+ 1077 0018 0DD0     		beq	.L175
+ 722:./Drivers/source/lpc17xx_uart.c **** 		if ((LPC_UART1_TypeDef *) UARTx == LPC_UART1)
+ 1078              		.loc 1 722 0
+ 1079 001a 9842     		cmp	r0, r3
+ 724:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->/*DLIER.*/IER &= (~tmp) & UART1_IER_BITMASK;
+ 1080              		.loc 1 724 0
+ 1081 001c 4268     		ldr	r2, [r0, #4]
+ 1082              	.LVL138:
+ 1083 001e 0CBF     		ite	eq
+ 1084 0020 40F28F33 		movweq	r3, #911
+ 728:./Drivers/source/lpc17xx_uart.c **** 			UARTx->/*DLIER.*/IER &= (~tmp) & UART_IER_BITMASK;
+ 1085              		.loc 1 728 0
+ 1086 0024 40F20733 		movwne	r3, #775
+ 1087 0028 1340     		ands	r3, r3, r2
+ 1088 002a 23EA0403 		bic	r3, r3, r4
+ 1089 002e 4360     		str	r3, [r0, #4]
+ 731:./Drivers/source/lpc17xx_uart.c **** }
+ 1090              		.loc 1 731 0
+ 1091 0030 5DF8044B 		ldr	r4, [sp], #4
+ 1092              	.LVL139:
+ 1093 0034 7047     		bx	lr
+ 1094              	.LVL140:
+ 1095              	.L175:
+ 713:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->/*DLIER.*/IER |= tmp;
+ 1096              		.loc 1 713 0
+ 1097 0036 4368     		ldr	r3, [r0, #4]
+ 1098 0038 1C43     		orrs	r4, r4, r3
+ 1099              	.LVL141:
+ 1100 003a 4460     		str	r4, [r0, #4]
+ 731:./Drivers/source/lpc17xx_uart.c **** }
+ 1101              		.loc 1 731 0
+ 1102 003c 5DF8044B 		ldr	r4, [sp], #4
+ 1103 0040 7047     		bx	lr
+ 1104              	.L164:
+ 1105              	.LVL142:
+ 681:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART_IER_THREINT_EN;
+ 1106              		.loc 1 681 0
+ 1107 0042 0224     		movs	r4, #2
+ 682:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 1108              		.loc 1 682 0
+ 1109 0044 E6E7     		b	.L162
+ 1110              	.LVL143:
+ 1111              	.L165:
+ 684:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART_IER_RLSINT_EN;
+ 1112              		.loc 1 684 0
+ 1113 0046 0424     		movs	r4, #4
+ 685:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 1114              		.loc 1 685 0
+ 1115 0048 E4E7     		b	.L162
+ 1116              	.LVL144:
+ 1117              	.L166:
+ 687:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART1_IER_MSINT_EN;
+ 1118              		.loc 1 687 0
+ 1119 004a 0824     		movs	r4, #8
+ 688:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 1120              		.loc 1 688 0
+ 1121 004c E2E7     		b	.L162
+ 1122              	.LVL145:
+ 1123              	.L167:
+ 690:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART1_IER_CTSINT_EN;
+ 1124              		.loc 1 690 0
+ 1125 004e 8024     		movs	r4, #128
+ 691:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 1126              		.loc 1 691 0
+ 1127 0050 E0E7     		b	.L162
+ 1128              	.LVL146:
+ 1129              	.L168:
+ 693:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART_IER_ABEOINT_EN;
+ 1130              		.loc 1 693 0
+ 1131 0052 4FF48074 		mov	r4, #256
+ 694:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 1132              		.loc 1 694 0
+ 1133 0056 DDE7     		b	.L162
+ 1134              	.LVL147:
+ 1135              	.L169:
+ 696:./Drivers/source/lpc17xx_uart.c **** 			tmp = UART_IER_ABTOINT_EN;
+ 1136              		.loc 1 696 0
+ 1137 0058 4FF40074 		mov	r4, #512
+ 697:./Drivers/source/lpc17xx_uart.c **** 			break;
+ 1138              		.loc 1 697 0
+ 1139 005c DAE7     		b	.L162
+ 1140              	.L177:
+ 1141 005e 00BF     		.align	2
+ 1142              	.L176:
+ 1143 0060 00000140 		.word	1073807360
+ 1144              		.cfi_endproc
+ 1145              	.LFE64:
+ 1147              		.section	.text.UART_GetLineStatus,"ax",%progbits
+ 1148              		.align	2
+ 1149              		.global	UART_GetLineStatus
+ 1150              		.thumb
+ 1151              		.thumb_func
+ 1153              	UART_GetLineStatus:
+ 1154              	.LFB65:
+ 751:./Drivers/source/lpc17xx_uart.c **** {
+ 1155              		.loc 1 751 0
+ 1156              		.cfi_startproc
+ 1157              		@ args = 0, pretend = 0, frame = 0
+ 1158              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1159              		@ link register save eliminated.
+ 1160              	.LVL148:
+ 756:./Drivers/source/lpc17xx_uart.c **** 		return ((((LPC_UART1_TypeDef *)LPC_UART1)->LSR) & UART_LSR_BITMASK);
+ 1161              		.loc 1 756 0
+ 1162 0000 007D     		ldrb	r0, [r0, #20]	@ zero_extendqisi2
+ 1163              	.LVL149:
+ 1164 0002 C0B2     		uxtb	r0, r0
+ 762:./Drivers/source/lpc17xx_uart.c **** }
+ 1165              		.loc 1 762 0
+ 1166 0004 7047     		bx	lr
+ 1167              		.cfi_endproc
+ 1168              	.LFE65:
+ 1170 0006 00BF     		.section	.text.UART_GetIntId,"ax",%progbits
+ 1171              		.align	2
+ 1172              		.global	UART_GetIntId
+ 1173              		.thumb
+ 1174              		.thumb_func
+ 1176              	UART_GetIntId:
+ 1177              	.LFB66:
+ 774:./Drivers/source/lpc17xx_uart.c **** {
+ 1178              		.loc 1 774 0
+ 1179              		.cfi_startproc
+ 1180              		@ args = 0, pretend = 0, frame = 0
+ 1181              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1182              		@ link register save eliminated.
+ 1183              	.LVL150:
+ 776:./Drivers/source/lpc17xx_uart.c **** 	return (UARTx->IIR & 0x03CF);
+ 1184              		.loc 1 776 0
+ 1185 0000 8068     		ldr	r0, [r0, #8]
+ 1186              	.LVL151:
+ 1187 0002 40F2CF33 		movw	r3, #975
+ 777:./Drivers/source/lpc17xx_uart.c **** }
+ 1188              		.loc 1 777 0
+ 1189 0006 1840     		ands	r0, r0, r3
+ 1190 0008 7047     		bx	lr
+ 1191              		.cfi_endproc
+ 1192              	.LFE66:
+ 1194 000a 00BF     		.section	.text.UART_CheckBusy,"ax",%progbits
+ 1195              		.align	2
+ 1196              		.global	UART_CheckBusy
+ 1197              		.thumb
+ 1198              		.thumb_func
+ 1200              	UART_CheckBusy:
+ 1201              	.LFB67:
+ 789:./Drivers/source/lpc17xx_uart.c **** {
+ 1202              		.loc 1 789 0
+ 1203              		.cfi_startproc
+ 1204              		@ args = 0, pretend = 0, frame = 0
+ 1205              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1206              		@ link register save eliminated.
+ 1207              	.LVL152:
+ 790:./Drivers/source/lpc17xx_uart.c **** 	if (UARTx->LSR & UART_LSR_TEMT){
+ 1208              		.loc 1 790 0
+ 1209 0000 007D     		ldrb	r0, [r0, #20]	@ zero_extendqisi2
+ 1210              	.LVL153:
+ 1211 0002 80F04000 		eor	r0, r0, #64
+ 795:./Drivers/source/lpc17xx_uart.c **** }
+ 1212              		.loc 1 795 0
+ 1213 0006 C0F38010 		ubfx	r0, r0, #6, #1
+ 1214 000a 7047     		bx	lr
+ 1215              		.cfi_endproc
+ 1216              	.LFE67:
+ 1218              		.section	.text.UART_FIFOConfig,"ax",%progbits
+ 1219              		.align	2
+ 1220              		.global	UART_FIFOConfig
+ 1221              		.thumb
+ 1222              		.thumb_func
+ 1224              	UART_FIFOConfig:
+ 1225              	.LFB68:
+ 810:./Drivers/source/lpc17xx_uart.c **** {
+ 1226              		.loc 1 810 0
+ 1227              		.cfi_startproc
+ 1228              		@ args = 0, pretend = 0, frame = 0
+ 1229              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1230              		@ link register save eliminated.
+ 1231              	.LVL154:
+ 820:./Drivers/source/lpc17xx_uart.c **** 	switch (FIFOCfg->FIFO_Level){
+ 1232              		.loc 1 820 0
+ 1233 0000 CB78     		ldrb	r3, [r1, #3]	@ zero_extendqisi2
+ 1234 0002 022B     		cmp	r3, #2
+ 1235 0004 96BF     		itet	ls
+ 1236 0006 0B4A     		ldrls	r2, .L191
+ 1237 0008 C123     		movhi	r3, #193
+ 1238 000a D35C     		ldrbls	r3, [r2, r3]	@ zero_extendqisi2
+ 1239              	.LVL155:
+ 836:./Drivers/source/lpc17xx_uart.c **** 	if (FIFOCfg->FIFO_ResetTxBuf == ENABLE)
+ 1240              		.loc 1 836 0
+ 1241 000c 4A78     		ldrb	r2, [r1, #1]	@ zero_extendqisi2
+ 1242 000e 012A     		cmp	r2, #1
+ 840:./Drivers/source/lpc17xx_uart.c **** 	if (FIFOCfg->FIFO_ResetRxBuf == ENABLE)
+ 1243              		.loc 1 840 0
+ 1244 0010 0A78     		ldrb	r2, [r1]	@ zero_extendqisi2
+ 838:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_FCR_TX_RS;
+ 1245              		.loc 1 838 0
+ 1246 0012 08BF     		it	eq
+ 1247 0014 43F00403 		orreq	r3, r3, #4
+ 1248              	.LVL156:
+ 840:./Drivers/source/lpc17xx_uart.c **** 	if (FIFOCfg->FIFO_ResetRxBuf == ENABLE)
+ 1249              		.loc 1 840 0
+ 1250 0018 012A     		cmp	r2, #1
+ 844:./Drivers/source/lpc17xx_uart.c **** 	if (FIFOCfg->FIFO_DMAMode == ENABLE)
+ 1251              		.loc 1 844 0
+ 1252 001a 8A78     		ldrb	r2, [r1, #2]	@ zero_extendqisi2
+ 842:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_FCR_RX_RS;
+ 1253              		.loc 1 842 0
+ 1254 001c 08BF     		it	eq
+ 1255 001e 43F00203 		orreq	r3, r3, #2
+ 1256              	.LVL157:
+ 844:./Drivers/source/lpc17xx_uart.c **** 	if (FIFOCfg->FIFO_DMAMode == ENABLE)
+ 1257              		.loc 1 844 0
+ 1258 0022 012A     		cmp	r2, #1
+ 846:./Drivers/source/lpc17xx_uart.c **** 		tmp |= UART_FCR_DMAMODE_SEL;
+ 1259              		.loc 1 846 0
+ 1260 0024 08BF     		it	eq
+ 1261 0026 43F00803 		orreq	r3, r3, #8
+ 1262              	.LVL158:
+ 853:./Drivers/source/lpc17xx_uart.c **** 		((LPC_UART1_TypeDef *)UARTx)->/*IIFCR.*/FCR = tmp & UART_FCR_BITMASK;
+ 1263              		.loc 1 853 0
+ 1264 002a 03F0CF03 		and	r3, r3, #207
+ 1265              	.LVL159:
+ 1266 002e 0372     		strb	r3, [r0, #8]
+ 1267 0030 7047     		bx	lr
+ 1268              	.L192:
+ 1269 0032 00BF     		.align	2
+ 1270              	.L191:
+ 1271 0034 00000000 		.word	.LANCHOR0
+ 1272              		.cfi_endproc
+ 1273              	.LFE68:
+ 1275              		.section	.text.UART_FIFOConfigStructInit,"ax",%progbits
+ 1276              		.align	2
+ 1277              		.global	UART_FIFOConfigStructInit
+ 1278              		.thumb
+ 1279              		.thumb_func
+ 1281              	UART_FIFOConfigStructInit:
+ 1282              	.LFB69:
+ 874:./Drivers/source/lpc17xx_uart.c **** {
+ 1283              		.loc 1 874 0
+ 1284              		.cfi_startproc
+ 1285              		@ args = 0, pretend = 0, frame = 0
+ 1286              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1287              		@ link register save eliminated.
+ 1288              	.LVL160:
+ 875:./Drivers/source/lpc17xx_uart.c **** 	UART_FIFOInitStruct->FIFO_DMAMode = DISABLE;
+ 1289              		.loc 1 875 0
+ 1290 0000 0022     		movs	r2, #0
+ 877:./Drivers/source/lpc17xx_uart.c **** 	UART_FIFOInitStruct->FIFO_ResetRxBuf = ENABLE;
+ 1291              		.loc 1 877 0
+ 1292 0002 0123     		movs	r3, #1
+ 875:./Drivers/source/lpc17xx_uart.c **** 	UART_FIFOInitStruct->FIFO_DMAMode = DISABLE;
+ 1293              		.loc 1 875 0
+ 1294 0004 8270     		strb	r2, [r0, #2]
+ 876:./Drivers/source/lpc17xx_uart.c **** 	UART_FIFOInitStruct->FIFO_Level = UART_FIFO_TRGLEV0;
+ 1295              		.loc 1 876 0
+ 1296 0006 C270     		strb	r2, [r0, #3]
+ 877:./Drivers/source/lpc17xx_uart.c **** 	UART_FIFOInitStruct->FIFO_ResetRxBuf = ENABLE;
+ 1297              		.loc 1 877 0
+ 1298 0008 0370     		strb	r3, [r0]
+ 878:./Drivers/source/lpc17xx_uart.c **** 	UART_FIFOInitStruct->FIFO_ResetTxBuf = ENABLE;
+ 1299              		.loc 1 878 0
+ 1300 000a 4370     		strb	r3, [r0, #1]
+ 1301 000c 7047     		bx	lr
+ 1302              		.cfi_endproc
+ 1303              	.LFE69:
+ 1305 000e 00BF     		.section	.text.UART_ABCmd,"ax",%progbits
+ 1306              		.align	2
+ 1307              		.global	UART_ABCmd
+ 1308              		.thumb
+ 1309              		.thumb_func
+ 1311              	UART_ABCmd:
+ 1312              	.LFB70:
+ 901:./Drivers/source/lpc17xx_uart.c **** {
+ 1313              		.loc 1 901 0
+ 1314              		.cfi_startproc
+ 1315              		@ args = 0, pretend = 0, frame = 0
+ 1316              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1317              		@ link register save eliminated.
+ 1318              	.LVL161:
+ 908:./Drivers/source/lpc17xx_uart.c **** 	if (NewState == ENABLE) {
+ 1319              		.loc 1 908 0
+ 1320 0000 012A     		cmp	r2, #1
+ 1321 0002 02D0     		beq	.L206
+ 932:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->ACR = 0;
+ 1322              		.loc 1 932 0
+ 1323 0004 0023     		movs	r3, #0
+ 1324 0006 0362     		str	r3, [r0, #32]
+ 1325 0008 7047     		bx	lr
+ 1326              	.L206:
+ 909:./Drivers/source/lpc17xx_uart.c **** 		if (ABConfigStruct->ABMode == UART_AUTOBAUD_MODE1){
+ 1327              		.loc 1 909 0
+ 1328 000a 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+ 912:./Drivers/source/lpc17xx_uart.c **** 		if (ABConfigStruct->AutoRestart == ENABLE){
+ 1329              		.loc 1 912 0
+ 1330 000c 4A78     		ldrb	r2, [r1, #1]	@ zero_extendqisi2
+ 1331              	.LVL162:
+ 909:./Drivers/source/lpc17xx_uart.c **** 		if (ABConfigStruct->ABMode == UART_AUTOBAUD_MODE1){
+ 1332              		.loc 1 909 0
+ 1333 000e 012B     		cmp	r3, #1
+ 907:./Drivers/source/lpc17xx_uart.c **** 	tmp = 0;
+ 1334              		.loc 1 907 0
+ 1335 0010 0CBF     		ite	eq
+ 1336 0012 0223     		moveq	r3, #2
+ 1337 0014 0023     		movne	r3, #0
+ 1338              	.LVL163:
+ 912:./Drivers/source/lpc17xx_uart.c **** 		if (ABConfigStruct->AutoRestart == ENABLE){
+ 1339              		.loc 1 912 0
+ 1340 0016 012A     		cmp	r2, #1
+ 1341 0018 16D0     		beq	.L207
+ 1342              	.L197:
+ 922:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR |= UART_LCR_DLAB_EN;
+ 1343              		.loc 1 922 0
+ 1344 001a 017B     		ldrb	r1, [r0, #12]	@ zero_extendqisi2
+ 1345              	.LVL164:
+ 917:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 1346              		.loc 1 917 0
+ 1347 001c 0D4A     		ldr	r2, .L209
+ 922:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR |= UART_LCR_DLAB_EN;
+ 1348              		.loc 1 922 0
+ 1349 001e 41F08001 		orr	r1, r1, #128
+ 917:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 1350              		.loc 1 917 0
+ 1351 0022 9042     		cmp	r0, r2
+ 923:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->DLL = 0;
+ 1352              		.loc 1 923 0
+ 1353 0024 4FF00002 		mov	r2, #0
+ 922:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR |= UART_LCR_DLAB_EN;
+ 1354              		.loc 1 922 0
+ 1355 0028 0173     		strb	r1, [r0, #12]
+ 923:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->DLL = 0;
+ 1356              		.loc 1 923 0
+ 1357 002a 0270     		strb	r2, [r0]
+ 924:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->DLM = 0;
+ 1358              		.loc 1 924 0
+ 1359 002c 0271     		strb	r2, [r0, #4]
+ 925:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR &= ~UART_LCR_DLAB_EN;
+ 1360              		.loc 1 925 0
+ 1361 002e 017B     		ldrb	r1, [r0, #12]	@ zero_extendqisi2
+ 928:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->ACR = UART_ACR_START | tmp;
+ 1362              		.loc 1 928 0
+ 1363 0030 43F00103 		orr	r3, r3, #1
+ 1364              	.LVL165:
+ 925:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR &= ~UART_LCR_DLAB_EN;
+ 1365              		.loc 1 925 0
+ 1366 0034 01F07F01 		and	r1, r1, #127
+ 927:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->FDR = 0x10;
+ 1367              		.loc 1 927 0
+ 1368 0038 4FF01002 		mov	r2, #16
+ 925:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->LCR &= ~UART_LCR_DLAB_EN;
+ 1369              		.loc 1 925 0
+ 1370 003c 0173     		strb	r1, [r0, #12]
+ 917:./Drivers/source/lpc17xx_uart.c **** 	if (((LPC_UART1_TypeDef *)UARTx) == LPC_UART1)
+ 1371              		.loc 1 917 0
+ 1372 003e 06D0     		beq	.L208
+ 945:./Drivers/source/lpc17xx_uart.c **** 			UARTx->FDR = 0x10;
+ 1373              		.loc 1 945 0
+ 1374 0040 80F82820 		strb	r2, [r0, #40]
+ 946:./Drivers/source/lpc17xx_uart.c **** 			UARTx->ACR = UART_ACR_START | tmp;
+ 1375              		.loc 1 946 0
+ 1376 0044 0362     		str	r3, [r0, #32]
+ 1377 0046 7047     		bx	lr
+ 1378              	.LVL166:
+ 1379              	.L207:
+ 913:./Drivers/source/lpc17xx_uart.c **** 			tmp |= UART_ACR_AUTO_RESTART;
+ 1380              		.loc 1 913 0
+ 1381 0048 43F00403 		orr	r3, r3, #4
+ 1382              	.LVL167:
+ 1383 004c E5E7     		b	.L197
+ 1384              	.LVL168:
+ 1385              	.L208:
+ 927:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->FDR = 0x10;
+ 1386              		.loc 1 927 0
+ 1387 004e 8262     		str	r2, [r0, #40]
+ 928:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->ACR = UART_ACR_START | tmp;
+ 1388              		.loc 1 928 0
+ 1389 0050 0362     		str	r3, [r0, #32]
+ 1390 0052 7047     		bx	lr
+ 1391              	.L210:
+ 1392              		.align	2
+ 1393              	.L209:
+ 1394 0054 00000140 		.word	1073807360
+ 1395              		.cfi_endproc
+ 1396              	.LFE70:
+ 1398              		.section	.text.UART_ABClearIntPending,"ax",%progbits
+ 1399              		.align	2
+ 1400              		.global	UART_ABClearIntPending
+ 1401              		.thumb
+ 1402              		.thumb_func
+ 1404              	UART_ABClearIntPending:
+ 1405              	.LFB71:
+ 968:./Drivers/source/lpc17xx_uart.c **** {
+ 1406              		.loc 1 968 0
+ 1407              		.cfi_startproc
+ 1408              		@ args = 0, pretend = 0, frame = 0
+ 1409              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1410              		@ link register save eliminated.
+ 1411              	.LVL169:
+ 972:./Drivers/source/lpc17xx_uart.c **** 		UARTx->ACR |= ABIntType;
+ 1412              		.loc 1 972 0
+ 1413 0000 036A     		ldr	r3, [r0, #32]
+ 1414 0002 1943     		orrs	r1, r1, r3
+ 1415              	.LVL170:
+ 1416 0004 0162     		str	r1, [r0, #32]
+ 1417 0006 7047     		bx	lr
+ 1418              		.cfi_endproc
+ 1419              	.LFE71:
+ 1421              		.section	.text.UART_TxCmd,"ax",%progbits
+ 1422              		.align	2
+ 1423              		.global	UART_TxCmd
+ 1424              		.thumb
+ 1425              		.thumb_func
+ 1427              	UART_TxCmd:
+ 1428              	.LFB72:
+ 991:./Drivers/source/lpc17xx_uart.c **** {
+ 1429              		.loc 1 991 0
+ 1430              		.cfi_startproc
+ 1431              		@ args = 0, pretend = 0, frame = 0
+ 1432              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1433              		@ link register save eliminated.
+ 1434              	.LVL171:
+ 995:./Drivers/source/lpc17xx_uart.c **** 	if (NewState == ENABLE)
+ 1435              		.loc 1 995 0
+ 1436 0000 0129     		cmp	r1, #1
+ 1437 0002 05D0     		beq	.L219
+1010:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->TER &= (~UART_TER_TXEN) & UART_TER_BITMASK;
+ 1438              		.loc 1 1010 0
+ 1439 0004 0023     		movs	r3, #0
+ 1440 0006 90F83020 		ldrb	r2, [r0, #48]	@ zero_extendqisi2
+ 1441 000a 80F83030 		strb	r3, [r0, #48]
+ 1442 000e 7047     		bx	lr
+ 1443              	.L219:
+ 999:./Drivers/source/lpc17xx_uart.c **** 			((LPC_UART1_TypeDef *)UARTx)->TER |= UART_TER_TXEN;
+ 1444              		.loc 1 999 0
+ 1445 0010 90F83030 		ldrb	r3, [r0, #48]	@ zero_extendqisi2
+ 1446 0014 43F08003 		orr	r3, r3, #128
+ 1447 0018 80F83030 		strb	r3, [r0, #48]
+ 1448 001c 7047     		bx	lr
+ 1449              		.cfi_endproc
+ 1450              	.LFE72:
+ 1452 001e 00BF     		.section	.rodata.CSWTCH.19,"a",%progbits
+ 1453              		.align	2
+ 1454              		.set	.LANCHOR0,. + 0
+ 1457              	CSWTCH.19:
+ 1458 0000 01       		.byte	1
+ 1459 0001 41       		.byte	65
+ 1460 0002 81       		.byte	-127
+ 1461 0003 00       		.text
+ 1462              	.Letext0:
+ 1463              		.file 2 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 1464              		.file 3 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+ 1465              		.file 4 "./LPC17xx/LPC17xx.h"
+ 1466              		.file 5 "./Drivers/include/lpc_types.h"
+ 1467              		.file 6 "./Drivers/include/lpc17xx_uart.h"
+ 1468              		.file 7 "./Drivers/include/lpc17xx_clkpwr.h"
+ 1469              		.file 8 "./Core/core_cm3.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 lpc17xx_uart.c
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:19     .text.UART_Init:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:24     .text.UART_Init:00000000 UART_Init
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:544    .text.UART_Init:0000026c $d
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:554    .text.UART_DeInit:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:559    .text.UART_DeInit:00000000 UART_DeInit
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:615    .text.UART_DeInit:0000002c $d
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:621    .text.UART_ConfigStructInit:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:626    .text.UART_ConfigStructInit:00000000 UART_ConfigStructInit
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:653    .text.UART_SendByte:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:658    .text.UART_SendByte:00000000 UART_SendByte
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:673    .text.UART_ReceiveByte:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:678    .text.UART_ReceiveByte:00000000 UART_ReceiveByte
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:696    .text.UART_Send:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:701    .text.UART_Send:00000000 UART_Send
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:871    .text.UART_Receive:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:876    .text.UART_Receive:00000000 UART_Receive
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1016   .text.UART_ForceBreak:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1021   .text.UART_ForceBreak:00000000 UART_ForceBreak
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1038   .text.UART_IntConfig:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1043   .text.UART_IntConfig:00000000 UART_IntConfig
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1059   .text.UART_IntConfig:0000000a $d
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1143   .text.UART_IntConfig:00000060 $d
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1148   .text.UART_GetLineStatus:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1153   .text.UART_GetLineStatus:00000000 UART_GetLineStatus
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1171   .text.UART_GetIntId:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1176   .text.UART_GetIntId:00000000 UART_GetIntId
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1195   .text.UART_CheckBusy:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1200   .text.UART_CheckBusy:00000000 UART_CheckBusy
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1219   .text.UART_FIFOConfig:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1224   .text.UART_FIFOConfig:00000000 UART_FIFOConfig
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1271   .text.UART_FIFOConfig:00000034 $d
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1276   .text.UART_FIFOConfigStructInit:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1281   .text.UART_FIFOConfigStructInit:00000000 UART_FIFOConfigStructInit
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1306   .text.UART_ABCmd:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1311   .text.UART_ABCmd:00000000 UART_ABCmd
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1394   .text.UART_ABCmd:00000054 $d
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1399   .text.UART_ABClearIntPending:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1404   .text.UART_ABClearIntPending:00000000 UART_ABClearIntPending
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1422   .text.UART_TxCmd:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1427   .text.UART_TxCmd:00000000 UART_TxCmd
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1453   .rodata.CSWTCH.19:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1457   .rodata.CSWTCH.19:00000000 CSWTCH.19
+                     .debug_frame:00000010 $d
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1066   .text.UART_IntConfig:00000011 $d
+C:\Users\kosmos\AppData\Local\Temp\cchojOif.s:1066   .text.UART_IntConfig:00000012 $t
+
+UNDEFINED SYMBOLS
+CLKPWR_GetPCLK
+CLKPWR_ConfigPPWR

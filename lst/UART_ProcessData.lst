@@ -1,0 +1,623 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"UART_ProcessData.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.UART_processERROR,"ax",%progbits
+  19              		.align	2
+  20              		.global	UART_processERROR
+  21              		.thumb
+  22              		.thumb_func
+  24              	UART_processERROR:
+  25              	.LFB55:
+  26              		.file 1 "./src/motor/UART_ProcessData.c"
+   1:./src/motor/UART_ProcessData.c **** /**
+   2:./src/motor/UART_ProcessData.c ****  * @file	UART_ProcessData.c
+   3:./src/motor/UART_ProcessData.c ****  * @purpose
+   4:./src/motor/UART_ProcessData.c ****  * @brief
+   5:./src/motor/UART_ProcessData.c ****  * @version
+   6:./src/motor/UART_ProcessData.c ****  * @date	29-sep-2009
+   7:./src/motor/UART_ProcessData.c ****  * @author	nlv15840
+   8:./src/motor/UART_ProcessData.c **** */
+   9:./src/motor/UART_ProcessData.c **** /*----------------------------------------------------------------------------
+  10:./src/motor/UART_ProcessData.c ****  * Software that is described herein is for illustrative purposes only
+  11:./src/motor/UART_ProcessData.c ****  * which provides customers with programming information regarding the
+  12:./src/motor/UART_ProcessData.c ****  * products. This software is supplied "AS IS" without any warranties.
+  13:./src/motor/UART_ProcessData.c ****  * NXP Semiconductors assumes no responsibility or liability for the
+  14:./src/motor/UART_ProcessData.c ****  * use of the software, conveys no license or title under any patent,
+  15:./src/motor/UART_ProcessData.c ****  * copyright, or mask work right to the product. NXP Semiconductors
+  16:./src/motor/UART_ProcessData.c ****  * reserves the right to make changes in the software without
+  17:./src/motor/UART_ProcessData.c ****  * notification. NXP Semiconductors also make no representation or
+  18:./src/motor/UART_ProcessData.c ****  * warranty that such application will be suitable for the specified
+  19:./src/motor/UART_ProcessData.c ****  * use without further testing or modification.
+  20:./src/motor/UART_ProcessData.c ****  **********************************************************************/
+  21:./src/motor/UART_ProcessData.c **** #include <stdio.h>
+  22:./src/motor/UART_ProcessData.c **** #include <string.h>
+  23:./src/motor/UART_ProcessData.c **** #include <stdlib.h>
+  24:./src/motor/UART_ProcessData.c **** #include "LPC17xx.h"
+  25:./src/motor/UART_ProcessData.c **** #include "lpc17xx_mcpwm.h"
+  26:./src/motor/UART_ProcessData.c **** #include "lpc17xx_uart.h"
+  27:./src/motor/UART_ProcessData.c **** #include "lpc_types.h"
+  28:./src/motor/UART_ProcessData.c **** #include "type.h"
+  29:./src/motor/UART_ProcessData.c **** 
+  30:./src/motor/UART_ProcessData.c **** #include "BLDC.h"
+  31:./src/motor/UART_ProcessData.c **** #include "UART_ProcessData.h"
+  32:./src/motor/UART_ProcessData.c **** 
+  33:./src/motor/UART_ProcessData.c **** void UART_processERROR (void)
+  34:./src/motor/UART_ProcessData.c **** {
+  27              		.loc 1 34 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  35:./src/motor/UART_ProcessData.c **** 	printf("Error: Invalid command\n\n");
+  32              		.loc 1 35 0
+  33 0000 0148     		ldr	r0, .L2
+  34 0002 FFF7FEBF 		b	puts
+  35              	.LVL0:
+  36              	.L3:
+  37 0006 00BF     		.align	2
+  38              	.L2:
+  39 0008 00000000 		.word	.LC0
+  40              		.cfi_endproc
+  41              	.LFE55:
+  43              		.section	.text.UART_processMessage,"ax",%progbits
+  44              		.align	2
+  45              		.global	UART_processMessage
+  46              		.thumb
+  47              		.thumb_func
+  49              	UART_processMessage:
+  50              	.LFB56:
+  36:./src/motor/UART_ProcessData.c **** 	return;
+  37:./src/motor/UART_ProcessData.c **** }
+  38:./src/motor/UART_ProcessData.c **** 
+  39:./src/motor/UART_ProcessData.c **** void UART_processMessage (UART_RING_BUFFER_T *rb, PIDstr *pid, uint8_t loc)
+  40:./src/motor/UART_ProcessData.c **** {
+  51              		.loc 1 40 0
+  52              		.cfi_startproc
+  53              		@ args = 0, pretend = 0, frame = 64
+  54              		@ frame_needed = 0, uses_anonymous_args = 0
+  55              	.LVL1:
+  56 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+  57              		.cfi_def_cfa_offset 24
+  58              		.cfi_offset 4, -24
+  59              		.cfi_offset 5, -20
+  60              		.cfi_offset 6, -16
+  61              		.cfi_offset 7, -12
+  62              		.cfi_offset 8, -8
+  63              		.cfi_offset 14, -4
+  41:./src/motor/UART_ProcessData.c **** 	uint8_t 	procdata[20] = {0},
+  64              		.loc 1 41 0
+  65 0004 0023     		movs	r3, #0
+  40:./src/motor/UART_ProcessData.c **** {
+  66              		.loc 1 40 0
+  67 0006 90B0     		sub	sp, sp, #64
+  68              		.cfi_def_cfa_offset 88
+  40:./src/motor/UART_ProcessData.c **** {
+  69              		.loc 1 40 0
+  70 0008 0E46     		mov	r6, r1
+  71              		.loc 1 41 0
+  72 000a 0193     		str	r3, [sp, #4]
+  73 000c 0293     		str	r3, [sp, #8]
+  74 000e 0393     		str	r3, [sp, #12]
+  75 0010 0493     		str	r3, [sp, #16]
+  76 0012 0593     		str	r3, [sp, #20]
+  42:./src/motor/UART_ProcessData.c **** 				cmd[20] = {0},
+  77              		.loc 1 42 0
+  78 0014 0693     		str	r3, [sp, #24]
+  79 0016 0793     		str	r3, [sp, #28]
+  80 0018 0893     		str	r3, [sp, #32]
+  81 001a 0993     		str	r3, [sp, #36]
+  82 001c 0A93     		str	r3, [sp, #40]
+  43:./src/motor/UART_ProcessData.c **** 				value_s[20] = {0},
+  83              		.loc 1 43 0
+  84 001e 0B93     		str	r3, [sp, #44]
+  85 0020 0C93     		str	r3, [sp, #48]
+  86 0022 0D93     		str	r3, [sp, #52]
+  87 0024 0E93     		str	r3, [sp, #56]
+  88 0026 0F93     		str	r3, [sp, #60]
+  89              	.LVL2:
+  44:./src/motor/UART_ProcessData.c **** 				idx=0,
+  45:./src/motor/UART_ProcessData.c **** 				len=0,
+  46:./src/motor/UART_ProcessData.c **** 				*pch;
+  47:./src/motor/UART_ProcessData.c **** 	uint16_t 	value_u16 =0;
+  48:./src/motor/UART_ProcessData.c **** 	double 		value_d	 = 0;
+  49:./src/motor/UART_ProcessData.c **** 
+  50:./src/motor/UART_ProcessData.c **** 	/* copy data to local buffer for processing */
+  51:./src/motor/UART_ProcessData.c **** 	while((rb->rx_tail != loc) || (rb->rx_tail == rb->rx_head))
+  90              		.loc 1 51 0
+  91 0028 0CE0     		b	.L5
+  92              	.LVL3:
+  93              	.L6:
+  52:./src/motor/UART_ProcessData.c **** 	{
+  53:./src/motor/UART_ProcessData.c **** 		procdata[idx] = rb->rx[rb->rx_tail];
+  94              		.loc 1 53 0
+  95 002a C168     		ldr	r1, [r0, #12]
+  96 002c 10AC     		add	r4, sp, #64
+  97 002e 0144     		add	r1, r1, r0
+  98 0030 91F81011 		ldrb	r1, [r1, #272]	@ zero_extendqisi2
+  99 0034 2544     		add	r5, r5, r4
+  54:./src/motor/UART_ProcessData.c **** 		__BUF_INCR(rb->rx_tail);
+ 100              		.loc 1 54 0
+ 101 0036 C468     		ldr	r4, [r0, #12]
+ 102 0038 0133     		adds	r3, r3, #1
+ 103              	.LVL4:
+ 104 003a 0134     		adds	r4, r4, #1
+ 105 003c E4B2     		uxtb	r4, r4
+  53:./src/motor/UART_ProcessData.c **** 		procdata[idx] = rb->rx[rb->rx_tail];
+ 106              		.loc 1 53 0
+ 107 003e 05F83C1C 		strb	r1, [r5, #-60]
+ 108              		.loc 1 54 0
+ 109 0042 C460     		str	r4, [r0, #12]
+ 110              	.L5:
+  51:./src/motor/UART_ProcessData.c **** 	while((rb->rx_tail != loc) || (rb->rx_tail == rb->rx_head))
+ 111              		.loc 1 51 0 discriminator 1
+ 112 0044 C468     		ldr	r4, [r0, #12]
+ 113 0046 DDB2     		uxtb	r5, r3
+ 114              	.LVL5:
+ 115 0048 9442     		cmp	r4, r2
+ 116 004a EED1     		bne	.L6
+  51:./src/motor/UART_ProcessData.c **** 	while((rb->rx_tail != loc) || (rb->rx_tail == rb->rx_head))
+ 117              		.loc 1 51 0 is_stmt 0 discriminator 2
+ 118 004c C468     		ldr	r4, [r0, #12]
+ 119 004e 8168     		ldr	r1, [r0, #8]
+ 120 0050 8C42     		cmp	r4, r1
+ 121 0052 EAD0     		beq	.L6
+  55:./src/motor/UART_ProcessData.c **** 		idx++;
+  56:./src/motor/UART_ProcessData.c **** 	}
+  57:./src/motor/UART_ProcessData.c **** 	
+  58:./src/motor/UART_ProcessData.c **** 	/* set the tail equal to the head */
+  59:./src/motor/UART_ProcessData.c **** 	__BUF_INCR(rb->rx_tail);
+ 122              		.loc 1 59 0 is_stmt 1
+ 123 0054 C368     		ldr	r3, [r0, #12]
+ 124              	.LVL6:
+  60:./src/motor/UART_ProcessData.c **** 	
+  61:./src/motor/UART_ProcessData.c **** 	/* Clear the '\n' in the data */
+  62:./src/motor/UART_ProcessData.c **** 	procdata[idx-1] = 0;
+  63:./src/motor/UART_ProcessData.c **** 
+  64:./src/motor/UART_ProcessData.c **** 	/* Handle the start command */
+  65:./src/motor/UART_ProcessData.c **** 	if (!strcmp("start", (const char *)procdata))
+ 125              		.loc 1 65 0
+ 126 0056 01AC     		add	r4, sp, #4
+  59:./src/motor/UART_ProcessData.c **** 	__BUF_INCR(rb->rx_tail);
+ 127              		.loc 1 59 0
+ 128 0058 0133     		adds	r3, r3, #1
+ 129 005a DBB2     		uxtb	r3, r3
+  62:./src/motor/UART_ProcessData.c **** 	procdata[idx-1] = 0;
+ 130              		.loc 1 62 0
+ 131 005c 10AA     		add	r2, sp, #64
+ 132              	.LVL7:
+ 133 005e 1544     		add	r5, r5, r2
+ 134              	.LVL8:
+ 135 0060 0027     		movs	r7, #0
+  59:./src/motor/UART_ProcessData.c **** 	__BUF_INCR(rb->rx_tail);
+ 136              		.loc 1 59 0
+ 137 0062 C360     		str	r3, [r0, #12]
+ 138              		.loc 1 65 0
+ 139 0064 2146     		mov	r1, r4
+ 140 0066 4448     		ldr	r0, .L29
+ 141              	.LVL9:
+  62:./src/motor/UART_ProcessData.c **** 	procdata[idx-1] = 0;
+ 142              		.loc 1 62 0
+ 143 0068 05F83D7C 		strb	r7, [r5, #-61]
+ 144              		.loc 1 65 0
+ 145 006c FFF7FEFF 		bl	strcmp
+ 146              	.LVL10:
+ 147 0070 0028     		cmp	r0, #0
+ 148 0072 4ED0     		beq	.L22
+  66:./src/motor/UART_ProcessData.c **** 	{
+  67:./src/motor/UART_ProcessData.c **** 		pid->Brake = DISABLE;
+  68:./src/motor/UART_ProcessData.c **** 		pid->Enable = ENABLE;
+  69:./src/motor/UART_ProcessData.c **** 		return;
+  70:./src/motor/UART_ProcessData.c **** 	}
+  71:./src/motor/UART_ProcessData.c **** 	/* */
+  72:./src/motor/UART_ProcessData.c **** 	else if (!strcmp("stop",(const char *)procdata))
+ 149              		.loc 1 72 0
+ 150 0074 4148     		ldr	r0, .L29+4
+ 151 0076 2146     		mov	r1, r4
+ 152 0078 FFF7FEFF 		bl	strcmp
+ 153              	.LVL11:
+ 154 007c 0028     		cmp	r0, #0
+ 155 007e 3FD0     		beq	.L23
+  73:./src/motor/UART_ProcessData.c **** 	{
+  74:./src/motor/UART_ProcessData.c **** 		pid->Brake = DISABLE;
+  75:./src/motor/UART_ProcessData.c **** 		pid->Enable = DISABLE;
+  76:./src/motor/UART_ProcessData.c **** 		pid->RPM = 0;
+  77:./src/motor/UART_ProcessData.c **** 		pid->pv = 0;
+  78:./src/motor/UART_ProcessData.c **** 		return;
+  79:./src/motor/UART_ProcessData.c **** 	}
+  80:./src/motor/UART_ProcessData.c **** 	/* */
+  81:./src/motor/UART_ProcessData.c **** 	else if (!strcmp("break",(const char *)procdata))
+ 156              		.loc 1 81 0
+ 157 0080 3F48     		ldr	r0, .L29+8
+ 158 0082 2146     		mov	r1, r4
+ 159 0084 FFF7FEFF 		bl	strcmp
+ 160              	.LVL12:
+ 161 0088 0028     		cmp	r0, #0
+ 162 008a 4AD0     		beq	.L24
+  82:./src/motor/UART_ProcessData.c **** 	{
+  83:./src/motor/UART_ProcessData.c **** 		pid->Brake = ENABLE;
+  84:./src/motor/UART_ProcessData.c **** 		pid->Enable = DISABLE;
+  85:./src/motor/UART_ProcessData.c **** 		pid->RPM = 0;
+  86:./src/motor/UART_ProcessData.c **** 		pid->pv = 0;
+  87:./src/motor/UART_ProcessData.c **** 		return;
+  88:./src/motor/UART_ProcessData.c **** 	}
+  89:./src/motor/UART_ProcessData.c **** 
+  90:./src/motor/UART_ProcessData.c **** 	/* look for the = in the string */
+  91:./src/motor/UART_ProcessData.c **** 	pch = (uint8_t *)strchr((const char *)procdata, '=');
+ 163              		.loc 1 91 0
+ 164 008c 2046     		mov	r0, r4
+ 165 008e 3D21     		movs	r1, #61
+ 166 0090 FFF7FEFF 		bl	strchr
+ 167              	.LVL13:
+  92:./src/motor/UART_ProcessData.c **** 
+  93:./src/motor/UART_ProcessData.c **** 	/* Check for valid command */
+  94:./src/motor/UART_ProcessData.c **** 	if(pch == NULL)
+ 168              		.loc 1 94 0
+ 169 0094 0028     		cmp	r0, #0
+ 170 0096 68D0     		beq	.L19
+  95:./src/motor/UART_ProcessData.c **** 	{
+  96:./src/motor/UART_ProcessData.c **** 		/* Invalid command */
+  97:./src/motor/UART_ProcessData.c **** 		UART_processERROR();
+  98:./src/motor/UART_ProcessData.c **** 		return;
+  99:./src/motor/UART_ProcessData.c **** 	}
+ 100:./src/motor/UART_ProcessData.c **** 
+ 101:./src/motor/UART_ProcessData.c **** 	/* Calculate the location of the searched char */
+ 102:./src/motor/UART_ProcessData.c **** 	loc = (uint8_t)(pch - procdata);
+ 171              		.loc 1 102 0
+ 172 0098 C4EB0008 		rsb	r8, r4, r0
+ 173              	.LVL14:
+ 174 009c 5FFA88F5 		uxtb	r5, r8
+ 103:./src/motor/UART_ProcessData.c **** 
+ 104:./src/motor/UART_ProcessData.c **** 	/* Copy the command part to the command array */
+ 105:./src/motor/UART_ProcessData.c **** 	strncpy ((char *)cmd, (char *)procdata, (size_t)(loc));
+ 175              		.loc 1 105 0
+ 176 00a0 2A46     		mov	r2, r5
+ 177 00a2 2146     		mov	r1, r4
+ 178 00a4 06A8     		add	r0, sp, #24
+ 179              	.LVL15:
+ 180 00a6 FFF7FEFF 		bl	strncpy
+ 181              	.LVL16:
+ 106:./src/motor/UART_ProcessData.c **** 
+ 107:./src/motor/UART_ProcessData.c **** 	/* Get the remaining number of bytes */
+ 108:./src/motor/UART_ProcessData.c **** 	len = strlen((const char *) procdata) - loc;
+ 182              		.loc 1 108 0
+ 183 00aa 2046     		mov	r0, r4
+ 184 00ac FFF7FEFF 		bl	strlen
+ 185              	.LVL17:
+ 109:./src/motor/UART_ProcessData.c **** 	memmove ((void *)value_s,(const void *)(procdata+loc+1), (size_t)len );
+ 186              		.loc 1 109 0
+ 187 00b0 691C     		adds	r1, r5, #1
+ 108:./src/motor/UART_ProcessData.c **** 	len = strlen((const char *) procdata) - loc;
+ 188              		.loc 1 108 0
+ 189 00b2 C8EB0002 		rsb	r2, r8, r0
+ 190              		.loc 1 109 0
+ 191 00b6 2144     		add	r1, r1, r4
+ 192 00b8 D2B2     		uxtb	r2, r2
+ 193 00ba 0BA8     		add	r0, sp, #44
+ 194              	.LVL18:
+ 195 00bc FFF7FEFF 		bl	memcpy
+ 196              	.LVL19:
+ 110:./src/motor/UART_ProcessData.c **** 
+ 111:./src/motor/UART_ProcessData.c **** 	/* Check whether value is double or interger */
+ 112:./src/motor/UART_ProcessData.c **** 	pch =(uint8_t *)strchr((const char *)value_s, '.');
+ 197              		.loc 1 112 0
+ 198 00c0 0BA8     		add	r0, sp, #44
+ 199 00c2 2E21     		movs	r1, #46
+ 200 00c4 FFF7FEFF 		bl	strchr
+ 201              	.LVL20:
+ 113:./src/motor/UART_ProcessData.c **** 	if(pch == NULL)
+ 202              		.loc 1 113 0
+ 203 00c8 0028     		cmp	r0, #0
+ 204 00ca 47D0     		beq	.L25
+ 114:./src/motor/UART_ProcessData.c **** 	{
+ 115:./src/motor/UART_ProcessData.c **** 		value_u16 = atoi((const char *)value_s);
+ 116:./src/motor/UART_ProcessData.c **** 	}
+ 117:./src/motor/UART_ProcessData.c **** 	else
+ 118:./src/motor/UART_ProcessData.c **** 	{
+ 119:./src/motor/UART_ProcessData.c **** 		value_d = atof((const char *)value_s);
+ 205              		.loc 1 119 0
+ 206 00cc 0BA8     		add	r0, sp, #44
+ 207              	.LVL21:
+ 208 00ce FFF7FEFF 		bl	atof
+ 209              	.LVL22:
+ 210 00d2 0446     		mov	r4, r0
+ 211 00d4 0D46     		mov	r5, r1
+ 212              	.LVL23:
+ 213              	.L13:
+ 120:./src/motor/UART_ProcessData.c **** 		//value_d = my_atof((const char *)value_s);
+ 121:./src/motor/UART_ProcessData.c **** 	}
+ 122:./src/motor/UART_ProcessData.c **** 
+ 123:./src/motor/UART_ProcessData.c **** 	/* */
+ 124:./src/motor/UART_ProcessData.c **** 	if (!strcmp("speed", (const char *)cmd))
+ 214              		.loc 1 124 0
+ 215 00d6 2B48     		ldr	r0, .L29+12
+ 216 00d8 06A9     		add	r1, sp, #24
+ 217 00da FFF7FEFF 		bl	strcmp
+ 218              	.LVL24:
+ 219 00de 50B3     		cbz	r0, .L26
+ 125:./src/motor/UART_ProcessData.c **** 	{
+ 126:./src/motor/UART_ProcessData.c **** 		pid->sp = value_u16;
+ 127:./src/motor/UART_ProcessData.c **** 		return;
+ 128:./src/motor/UART_ProcessData.c **** 	}
+ 129:./src/motor/UART_ProcessData.c **** 	/* */
+ 130:./src/motor/UART_ProcessData.c **** 	else if (!strcmp("poles", (const char *)cmd))
+ 220              		.loc 1 130 0
+ 221 00e0 2948     		ldr	r0, .L29+16
+ 222 00e2 06A9     		add	r1, sp, #24
+ 223 00e4 FFF7FEFF 		bl	strcmp
+ 224              	.LVL25:
+ 225 00e8 38B3     		cbz	r0, .L27
+ 131:./src/motor/UART_ProcessData.c **** 	{
+ 132:./src/motor/UART_ProcessData.c **** 		pid->Poles = value_u16;
+ 133:./src/motor/UART_ProcessData.c **** 		return;
+ 134:./src/motor/UART_ProcessData.c **** 	}
+ 135:./src/motor/UART_ProcessData.c **** 	/* */
+ 136:./src/motor/UART_ProcessData.c **** 	else if (!strcmp("dir", (const char *)cmd))
+ 226              		.loc 1 136 0
+ 227 00ea 2848     		ldr	r0, .L29+20
+ 228 00ec 06A9     		add	r1, sp, #24
+ 229 00ee FFF7FEFF 		bl	strcmp
+ 230              	.LVL26:
+ 231 00f2 30BB     		cbnz	r0, .L16
+ 137:./src/motor/UART_ProcessData.c **** 	{
+ 138:./src/motor/UART_ProcessData.c **** 		if (value_u16 == CCW)
+ 232              		.loc 1 138 0
+ 233 00f4 012F     		cmp	r7, #1
+ 234 00f6 00D0     		beq	.L20
+ 139:./src/motor/UART_ProcessData.c **** 		{
+ 140:./src/motor/UART_ProcessData.c **** 			pid->Direction = CCW;
+ 141:./src/motor/UART_ProcessData.c **** 		}
+ 142:./src/motor/UART_ProcessData.c **** 		else if (value_u16 == CW)
+ 235              		.loc 1 142 0
+ 236 00f8 47B9     		cbnz	r7, .L4
+ 237              	.L20:
+ 143:./src/motor/UART_ProcessData.c **** 		{
+ 144:./src/motor/UART_ProcessData.c **** 			pid->Direction = CW;
+ 238              		.loc 1 144 0
+ 239 00fa 86F84D70 		strb	r7, [r6, #77]
+ 240 00fe 05E0     		b	.L4
+ 241              	.LVL27:
+ 242              	.L23:
+  74:./src/motor/UART_ProcessData.c **** 		pid->Brake = DISABLE;
+ 243              		.loc 1 74 0
+ 244 0100 86F84E00 		strb	r0, [r6, #78]
+  75:./src/motor/UART_ProcessData.c **** 		pid->Enable = DISABLE;
+ 245              		.loc 1 75 0
+ 246 0104 86F84C00 		strb	r0, [r6, #76]
+  76:./src/motor/UART_ProcessData.c **** 		pid->RPM = 0;
+ 247              		.loc 1 76 0
+ 248 0108 B064     		str	r0, [r6, #72]
+  77:./src/motor/UART_ProcessData.c **** 		pid->pv = 0;
+ 249              		.loc 1 77 0
+ 250 010a F061     		str	r0, [r6, #28]
+ 251              	.LVL28:
+ 252              	.L4:
+ 145:./src/motor/UART_ProcessData.c **** 		}
+ 146:./src/motor/UART_ProcessData.c **** 		return;
+ 147:./src/motor/UART_ProcessData.c **** 	}
+ 148:./src/motor/UART_ProcessData.c **** 	else if (!strcmp("p", (const char *)cmd))
+ 149:./src/motor/UART_ProcessData.c **** 	{
+ 150:./src/motor/UART_ProcessData.c **** 		pid->p = value_d;
+ 151:./src/motor/UART_ProcessData.c **** 		return;
+ 152:./src/motor/UART_ProcessData.c **** 	}
+ 153:./src/motor/UART_ProcessData.c **** 	else if (!strcmp("i", (const char *)cmd))
+ 154:./src/motor/UART_ProcessData.c **** 	{
+ 155:./src/motor/UART_ProcessData.c **** 		pid->i = value_d;
+ 156:./src/motor/UART_ProcessData.c **** 		return;
+ 157:./src/motor/UART_ProcessData.c **** 	}
+ 158:./src/motor/UART_ProcessData.c **** 	else
+ 159:./src/motor/UART_ProcessData.c **** 	{
+ 160:./src/motor/UART_ProcessData.c **** 		UART_processERROR();
+ 161:./src/motor/UART_ProcessData.c **** 		return;
+ 162:./src/motor/UART_ProcessData.c **** 	}
+ 163:./src/motor/UART_ProcessData.c **** 
+ 164:./src/motor/UART_ProcessData.c **** }
+ 253              		.loc 1 164 0
+ 254 010c 10B0     		add	sp, sp, #64
+ 255              		@ sp needed
+ 256 010e BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 257              	.LVL29:
+ 258              	.L22:
+  68:./src/motor/UART_ProcessData.c **** 		pid->Enable = ENABLE;
+ 259              		.loc 1 68 0
+ 260 0112 0123     		movs	r3, #1
+  67:./src/motor/UART_ProcessData.c **** 		pid->Brake = DISABLE;
+ 261              		.loc 1 67 0
+ 262 0114 86F84E00 		strb	r0, [r6, #78]
+  68:./src/motor/UART_ProcessData.c **** 		pid->Enable = ENABLE;
+ 263              		.loc 1 68 0
+ 264 0118 86F84C30 		strb	r3, [r6, #76]
+ 265              		.loc 1 164 0
+ 266 011c 10B0     		add	sp, sp, #64
+ 267              		@ sp needed
+ 268 011e BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 269              	.LVL30:
+ 270              	.L24:
+  83:./src/motor/UART_ProcessData.c **** 		pid->Brake = ENABLE;
+ 271              		.loc 1 83 0
+ 272 0122 0123     		movs	r3, #1
+ 273 0124 86F84E30 		strb	r3, [r6, #78]
+  84:./src/motor/UART_ProcessData.c **** 		pid->Enable = DISABLE;
+ 274              		.loc 1 84 0
+ 275 0128 86F84C00 		strb	r0, [r6, #76]
+  85:./src/motor/UART_ProcessData.c **** 		pid->RPM = 0;
+ 276              		.loc 1 85 0
+ 277 012c B064     		str	r0, [r6, #72]
+  86:./src/motor/UART_ProcessData.c **** 		pid->pv = 0;
+ 278              		.loc 1 86 0
+ 279 012e F061     		str	r0, [r6, #28]
+ 280              		.loc 1 164 0
+ 281 0130 10B0     		add	sp, sp, #64
+ 282              		@ sp needed
+ 283 0132 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 284              	.LVL31:
+ 285              	.L26:
+ 126:./src/motor/UART_ProcessData.c **** 		pid->sp = value_u16;
+ 286              		.loc 1 126 0
+ 287 0136 B761     		str	r7, [r6, #24]
+ 127:./src/motor/UART_ProcessData.c **** 		return;
+ 288              		.loc 1 127 0
+ 289 0138 E8E7     		b	.L4
+ 290              	.L27:
+ 132:./src/motor/UART_ProcessData.c **** 		pid->Poles = value_u16;
+ 291              		.loc 1 132 0
+ 292 013a FFB2     		uxtb	r7, r7
+ 293              	.LVL32:
+ 294 013c 86F85470 		strb	r7, [r6, #84]
+ 133:./src/motor/UART_ProcessData.c **** 		return;
+ 295              		.loc 1 133 0
+ 296 0140 E4E7     		b	.L4
+ 297              	.LVL33:
+ 298              	.L16:
+ 148:./src/motor/UART_ProcessData.c **** 	else if (!strcmp("p", (const char *)cmd))
+ 299              		.loc 1 148 0
+ 300 0142 1348     		ldr	r0, .L29+24
+ 301 0144 06A9     		add	r1, sp, #24
+ 302 0146 FFF7FEFF 		bl	strcmp
+ 303              	.LVL34:
+ 304 014a 90B1     		cbz	r0, .L28
+ 153:./src/motor/UART_ProcessData.c **** 	else if (!strcmp("i", (const char *)cmd))
+ 305              		.loc 1 153 0
+ 306 014c 06A9     		add	r1, sp, #24
+ 307 014e 1148     		ldr	r0, .L29+28
+ 308 0150 FFF7FEFF 		bl	strcmp
+ 309              	.LVL35:
+ 310 0154 48B9     		cbnz	r0, .L19
+ 155:./src/motor/UART_ProcessData.c **** 		pid->i = value_d;
+ 311              		.loc 1 155 0
+ 312 0156 C6E90245 		strd	r4, [r6, #8]
+ 156:./src/motor/UART_ProcessData.c **** 		return;
+ 313              		.loc 1 156 0
+ 314 015a D7E7     		b	.L4
+ 315              	.LVL36:
+ 316              	.L25:
+ 115:./src/motor/UART_ProcessData.c **** 		value_u16 = atoi((const char *)value_s);
+ 317              		.loc 1 115 0
+ 318 015c 0BA8     		add	r0, sp, #44
+ 319              	.LVL37:
+ 320 015e FFF7FEFF 		bl	atoi
+ 321              	.LVL38:
+  48:./src/motor/UART_ProcessData.c **** 	double 		value_d	 = 0;
+ 322              		.loc 1 48 0
+ 323 0162 0024     		movs	r4, #0
+ 324 0164 0025     		movs	r5, #0
+ 115:./src/motor/UART_ProcessData.c **** 		value_u16 = atoi((const char *)value_s);
+ 325              		.loc 1 115 0
+ 326 0166 87B2     		uxth	r7, r0
+ 327              	.LVL39:
+ 328 0168 B5E7     		b	.L13
+ 329              	.LVL40:
+ 330              	.L19:
+ 331              	.LBB6:
+ 332              	.LBB7:
+  35:./src/motor/UART_ProcessData.c **** 	printf("Error: Invalid command\n\n");
+ 333              		.loc 1 35 0
+ 334 016a 0B48     		ldr	r0, .L29+32
+ 335 016c FFF7FEFF 		bl	puts
+ 336              	.LVL41:
+ 337 0170 CCE7     		b	.L4
+ 338              	.LVL42:
+ 339              	.L28:
+ 340              	.LBE7:
+ 341              	.LBE6:
+ 150:./src/motor/UART_ProcessData.c **** 		pid->p = value_d;
+ 342              		.loc 1 150 0
+ 343 0172 C6E90045 		strd	r4, [r6]
+ 151:./src/motor/UART_ProcessData.c **** 		return;
+ 344              		.loc 1 151 0
+ 345 0176 C9E7     		b	.L4
+ 346              	.L30:
+ 347              		.align	2
+ 348              	.L29:
+ 349 0178 18000000 		.word	.LC1
+ 350 017c 20000000 		.word	.LC2
+ 351 0180 28000000 		.word	.LC3
+ 352 0184 30000000 		.word	.LC4
+ 353 0188 38000000 		.word	.LC5
+ 354 018c 40000000 		.word	.LC6
+ 355 0190 44000000 		.word	.LC7
+ 356 0194 48000000 		.word	.LC8
+ 357 0198 00000000 		.word	.LC0
+ 358              		.cfi_endproc
+ 359              	.LFE56:
+ 361              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 362              		.align	2
+ 363              	.LC0:
+ 364 0000 4572726F 		.ascii	"Error: Invalid command\012\000"
+ 364      723A2049 
+ 364      6E76616C 
+ 364      69642063 
+ 364      6F6D6D61 
+ 365              	.LC1:
+ 366 0018 73746172 		.ascii	"start\000"
+ 366      7400
+ 367 001e 0000     		.space	2
+ 368              	.LC2:
+ 369 0020 73746F70 		.ascii	"stop\000"
+ 369      00
+ 370 0025 000000   		.space	3
+ 371              	.LC3:
+ 372 0028 62726561 		.ascii	"break\000"
+ 372      6B00
+ 373 002e 0000     		.space	2
+ 374              	.LC4:
+ 375 0030 73706565 		.ascii	"speed\000"
+ 375      6400
+ 376 0036 0000     		.space	2
+ 377              	.LC5:
+ 378 0038 706F6C65 		.ascii	"poles\000"
+ 378      7300
+ 379 003e 0000     		.space	2
+ 380              	.LC6:
+ 381 0040 64697200 		.ascii	"dir\000"
+ 382              	.LC7:
+ 383 0044 7000     		.ascii	"p\000"
+ 384 0046 0000     		.space	2
+ 385              	.LC8:
+ 386 0048 6900     		.ascii	"i\000"
+ 387 004a 0000     		.text
+ 388              	.Letext0:
+ 389              		.file 2 "d:\\gnu\\4_8\\lib\\gcc\\arm-none-eabi\\4.8.3\\include\\stddef.h"
+ 390              		.file 3 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 391              		.file 4 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+ 392              		.file 5 "./src/motor/type.h"
+ 393              		.file 6 "./src/motor/BLDC.h"
+ 394              		.file 7 "./src/motor/UART_ProcessData.h"
+ 395              		.file 8 "d:\\gnu\\4_8\\arm-none-eabi\\include\\string.h"
+ 396              		.file 9 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdlib.h"
+ 397              		.file 10 "./Drivers/include/lpc_types.h"
+ 398              		.file 11 "./Core/core_cm3.h"
+ 399              		.file 12 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:00000000 UART_ProcessData.c
+C:\Users\kosmos\AppData\Local\Temp\ccbHl9bc.s:19     .text.UART_processERROR:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccbHl9bc.s:24     .text.UART_processERROR:00000000 UART_processERROR
+C:\Users\kosmos\AppData\Local\Temp\ccbHl9bc.s:39     .text.UART_processERROR:00000008 $d
+C:\Users\kosmos\AppData\Local\Temp\ccbHl9bc.s:44     .text.UART_processMessage:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccbHl9bc.s:49     .text.UART_processMessage:00000000 UART_processMessage
+C:\Users\kosmos\AppData\Local\Temp\ccbHl9bc.s:349    .text.UART_processMessage:00000178 $d
+C:\Users\kosmos\AppData\Local\Temp\ccbHl9bc.s:362    .rodata.str1.4:00000000 $d
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+puts
+strcmp
+strchr
+strncpy
+strlen
+memcpy
+atof
+atoi

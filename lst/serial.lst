@@ -1,0 +1,2374 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"serial.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.ser_OpenPort,"ax",%progbits
+  19              		.align	2
+  20              		.global	ser_OpenPort
+  21              		.thumb
+  22              		.thumb_func
+  24              	ser_OpenPort:
+  25              	.LFB55:
+  26              		.file 1 "./src/serial.c"
+   1:./src/serial.c **** /*----------------------------------------------------------------------------
+   2:./src/serial.c ****  *      Name:    serial.c
+   3:./src/serial.c ****  *      Purpose: serial port handling for LPC17xx
+   4:./src/serial.c ****  *      Version: V1.20
+   5:./src/serial.c ****  *----------------------------------------------------------------------------
+   6:./src/serial.c ****  *      This software is supplied "AS IS" without any warranties, express,
+   7:./src/serial.c ****  *      implied or statutory, including but not limited to the implied
+   8:./src/serial.c ****  *      warranties of fitness for purpose, satisfactory quality and
+   9:./src/serial.c ****  *      noninfringement. Keil extends you a royalty-free right to reproduce
+  10:./src/serial.c ****  *      and distribute executable files created using this software for use
+  11:./src/serial.c ****  *      on NXP Semiconductors LPC microcontroller devices only. Nothing else
+  12:./src/serial.c ****  *      gives you the right to use this software.
+  13:./src/serial.c ****  *
+  14:./src/serial.c ****  * Copyright (c) 2009 Keil - An ARM Company. All rights reserved.
+  15:./src/serial.c ****  *---------------------------------------------------------------------------*/
+  16:./src/serial.c **** #include "LPC17xx.h"                                   // LPC17xx definitions
+  17:./src/serial.c **** #include "lpc_types.h"
+  18:./src/serial.c **** #include "serial.h"
+  19:./src/serial.c **** 
+  20:./src/serial.c **** 
+  21:./src/serial.c **** /*----------------------------------------------------------------------------
+  22:./src/serial.c ****   Defines for ring buffers
+  23:./src/serial.c ****  *---------------------------------------------------------------------------*/
+  24:./src/serial.c **** #define SER_BUF_SIZE               (128)               // serial buffer in bytes (power 2)
+  25:./src/serial.c **** #define SER_BUF_MASK               (SER_BUF_SIZE-1ul)  // buffer size mask
+  26:./src/serial.c **** 
+  27:./src/serial.c **** /* Buffer read / write macros */
+  28:./src/serial.c **** #define SER_BUF_RESET(serBuf)      (serBuf.rdIdx = serBuf.wrIdx = 0)
+  29:./src/serial.c **** #define SER_BUF_WR(serBuf, dataIn) (serBuf.data[SER_BUF_MASK & serBuf.wrIdx++] = (dataIn))
+  30:./src/serial.c **** #define SER_BUF_RD(serBuf)         (serBuf.data[SER_BUF_MASK & serBuf.rdIdx++])
+  31:./src/serial.c **** #define SER_BUF_EMPTY(serBuf)      (serBuf.rdIdx == serBuf.wrIdx)
+  32:./src/serial.c **** #define SER_BUF_FULL(serBuf)       (serBuf.rdIdx == serBuf.wrIdx+1)
+  33:./src/serial.c **** #define SER_BUF_COUNT(serBuf)      (SER_BUF_MASK & (serBuf.wrIdx - serBuf.rdIdx))
+  34:./src/serial.c **** 
+  35:./src/serial.c **** // buffer type
+  36:./src/serial.c **** typedef struct __SER_BUF_T {
+  37:./src/serial.c ****   volatile unsigned char data[SER_BUF_SIZE];
+  38:./src/serial.c ****   volatile unsigned int wrIdx;
+  39:./src/serial.c ****   volatile unsigned int rdIdx;
+  40:./src/serial.c **** } SER_BUF_T;
+  41:./src/serial.c **** 
+  42:./src/serial.c **** volatile unsigned long          ser_txRestart;                  // NZ if TX restart is required
+  43:./src/serial.c **** volatile unsigned short         ser_lineState;                  // ((msr << 8) | (lsr))
+  44:./src/serial.c **** SER_BUF_T              ser_out;                        // Serial data buffers
+  45:./src/serial.c **** SER_BUF_T              ser_in;
+  46:./src/serial.c **** 
+  47:./src/serial.c **** 
+  48:./src/serial.c **** /*----------------------------------------------------------------------------
+  49:./src/serial.c ****   open the serial port
+  50:./src/serial.c ****  *---------------------------------------------------------------------------*/
+  51:./src/serial.c **** void ser_OpenPort (char portNum) {
+  27              		.loc 1 51 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  32              	.LVL0:
+  33              	.LBB14:
+  34              	.LBB15:
+  35              		.file 2 "./Core/core_cm3.h"
+   1:./Core/core_cm3.h **** /**************************************************************************//**
+   2:./Core/core_cm3.h ****  * @file     core_cm3.h
+   3:./Core/core_cm3.h ****  * @brief    CMSIS Cortex-M3 Core Peripheral Access Layer Header File
+   4:./Core/core_cm3.h ****  * @version  V2.01
+   5:./Core/core_cm3.h ****  * @date     06. December 2010
+   6:./Core/core_cm3.h ****  *
+   7:./Core/core_cm3.h ****  * @note
+   8:./Core/core_cm3.h ****  * Copyright (C) 2009-2010 ARM Limited. All rights reserved.
+   9:./Core/core_cm3.h ****  *
+  10:./Core/core_cm3.h ****  * @par
+  11:./Core/core_cm3.h ****  * ARM Limited (ARM) is supplying this software for use with Cortex-M
+  12:./Core/core_cm3.h ****  * processor based microcontrollers.  This file can be freely distributed
+  13:./Core/core_cm3.h ****  * within development tools that are supporting such ARM based processors.
+  14:./Core/core_cm3.h ****  *
+  15:./Core/core_cm3.h ****  * @par
+  16:./Core/core_cm3.h ****  * THIS SOFTWARE IS PROVIDED "AS IS".  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
+  17:./Core/core_cm3.h ****  * OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
+  18:./Core/core_cm3.h ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
+  19:./Core/core_cm3.h ****  * ARM SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+  20:./Core/core_cm3.h ****  * CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+  21:./Core/core_cm3.h ****  *
+  22:./Core/core_cm3.h ****  ******************************************************************************/
+  23:./Core/core_cm3.h **** #if defined ( __ICCARM__ )
+  24:./Core/core_cm3.h ****  #pragma system_include  /* treat file as system include file for MISRA check */
+  25:./Core/core_cm3.h **** #endif
+  26:./Core/core_cm3.h **** 
+  27:./Core/core_cm3.h **** #ifdef __cplusplus
+  28:./Core/core_cm3.h ****  extern "C" {
+  29:./Core/core_cm3.h **** #endif
+  30:./Core/core_cm3.h **** 
+  31:./Core/core_cm3.h **** #ifndef __CORE_CM3_H_GENERIC
+  32:./Core/core_cm3.h **** #define __CORE_CM3_H_GENERIC
+  33:./Core/core_cm3.h **** 
+  34:./Core/core_cm3.h **** /** @addtogroup CMSIS_core_LintCinfiguration CMSIS Core Lint Configuration
+  35:./Core/core_cm3.h ****   List of Lint messages which will be suppressed and not shown:
+  36:./Core/core_cm3.h ****     - not yet checked
+  37:./Core/core_cm3.h ****   .
+  38:./Core/core_cm3.h ****   Note:  To re-enable a Message, insert a space before 'lint' *
+  39:./Core/core_cm3.h **** 
+  40:./Core/core_cm3.h ****  */
+  41:./Core/core_cm3.h **** 
+  42:./Core/core_cm3.h **** 
+  43:./Core/core_cm3.h **** /*******************************************************************************
+  44:./Core/core_cm3.h ****  *                 CMSIS definitions
+  45:./Core/core_cm3.h ****  ******************************************************************************/
+  46:./Core/core_cm3.h **** /** @addtogroup CMSIS_core_definitions CMSIS Core Definitions
+  47:./Core/core_cm3.h ****   This file defines all structures and symbols for CMSIS core:
+  48:./Core/core_cm3.h ****    - CMSIS version number
+  49:./Core/core_cm3.h ****    - Cortex-M core
+  50:./Core/core_cm3.h ****    - Cortex-M core Revision Number
+  51:./Core/core_cm3.h ****   @{
+  52:./Core/core_cm3.h ****  */
+  53:./Core/core_cm3.h **** 
+  54:./Core/core_cm3.h **** /*  CMSIS CM3 definitions */
+  55:./Core/core_cm3.h **** #define __CM3_CMSIS_VERSION_MAIN  (0x02)                                                       /*!<
+  56:./Core/core_cm3.h **** #define __CM3_CMSIS_VERSION_SUB   (0x00)                                                       /*!<
+  57:./Core/core_cm3.h **** #define __CM3_CMSIS_VERSION       ((__CM3_CMSIS_VERSION_MAIN << 16) | __CM3_CMSIS_VERSION_SUB) /*!<
+  58:./Core/core_cm3.h **** 
+  59:./Core/core_cm3.h **** #define __CORTEX_M                (0x03)                                                       /*!<
+  60:./Core/core_cm3.h **** 
+  61:./Core/core_cm3.h **** 
+  62:./Core/core_cm3.h **** #if defined ( __CC_ARM   )
+  63:./Core/core_cm3.h ****   #define __ASM            __asm                                      /*!< asm keyword for ARM Comp
+  64:./Core/core_cm3.h ****   #define __INLINE         __inline                                   /*!< inline keyword for ARM C
+  65:./Core/core_cm3.h **** 
+  66:./Core/core_cm3.h **** #elif defined ( __ICCARM__ )
+  67:./Core/core_cm3.h ****   #define __ASM           __asm                                       /*!< asm keyword for IAR Comp
+  68:./Core/core_cm3.h ****   #define __INLINE        inline                                      /*!< inline keyword for IAR C
+  69:./Core/core_cm3.h **** 
+  70:./Core/core_cm3.h **** #elif defined   (  __GNUC__  )
+  71:./Core/core_cm3.h ****   #define __ASM            __asm                                      /*!< asm keyword for GNU Comp
+  72:./Core/core_cm3.h ****   #define __INLINE         inline                                     /*!< inline keyword for GNU C
+  73:./Core/core_cm3.h **** 
+  74:./Core/core_cm3.h **** #elif defined   (  __TASKING__  )
+  75:./Core/core_cm3.h ****   #define __ASM            __asm                                      /*!< asm keyword for TASKING 
+  76:./Core/core_cm3.h ****   #define __INLINE         inline                                     /*!< inline keyword for TASKI
+  77:./Core/core_cm3.h **** 
+  78:./Core/core_cm3.h **** #endif
+  79:./Core/core_cm3.h **** 
+  80:./Core/core_cm3.h **** #include <stdint.h>                      /*!< standard types definitions                      */
+  81:./Core/core_cm3.h **** #include "core_cmInstr.h"                /*!< Core Instruction Access                         */
+  82:./Core/core_cm3.h **** #include "core_cmFunc.h"                 /*!< Core Function Access                            */
+  83:./Core/core_cm3.h **** 
+  84:./Core/core_cm3.h **** #endif /* __CORE_CM3_H_GENERIC */
+  85:./Core/core_cm3.h **** 
+  86:./Core/core_cm3.h **** 
+  87:./Core/core_cm3.h **** #ifndef __CMSIS_GENERIC
+  88:./Core/core_cm3.h **** 
+  89:./Core/core_cm3.h **** #ifndef __CORE_CM3_H_DEPENDANT
+  90:./Core/core_cm3.h **** #define __CORE_CM3_H_DEPENDANT
+  91:./Core/core_cm3.h **** 
+  92:./Core/core_cm3.h **** /* IO definitions (access restrictions to peripheral registers) */
+  93:./Core/core_cm3.h **** #ifdef __cplusplus
+  94:./Core/core_cm3.h ****   #define     __I     volatile           /*!< defines 'read only' permissions                 */
+  95:./Core/core_cm3.h **** #else
+  96:./Core/core_cm3.h ****   #define     __I     volatile const     /*!< defines 'read only' permissions                 */
+  97:./Core/core_cm3.h **** #endif
+  98:./Core/core_cm3.h **** #define     __O     volatile             /*!< defines 'write only' permissions                */
+  99:./Core/core_cm3.h **** #define     __IO    volatile             /*!< defines 'read / write' permissions              */
+ 100:./Core/core_cm3.h **** 
+ 101:./Core/core_cm3.h **** /*@} end of group CMSIS_core_definitions */
+ 102:./Core/core_cm3.h **** 
+ 103:./Core/core_cm3.h **** 
+ 104:./Core/core_cm3.h **** 
+ 105:./Core/core_cm3.h **** /*******************************************************************************
+ 106:./Core/core_cm3.h ****  *                 Register Abstraction
+ 107:./Core/core_cm3.h ****  ******************************************************************************/
+ 108:./Core/core_cm3.h **** /** @addtogroup CMSIS_core_register CMSIS Core Register
+ 109:./Core/core_cm3.h ****   Core Register contain:
+ 110:./Core/core_cm3.h ****   - Core Register
+ 111:./Core/core_cm3.h ****   - Core NVIC Register
+ 112:./Core/core_cm3.h ****   - Core SCB Register
+ 113:./Core/core_cm3.h ****   - Core SysTick Register
+ 114:./Core/core_cm3.h ****   - Core Debug Register
+ 115:./Core/core_cm3.h ****   - Core MPU Register
+ 116:./Core/core_cm3.h **** */
+ 117:./Core/core_cm3.h **** 
+ 118:./Core/core_cm3.h **** /** \ingroup  CMSIS_core_register
+ 119:./Core/core_cm3.h ****     \defgroup CMSIS_CORE CMSIS Core
+ 120:./Core/core_cm3.h ****   Type definitions for the Cortex-M Core Registers
+ 121:./Core/core_cm3.h ****   @{
+ 122:./Core/core_cm3.h ****  */
+ 123:./Core/core_cm3.h **** 
+ 124:./Core/core_cm3.h **** /** \brief  Union type to access the Application Program Status Register (APSR).
+ 125:./Core/core_cm3.h ****  */
+ 126:./Core/core_cm3.h **** typedef union
+ 127:./Core/core_cm3.h **** {
+ 128:./Core/core_cm3.h ****   struct
+ 129:./Core/core_cm3.h ****   {
+ 130:./Core/core_cm3.h **** #if (__CORTEX_M != 0x04)
+ 131:./Core/core_cm3.h ****     uint32_t _reserved0:27;              /*!< bit:  0..26  Reserved                           */
+ 132:./Core/core_cm3.h **** #else
+ 133:./Core/core_cm3.h ****     uint32_t _reserved0:16;              /*!< bit:  0..15  Reserved                           */
+ 134:./Core/core_cm3.h ****     uint32_t GE:4;                       /*!< bit: 16..19  Greater than or Equal flags        */
+ 135:./Core/core_cm3.h ****     uint32_t _reserved1:7;               /*!< bit: 20..26  Reserved                           */
+ 136:./Core/core_cm3.h **** #endif
+ 137:./Core/core_cm3.h ****     uint32_t Q:1;                        /*!< bit:     27  Saturation condition flag          */
+ 138:./Core/core_cm3.h ****     uint32_t V:1;                        /*!< bit:     28  Overflow condition code flag       */
+ 139:./Core/core_cm3.h ****     uint32_t C:1;                        /*!< bit:     29  Carry condition code flag          */
+ 140:./Core/core_cm3.h ****     uint32_t Z:1;                        /*!< bit:     30  Zero condition code flag           */
+ 141:./Core/core_cm3.h ****     uint32_t N:1;                        /*!< bit:     31  Negative condition code flag       */
+ 142:./Core/core_cm3.h ****   } b;                                   /*!< Structure used for bit  access                  */
+ 143:./Core/core_cm3.h ****   uint32_t w;                            /*!< Type      used for word access                  */
+ 144:./Core/core_cm3.h **** } APSR_Type;
+ 145:./Core/core_cm3.h **** 
+ 146:./Core/core_cm3.h **** 
+ 147:./Core/core_cm3.h **** /** \brief  Union type to access the Interrupt Program Status Register (IPSR).
+ 148:./Core/core_cm3.h ****  */
+ 149:./Core/core_cm3.h **** typedef union
+ 150:./Core/core_cm3.h **** {
+ 151:./Core/core_cm3.h ****   struct
+ 152:./Core/core_cm3.h ****   {
+ 153:./Core/core_cm3.h ****     uint32_t ISR:9;                      /*!< bit:  0.. 8  Exception number                   */
+ 154:./Core/core_cm3.h ****     uint32_t _reserved0:23;              /*!< bit:  9..31  Reserved                           */
+ 155:./Core/core_cm3.h ****   } b;                                   /*!< Structure used for bit  access                  */
+ 156:./Core/core_cm3.h ****   uint32_t w;                            /*!< Type      used for word access                  */
+ 157:./Core/core_cm3.h **** } IPSR_Type;
+ 158:./Core/core_cm3.h **** 
+ 159:./Core/core_cm3.h **** 
+ 160:./Core/core_cm3.h **** /** \brief  Union type to access the Special-Purpose Program Status Registers (xPSR).
+ 161:./Core/core_cm3.h ****  */
+ 162:./Core/core_cm3.h **** typedef union
+ 163:./Core/core_cm3.h **** {
+ 164:./Core/core_cm3.h ****   struct
+ 165:./Core/core_cm3.h ****   {
+ 166:./Core/core_cm3.h ****     uint32_t ISR:9;                      /*!< bit:  0.. 8  Exception number                   */
+ 167:./Core/core_cm3.h **** #if (__CORTEX_M != 0x04)
+ 168:./Core/core_cm3.h ****     uint32_t _reserved0:15;              /*!< bit:  9..23  Reserved                           */
+ 169:./Core/core_cm3.h **** #else
+ 170:./Core/core_cm3.h ****     uint32_t _reserved0:7;               /*!< bit:  9..15  Reserved                           */
+ 171:./Core/core_cm3.h ****     uint32_t GE:4;                       /*!< bit: 16..19  Greater than or Equal flags        */
+ 172:./Core/core_cm3.h ****     uint32_t _reserved1:4;               /*!< bit: 20..23  Reserved                           */
+ 173:./Core/core_cm3.h **** #endif
+ 174:./Core/core_cm3.h ****     uint32_t T:1;                        /*!< bit:     24  Thumb bit        (read 0)          */
+ 175:./Core/core_cm3.h ****     uint32_t IT:2;                       /*!< bit: 25..26  saved IT state   (read 0)          */
+ 176:./Core/core_cm3.h ****     uint32_t Q:1;                        /*!< bit:     27  Saturation condition flag          */
+ 177:./Core/core_cm3.h ****     uint32_t V:1;                        /*!< bit:     28  Overflow condition code flag       */
+ 178:./Core/core_cm3.h ****     uint32_t C:1;                        /*!< bit:     29  Carry condition code flag          */
+ 179:./Core/core_cm3.h ****     uint32_t Z:1;                        /*!< bit:     30  Zero condition code flag           */
+ 180:./Core/core_cm3.h ****     uint32_t N:1;                        /*!< bit:     31  Negative condition code flag       */
+ 181:./Core/core_cm3.h ****   } b;                                   /*!< Structure used for bit  access                  */
+ 182:./Core/core_cm3.h ****   uint32_t w;                            /*!< Type      used for word access                  */
+ 183:./Core/core_cm3.h **** } xPSR_Type;
+ 184:./Core/core_cm3.h **** 
+ 185:./Core/core_cm3.h **** 
+ 186:./Core/core_cm3.h **** /** \brief  Union type to access the Control Registers (CONTROL).
+ 187:./Core/core_cm3.h ****  */
+ 188:./Core/core_cm3.h **** typedef union
+ 189:./Core/core_cm3.h **** {
+ 190:./Core/core_cm3.h ****   struct
+ 191:./Core/core_cm3.h ****   {
+ 192:./Core/core_cm3.h ****     uint32_t nPRIV:1;                    /*!< bit:      0  Execution privilege in Thread mode */
+ 193:./Core/core_cm3.h ****     uint32_t SPSEL:1;                    /*!< bit:      1  Stack to be used                   */
+ 194:./Core/core_cm3.h ****     uint32_t FPCA:1;                     /*!< bit:      2  FP extension active flag           */
+ 195:./Core/core_cm3.h ****     uint32_t _reserved0:29;              /*!< bit:  3..31  Reserved                           */
+ 196:./Core/core_cm3.h ****   } b;                                   /*!< Structure used for bit  access                  */
+ 197:./Core/core_cm3.h ****   uint32_t w;                            /*!< Type      used for word access                  */
+ 198:./Core/core_cm3.h **** } CONTROL_Type;
+ 199:./Core/core_cm3.h **** 
+ 200:./Core/core_cm3.h **** /*@} end of group CMSIS_CORE */
+ 201:./Core/core_cm3.h **** 
+ 202:./Core/core_cm3.h **** 
+ 203:./Core/core_cm3.h **** /** \ingroup  CMSIS_core_register
+ 204:./Core/core_cm3.h ****     \defgroup CMSIS_NVIC CMSIS NVIC
+ 205:./Core/core_cm3.h ****   Type definitions for the Cortex-M NVIC Registers
+ 206:./Core/core_cm3.h ****   @{
+ 207:./Core/core_cm3.h ****  */
+ 208:./Core/core_cm3.h **** 
+ 209:./Core/core_cm3.h **** /** \brief  Structure type to access the Nested Vectored Interrupt Controller (NVIC).
+ 210:./Core/core_cm3.h ****  */
+ 211:./Core/core_cm3.h **** typedef struct
+ 212:./Core/core_cm3.h **** {
+ 213:./Core/core_cm3.h ****   __IO uint32_t ISER[8];                 /*!< Offset: 0x000 (R/W)  Interrupt Set Enable Register   
+ 214:./Core/core_cm3.h ****        uint32_t RESERVED0[24];
+ 215:./Core/core_cm3.h ****   __IO uint32_t ICER[8];                 /*!< Offset: 0x080 (R/W)  Interrupt Clear Enable Register 
+ 216:./Core/core_cm3.h ****        uint32_t RSERVED1[24];
+ 217:./Core/core_cm3.h ****   __IO uint32_t ISPR[8];                 /*!< Offset: 0x100 (R/W)  Interrupt Set Pending Register  
+ 218:./Core/core_cm3.h ****        uint32_t RESERVED2[24];
+ 219:./Core/core_cm3.h ****   __IO uint32_t ICPR[8];                 /*!< Offset: 0x180 (R/W)  Interrupt Clear Pending Register
+ 220:./Core/core_cm3.h ****        uint32_t RESERVED3[24];
+ 221:./Core/core_cm3.h ****   __IO uint32_t IABR[8];                 /*!< Offset: 0x200 (R/W)  Interrupt Active bit Register   
+ 222:./Core/core_cm3.h ****        uint32_t RESERVED4[56];
+ 223:./Core/core_cm3.h ****   __IO uint8_t  IP[240];                 /*!< Offset: 0x300 (R/W)  Interrupt Priority Register (8Bi
+ 224:./Core/core_cm3.h ****        uint32_t RESERVED5[644];
+ 225:./Core/core_cm3.h ****   __O  uint32_t STIR;                    /*!< Offset: 0xE00 ( /W)  Software Trigger Interrupt Regis
+ 226:./Core/core_cm3.h **** }  NVIC_Type;
+ 227:./Core/core_cm3.h **** 
+ 228:./Core/core_cm3.h **** /*@} end of group CMSIS_NVIC */
+ 229:./Core/core_cm3.h **** 
+ 230:./Core/core_cm3.h **** 
+ 231:./Core/core_cm3.h **** /** \ingroup  CMSIS_core_register
+ 232:./Core/core_cm3.h ****     \defgroup CMSIS_SCB CMSIS SCB
+ 233:./Core/core_cm3.h ****   Type definitions for the Cortex-M System Control Block Registers
+ 234:./Core/core_cm3.h ****   @{
+ 235:./Core/core_cm3.h ****  */
+ 236:./Core/core_cm3.h **** 
+ 237:./Core/core_cm3.h **** /** \brief  Structure type to access the System Control Block (SCB).
+ 238:./Core/core_cm3.h ****  */
+ 239:./Core/core_cm3.h **** typedef struct
+ 240:./Core/core_cm3.h **** {
+ 241:./Core/core_cm3.h ****   __I  uint32_t CPUID;                   /*!< Offset: 0x000 (R/ )  CPU ID Base Register            
+ 242:./Core/core_cm3.h ****   __IO uint32_t ICSR;                    /*!< Offset: 0x004 (R/W)  Interrupt Control State Register
+ 243:./Core/core_cm3.h ****   __IO uint32_t VTOR;                    /*!< Offset: 0x008 (R/W)  Vector Table Offset Register    
+ 244:./Core/core_cm3.h ****   __IO uint32_t AIRCR;                   /*!< Offset: 0x00C (R/W)  Application Interrupt / Reset Co
+ 245:./Core/core_cm3.h ****   __IO uint32_t SCR;                     /*!< Offset: 0x010 (R/W)  System Control Register         
+ 246:./Core/core_cm3.h ****   __IO uint32_t CCR;                     /*!< Offset: 0x014 (R/W)  Configuration Control Register  
+ 247:./Core/core_cm3.h ****   __IO uint8_t  SHP[12];                 /*!< Offset: 0x018 (R/W)  System Handlers Priority Registe
+ 248:./Core/core_cm3.h ****   __IO uint32_t SHCSR;                   /*!< Offset: 0x024 (R/W)  System Handler Control and State
+ 249:./Core/core_cm3.h ****   __IO uint32_t CFSR;                    /*!< Offset: 0x028 (R/W)  Configurable Fault Status Regist
+ 250:./Core/core_cm3.h ****   __IO uint32_t HFSR;                    /*!< Offset: 0x02C (R/W)  Hard Fault Status Register      
+ 251:./Core/core_cm3.h ****   __IO uint32_t DFSR;                    /*!< Offset: 0x030 (R/W)  Debug Fault Status Register     
+ 252:./Core/core_cm3.h ****   __IO uint32_t MMFAR;                   /*!< Offset: 0x034 (R/W)  Mem Manage Address Register     
+ 253:./Core/core_cm3.h ****   __IO uint32_t BFAR;                    /*!< Offset: 0x038 (R/W)  Bus Fault Address Register      
+ 254:./Core/core_cm3.h ****   __IO uint32_t AFSR;                    /*!< Offset: 0x03C (R/W)  Auxiliary Fault Status Register 
+ 255:./Core/core_cm3.h ****   __I  uint32_t PFR[2];                  /*!< Offset: 0x040 (R/ )  Processor Feature Register      
+ 256:./Core/core_cm3.h ****   __I  uint32_t DFR;                     /*!< Offset: 0x048 (R/ )  Debug Feature Register          
+ 257:./Core/core_cm3.h ****   __I  uint32_t ADR;                     /*!< Offset: 0x04C (R/ )  Auxiliary Feature Register      
+ 258:./Core/core_cm3.h ****   __I  uint32_t MMFR[4];                 /*!< Offset: 0x050 (R/ )  Memory Model Feature Register   
+ 259:./Core/core_cm3.h ****   __I  uint32_t ISAR[5];                 /*!< Offset: 0x060 (R/ )  ISA Feature Register            
+ 260:./Core/core_cm3.h **** } SCB_Type;
+ 261:./Core/core_cm3.h **** 
+ 262:./Core/core_cm3.h **** /* SCB CPUID Register Definitions */
+ 263:./Core/core_cm3.h **** #define SCB_CPUID_IMPLEMENTER_Pos          24                                             /*!< SCB 
+ 264:./Core/core_cm3.h **** #define SCB_CPUID_IMPLEMENTER_Msk          (0xFFUL << SCB_CPUID_IMPLEMENTER_Pos)          /*!< SCB 
+ 265:./Core/core_cm3.h **** 
+ 266:./Core/core_cm3.h **** #define SCB_CPUID_VARIANT_Pos              20                                             /*!< SCB 
+ 267:./Core/core_cm3.h **** #define SCB_CPUID_VARIANT_Msk              (0xFUL << SCB_CPUID_VARIANT_Pos)               /*!< SCB 
+ 268:./Core/core_cm3.h **** 
+ 269:./Core/core_cm3.h **** #define SCB_CPUID_PARTNO_Pos                4                                             /*!< SCB 
+ 270:./Core/core_cm3.h **** #define SCB_CPUID_PARTNO_Msk               (0xFFFUL << SCB_CPUID_PARTNO_Pos)              /*!< SCB 
+ 271:./Core/core_cm3.h **** 
+ 272:./Core/core_cm3.h **** #define SCB_CPUID_REVISION_Pos              0                                             /*!< SCB 
+ 273:./Core/core_cm3.h **** #define SCB_CPUID_REVISION_Msk             (0xFUL << SCB_CPUID_REVISION_Pos)              /*!< SCB 
+ 274:./Core/core_cm3.h **** 
+ 275:./Core/core_cm3.h **** /* SCB Interrupt Control State Register Definitions */
+ 276:./Core/core_cm3.h **** #define SCB_ICSR_NMIPENDSET_Pos            31                                             /*!< SCB 
+ 277:./Core/core_cm3.h **** #define SCB_ICSR_NMIPENDSET_Msk            (1UL << SCB_ICSR_NMIPENDSET_Pos)               /*!< SCB 
+ 278:./Core/core_cm3.h **** 
+ 279:./Core/core_cm3.h **** #define SCB_ICSR_PENDSVSET_Pos             28                                             /*!< SCB 
+ 280:./Core/core_cm3.h **** #define SCB_ICSR_PENDSVSET_Msk             (1UL << SCB_ICSR_PENDSVSET_Pos)                /*!< SCB 
+ 281:./Core/core_cm3.h **** 
+ 282:./Core/core_cm3.h **** #define SCB_ICSR_PENDSVCLR_Pos             27                                             /*!< SCB 
+ 283:./Core/core_cm3.h **** #define SCB_ICSR_PENDSVCLR_Msk             (1UL << SCB_ICSR_PENDSVCLR_Pos)                /*!< SCB 
+ 284:./Core/core_cm3.h **** 
+ 285:./Core/core_cm3.h **** #define SCB_ICSR_PENDSTSET_Pos             26                                             /*!< SCB 
+ 286:./Core/core_cm3.h **** #define SCB_ICSR_PENDSTSET_Msk             (1UL << SCB_ICSR_PENDSTSET_Pos)                /*!< SCB 
+ 287:./Core/core_cm3.h **** 
+ 288:./Core/core_cm3.h **** #define SCB_ICSR_PENDSTCLR_Pos             25                                             /*!< SCB 
+ 289:./Core/core_cm3.h **** #define SCB_ICSR_PENDSTCLR_Msk             (1UL << SCB_ICSR_PENDSTCLR_Pos)                /*!< SCB 
+ 290:./Core/core_cm3.h **** 
+ 291:./Core/core_cm3.h **** #define SCB_ICSR_ISRPREEMPT_Pos            23                                             /*!< SCB 
+ 292:./Core/core_cm3.h **** #define SCB_ICSR_ISRPREEMPT_Msk            (1UL << SCB_ICSR_ISRPREEMPT_Pos)               /*!< SCB 
+ 293:./Core/core_cm3.h **** 
+ 294:./Core/core_cm3.h **** #define SCB_ICSR_ISRPENDING_Pos            22                                             /*!< SCB 
+ 295:./Core/core_cm3.h **** #define SCB_ICSR_ISRPENDING_Msk            (1UL << SCB_ICSR_ISRPENDING_Pos)               /*!< SCB 
+ 296:./Core/core_cm3.h **** 
+ 297:./Core/core_cm3.h **** #define SCB_ICSR_VECTPENDING_Pos           12                                             /*!< SCB 
+ 298:./Core/core_cm3.h **** #define SCB_ICSR_VECTPENDING_Msk           (0x1FFUL << SCB_ICSR_VECTPENDING_Pos)          /*!< SCB 
+ 299:./Core/core_cm3.h **** 
+ 300:./Core/core_cm3.h **** #define SCB_ICSR_RETTOBASE_Pos             11                                             /*!< SCB 
+ 301:./Core/core_cm3.h **** #define SCB_ICSR_RETTOBASE_Msk             (1UL << SCB_ICSR_RETTOBASE_Pos)                /*!< SCB 
+ 302:./Core/core_cm3.h **** 
+ 303:./Core/core_cm3.h **** #define SCB_ICSR_VECTACTIVE_Pos             0                                             /*!< SCB 
+ 304:./Core/core_cm3.h **** #define SCB_ICSR_VECTACTIVE_Msk            (0x1FFUL << SCB_ICSR_VECTACTIVE_Pos)           /*!< SCB 
+ 305:./Core/core_cm3.h **** 
+ 306:./Core/core_cm3.h **** /* SCB Interrupt Control State Register Definitions */
+ 307:./Core/core_cm3.h **** #define SCB_VTOR_TBLBASE_Pos               29                                             /*!< SCB 
+ 308:./Core/core_cm3.h **** #define SCB_VTOR_TBLBASE_Msk               (1UL << SCB_VTOR_TBLBASE_Pos)                  /*!< SCB 
+ 309:./Core/core_cm3.h **** 
+ 310:./Core/core_cm3.h **** #define SCB_VTOR_TBLOFF_Pos                 7                                             /*!< SCB 
+ 311:./Core/core_cm3.h **** #define SCB_VTOR_TBLOFF_Msk                (0x3FFFFFUL << SCB_VTOR_TBLOFF_Pos)            /*!< SCB 
+ 312:./Core/core_cm3.h **** 
+ 313:./Core/core_cm3.h **** /* SCB Application Interrupt and Reset Control Register Definitions */
+ 314:./Core/core_cm3.h **** #define SCB_AIRCR_VECTKEY_Pos              16                                             /*!< SCB 
+ 315:./Core/core_cm3.h **** #define SCB_AIRCR_VECTKEY_Msk              (0xFFFFUL << SCB_AIRCR_VECTKEY_Pos)            /*!< SCB 
+ 316:./Core/core_cm3.h **** 
+ 317:./Core/core_cm3.h **** #define SCB_AIRCR_VECTKEYSTAT_Pos          16                                             /*!< SCB 
+ 318:./Core/core_cm3.h **** #define SCB_AIRCR_VECTKEYSTAT_Msk          (0xFFFFUL << SCB_AIRCR_VECTKEYSTAT_Pos)        /*!< SCB 
+ 319:./Core/core_cm3.h **** 
+ 320:./Core/core_cm3.h **** #define SCB_AIRCR_ENDIANESS_Pos            15                                             /*!< SCB 
+ 321:./Core/core_cm3.h **** #define SCB_AIRCR_ENDIANESS_Msk            (1UL << SCB_AIRCR_ENDIANESS_Pos)               /*!< SCB 
+ 322:./Core/core_cm3.h **** 
+ 323:./Core/core_cm3.h **** #define SCB_AIRCR_PRIGROUP_Pos              8                                             /*!< SCB 
+ 324:./Core/core_cm3.h **** #define SCB_AIRCR_PRIGROUP_Msk             (7UL << SCB_AIRCR_PRIGROUP_Pos)                /*!< SCB 
+ 325:./Core/core_cm3.h **** 
+ 326:./Core/core_cm3.h **** #define SCB_AIRCR_SYSRESETREQ_Pos           2                                             /*!< SCB 
+ 327:./Core/core_cm3.h **** #define SCB_AIRCR_SYSRESETREQ_Msk          (1UL << SCB_AIRCR_SYSRESETREQ_Pos)             /*!< SCB 
+ 328:./Core/core_cm3.h **** 
+ 329:./Core/core_cm3.h **** #define SCB_AIRCR_VECTCLRACTIVE_Pos         1                                             /*!< SCB 
+ 330:./Core/core_cm3.h **** #define SCB_AIRCR_VECTCLRACTIVE_Msk        (1UL << SCB_AIRCR_VECTCLRACTIVE_Pos)           /*!< SCB 
+ 331:./Core/core_cm3.h **** 
+ 332:./Core/core_cm3.h **** #define SCB_AIRCR_VECTRESET_Pos             0                                             /*!< SCB 
+ 333:./Core/core_cm3.h **** #define SCB_AIRCR_VECTRESET_Msk            (1UL << SCB_AIRCR_VECTRESET_Pos)               /*!< SCB 
+ 334:./Core/core_cm3.h **** 
+ 335:./Core/core_cm3.h **** /* SCB System Control Register Definitions */
+ 336:./Core/core_cm3.h **** #define SCB_SCR_SEVONPEND_Pos               4                                             /*!< SCB 
+ 337:./Core/core_cm3.h **** #define SCB_SCR_SEVONPEND_Msk              (1UL << SCB_SCR_SEVONPEND_Pos)                 /*!< SCB 
+ 338:./Core/core_cm3.h **** 
+ 339:./Core/core_cm3.h **** #define SCB_SCR_SLEEPDEEP_Pos               2                                             /*!< SCB 
+ 340:./Core/core_cm3.h **** #define SCB_SCR_SLEEPDEEP_Msk              (1UL << SCB_SCR_SLEEPDEEP_Pos)                 /*!< SCB 
+ 341:./Core/core_cm3.h **** 
+ 342:./Core/core_cm3.h **** #define SCB_SCR_SLEEPONEXIT_Pos             1                                             /*!< SCB 
+ 343:./Core/core_cm3.h **** #define SCB_SCR_SLEEPONEXIT_Msk            (1UL << SCB_SCR_SLEEPONEXIT_Pos)               /*!< SCB 
+ 344:./Core/core_cm3.h **** 
+ 345:./Core/core_cm3.h **** /* SCB Configuration Control Register Definitions */
+ 346:./Core/core_cm3.h **** #define SCB_CCR_STKALIGN_Pos                9                                             /*!< SCB 
+ 347:./Core/core_cm3.h **** #define SCB_CCR_STKALIGN_Msk               (1UL << SCB_CCR_STKALIGN_Pos)                  /*!< SCB 
+ 348:./Core/core_cm3.h **** 
+ 349:./Core/core_cm3.h **** #define SCB_CCR_BFHFNMIGN_Pos               8                                             /*!< SCB 
+ 350:./Core/core_cm3.h **** #define SCB_CCR_BFHFNMIGN_Msk              (1UL << SCB_CCR_BFHFNMIGN_Pos)                 /*!< SCB 
+ 351:./Core/core_cm3.h **** 
+ 352:./Core/core_cm3.h **** #define SCB_CCR_DIV_0_TRP_Pos               4                                             /*!< SCB 
+ 353:./Core/core_cm3.h **** #define SCB_CCR_DIV_0_TRP_Msk              (1UL << SCB_CCR_DIV_0_TRP_Pos)                 /*!< SCB 
+ 354:./Core/core_cm3.h **** 
+ 355:./Core/core_cm3.h **** #define SCB_CCR_UNALIGN_TRP_Pos             3                                             /*!< SCB 
+ 356:./Core/core_cm3.h **** #define SCB_CCR_UNALIGN_TRP_Msk            (1UL << SCB_CCR_UNALIGN_TRP_Pos)               /*!< SCB 
+ 357:./Core/core_cm3.h **** 
+ 358:./Core/core_cm3.h **** #define SCB_CCR_USERSETMPEND_Pos            1                                             /*!< SCB 
+ 359:./Core/core_cm3.h **** #define SCB_CCR_USERSETMPEND_Msk           (1UL << SCB_CCR_USERSETMPEND_Pos)              /*!< SCB 
+ 360:./Core/core_cm3.h **** 
+ 361:./Core/core_cm3.h **** #define SCB_CCR_NONBASETHRDENA_Pos          0                                             /*!< SCB 
+ 362:./Core/core_cm3.h **** #define SCB_CCR_NONBASETHRDENA_Msk         (1UL << SCB_CCR_NONBASETHRDENA_Pos)            /*!< SCB 
+ 363:./Core/core_cm3.h **** 
+ 364:./Core/core_cm3.h **** /* SCB System Handler Control and State Register Definitions */
+ 365:./Core/core_cm3.h **** #define SCB_SHCSR_USGFAULTENA_Pos          18                                             /*!< SCB 
+ 366:./Core/core_cm3.h **** #define SCB_SHCSR_USGFAULTENA_Msk          (1UL << SCB_SHCSR_USGFAULTENA_Pos)             /*!< SCB 
+ 367:./Core/core_cm3.h **** 
+ 368:./Core/core_cm3.h **** #define SCB_SHCSR_BUSFAULTENA_Pos          17                                             /*!< SCB 
+ 369:./Core/core_cm3.h **** #define SCB_SHCSR_BUSFAULTENA_Msk          (1UL << SCB_SHCSR_BUSFAULTENA_Pos)             /*!< SCB 
+ 370:./Core/core_cm3.h **** 
+ 371:./Core/core_cm3.h **** #define SCB_SHCSR_MEMFAULTENA_Pos          16                                             /*!< SCB 
+ 372:./Core/core_cm3.h **** #define SCB_SHCSR_MEMFAULTENA_Msk          (1UL << SCB_SHCSR_MEMFAULTENA_Pos)             /*!< SCB 
+ 373:./Core/core_cm3.h **** 
+ 374:./Core/core_cm3.h **** #define SCB_SHCSR_SVCALLPENDED_Pos         15                                             /*!< SCB 
+ 375:./Core/core_cm3.h **** #define SCB_SHCSR_SVCALLPENDED_Msk         (1UL << SCB_SHCSR_SVCALLPENDED_Pos)            /*!< SCB 
+ 376:./Core/core_cm3.h **** 
+ 377:./Core/core_cm3.h **** #define SCB_SHCSR_BUSFAULTPENDED_Pos       14                                             /*!< SCB 
+ 378:./Core/core_cm3.h **** #define SCB_SHCSR_BUSFAULTPENDED_Msk       (1UL << SCB_SHCSR_BUSFAULTPENDED_Pos)          /*!< SCB 
+ 379:./Core/core_cm3.h **** 
+ 380:./Core/core_cm3.h **** #define SCB_SHCSR_MEMFAULTPENDED_Pos       13                                             /*!< SCB 
+ 381:./Core/core_cm3.h **** #define SCB_SHCSR_MEMFAULTPENDED_Msk       (1UL << SCB_SHCSR_MEMFAULTPENDED_Pos)          /*!< SCB 
+ 382:./Core/core_cm3.h **** 
+ 383:./Core/core_cm3.h **** #define SCB_SHCSR_USGFAULTPENDED_Pos       12                                             /*!< SCB 
+ 384:./Core/core_cm3.h **** #define SCB_SHCSR_USGFAULTPENDED_Msk       (1UL << SCB_SHCSR_USGFAULTPENDED_Pos)          /*!< SCB 
+ 385:./Core/core_cm3.h **** 
+ 386:./Core/core_cm3.h **** #define SCB_SHCSR_SYSTICKACT_Pos           11                                             /*!< SCB 
+ 387:./Core/core_cm3.h **** #define SCB_SHCSR_SYSTICKACT_Msk           (1UL << SCB_SHCSR_SYSTICKACT_Pos)              /*!< SCB 
+ 388:./Core/core_cm3.h **** 
+ 389:./Core/core_cm3.h **** #define SCB_SHCSR_PENDSVACT_Pos            10                                             /*!< SCB 
+ 390:./Core/core_cm3.h **** #define SCB_SHCSR_PENDSVACT_Msk            (1UL << SCB_SHCSR_PENDSVACT_Pos)               /*!< SCB 
+ 391:./Core/core_cm3.h **** 
+ 392:./Core/core_cm3.h **** #define SCB_SHCSR_MONITORACT_Pos            8                                             /*!< SCB 
+ 393:./Core/core_cm3.h **** #define SCB_SHCSR_MONITORACT_Msk           (1UL << SCB_SHCSR_MONITORACT_Pos)              /*!< SCB 
+ 394:./Core/core_cm3.h **** 
+ 395:./Core/core_cm3.h **** #define SCB_SHCSR_SVCALLACT_Pos             7                                             /*!< SCB 
+ 396:./Core/core_cm3.h **** #define SCB_SHCSR_SVCALLACT_Msk            (1UL << SCB_SHCSR_SVCALLACT_Pos)               /*!< SCB 
+ 397:./Core/core_cm3.h **** 
+ 398:./Core/core_cm3.h **** #define SCB_SHCSR_USGFAULTACT_Pos           3                                             /*!< SCB 
+ 399:./Core/core_cm3.h **** #define SCB_SHCSR_USGFAULTACT_Msk          (1UL << SCB_SHCSR_USGFAULTACT_Pos)             /*!< SCB 
+ 400:./Core/core_cm3.h **** 
+ 401:./Core/core_cm3.h **** #define SCB_SHCSR_BUSFAULTACT_Pos           1                                             /*!< SCB 
+ 402:./Core/core_cm3.h **** #define SCB_SHCSR_BUSFAULTACT_Msk          (1UL << SCB_SHCSR_BUSFAULTACT_Pos)             /*!< SCB 
+ 403:./Core/core_cm3.h **** 
+ 404:./Core/core_cm3.h **** #define SCB_SHCSR_MEMFAULTACT_Pos           0                                             /*!< SCB 
+ 405:./Core/core_cm3.h **** #define SCB_SHCSR_MEMFAULTACT_Msk          (1UL << SCB_SHCSR_MEMFAULTACT_Pos)             /*!< SCB 
+ 406:./Core/core_cm3.h **** 
+ 407:./Core/core_cm3.h **** /* SCB Configurable Fault Status Registers Definitions */
+ 408:./Core/core_cm3.h **** #define SCB_CFSR_USGFAULTSR_Pos            16                                             /*!< SCB 
+ 409:./Core/core_cm3.h **** #define SCB_CFSR_USGFAULTSR_Msk            (0xFFFFUL << SCB_CFSR_USGFAULTSR_Pos)          /*!< SCB 
+ 410:./Core/core_cm3.h **** 
+ 411:./Core/core_cm3.h **** #define SCB_CFSR_BUSFAULTSR_Pos             8                                             /*!< SCB 
+ 412:./Core/core_cm3.h **** #define SCB_CFSR_BUSFAULTSR_Msk            (0xFFUL << SCB_CFSR_BUSFAULTSR_Pos)            /*!< SCB 
+ 413:./Core/core_cm3.h **** 
+ 414:./Core/core_cm3.h **** #define SCB_CFSR_MEMFAULTSR_Pos             0                                             /*!< SCB 
+ 415:./Core/core_cm3.h **** #define SCB_CFSR_MEMFAULTSR_Msk            (0xFFUL << SCB_CFSR_MEMFAULTSR_Pos)            /*!< SCB 
+ 416:./Core/core_cm3.h **** 
+ 417:./Core/core_cm3.h **** /* SCB Hard Fault Status Registers Definitions */
+ 418:./Core/core_cm3.h **** #define SCB_HFSR_DEBUGEVT_Pos              31                                             /*!< SCB 
+ 419:./Core/core_cm3.h **** #define SCB_HFSR_DEBUGEVT_Msk              (1UL << SCB_HFSR_DEBUGEVT_Pos)                 /*!< SCB 
+ 420:./Core/core_cm3.h **** 
+ 421:./Core/core_cm3.h **** #define SCB_HFSR_FORCED_Pos                30                                             /*!< SCB 
+ 422:./Core/core_cm3.h **** #define SCB_HFSR_FORCED_Msk                (1UL << SCB_HFSR_FORCED_Pos)                   /*!< SCB 
+ 423:./Core/core_cm3.h **** 
+ 424:./Core/core_cm3.h **** #define SCB_HFSR_VECTTBL_Pos                1                                             /*!< SCB 
+ 425:./Core/core_cm3.h **** #define SCB_HFSR_VECTTBL_Msk               (1UL << SCB_HFSR_VECTTBL_Pos)                  /*!< SCB 
+ 426:./Core/core_cm3.h **** 
+ 427:./Core/core_cm3.h **** /* SCB Debug Fault Status Register Definitions */
+ 428:./Core/core_cm3.h **** #define SCB_DFSR_EXTERNAL_Pos               4                                             /*!< SCB 
+ 429:./Core/core_cm3.h **** #define SCB_DFSR_EXTERNAL_Msk              (1UL << SCB_DFSR_EXTERNAL_Pos)                 /*!< SCB 
+ 430:./Core/core_cm3.h **** 
+ 431:./Core/core_cm3.h **** #define SCB_DFSR_VCATCH_Pos                 3                                             /*!< SCB 
+ 432:./Core/core_cm3.h **** #define SCB_DFSR_VCATCH_Msk                (1UL << SCB_DFSR_VCATCH_Pos)                   /*!< SCB 
+ 433:./Core/core_cm3.h **** 
+ 434:./Core/core_cm3.h **** #define SCB_DFSR_DWTTRAP_Pos                2                                             /*!< SCB 
+ 435:./Core/core_cm3.h **** #define SCB_DFSR_DWTTRAP_Msk               (1UL << SCB_DFSR_DWTTRAP_Pos)                  /*!< SCB 
+ 436:./Core/core_cm3.h **** 
+ 437:./Core/core_cm3.h **** #define SCB_DFSR_BKPT_Pos                   1                                             /*!< SCB 
+ 438:./Core/core_cm3.h **** #define SCB_DFSR_BKPT_Msk                  (1UL << SCB_DFSR_BKPT_Pos)                     /*!< SCB 
+ 439:./Core/core_cm3.h **** 
+ 440:./Core/core_cm3.h **** #define SCB_DFSR_HALTED_Pos                 0                                             /*!< SCB 
+ 441:./Core/core_cm3.h **** #define SCB_DFSR_HALTED_Msk                (1UL << SCB_DFSR_HALTED_Pos)                   /*!< SCB 
+ 442:./Core/core_cm3.h **** 
+ 443:./Core/core_cm3.h **** /*@} end of group CMSIS_SCB */
+ 444:./Core/core_cm3.h **** 
+ 445:./Core/core_cm3.h **** 
+ 446:./Core/core_cm3.h **** /** \ingroup  CMSIS_core_register
+ 447:./Core/core_cm3.h ****     \defgroup CMSIS_SysTick CMSIS SysTick
+ 448:./Core/core_cm3.h ****   Type definitions for the Cortex-M System Timer Registers
+ 449:./Core/core_cm3.h ****   @{
+ 450:./Core/core_cm3.h ****  */
+ 451:./Core/core_cm3.h **** 
+ 452:./Core/core_cm3.h **** /** \brief  Structure type to access the System Timer (SysTick).
+ 453:./Core/core_cm3.h ****  */
+ 454:./Core/core_cm3.h **** typedef struct
+ 455:./Core/core_cm3.h **** {
+ 456:./Core/core_cm3.h ****   __IO uint32_t CTRL;                    /*!< Offset: 0x000 (R/W)  SysTick Control and Status Regis
+ 457:./Core/core_cm3.h ****   __IO uint32_t LOAD;                    /*!< Offset: 0x004 (R/W)  SysTick Reload Value Register   
+ 458:./Core/core_cm3.h ****   __IO uint32_t VAL;                     /*!< Offset: 0x008 (R/W)  SysTick Current Value Register  
+ 459:./Core/core_cm3.h ****   __I  uint32_t CALIB;                   /*!< Offset: 0x00C (R/ )  SysTick Calibration Register    
+ 460:./Core/core_cm3.h **** } SysTick_Type;
+ 461:./Core/core_cm3.h **** 
+ 462:./Core/core_cm3.h **** /* SysTick Control / Status Register Definitions */
+ 463:./Core/core_cm3.h **** #define SysTick_CTRL_COUNTFLAG_Pos         16                                             /*!< SysT
+ 464:./Core/core_cm3.h **** #define SysTick_CTRL_COUNTFLAG_Msk         (1UL << SysTick_CTRL_COUNTFLAG_Pos)            /*!< SysT
+ 465:./Core/core_cm3.h **** 
+ 466:./Core/core_cm3.h **** #define SysTick_CTRL_CLKSOURCE_Pos          2                                             /*!< SysT
+ 467:./Core/core_cm3.h **** #define SysTick_CTRL_CLKSOURCE_Msk         (1UL << SysTick_CTRL_CLKSOURCE_Pos)            /*!< SysT
+ 468:./Core/core_cm3.h **** 
+ 469:./Core/core_cm3.h **** #define SysTick_CTRL_TICKINT_Pos            1                                             /*!< SysT
+ 470:./Core/core_cm3.h **** #define SysTick_CTRL_TICKINT_Msk           (1UL << SysTick_CTRL_TICKINT_Pos)              /*!< SysT
+ 471:./Core/core_cm3.h **** 
+ 472:./Core/core_cm3.h **** #define SysTick_CTRL_ENABLE_Pos             0                                             /*!< SysT
+ 473:./Core/core_cm3.h **** #define SysTick_CTRL_ENABLE_Msk            (1UL << SysTick_CTRL_ENABLE_Pos)               /*!< SysT
+ 474:./Core/core_cm3.h **** 
+ 475:./Core/core_cm3.h **** /* SysTick Reload Register Definitions */
+ 476:./Core/core_cm3.h **** #define SysTick_LOAD_RELOAD_Pos             0                                             /*!< SysT
+ 477:./Core/core_cm3.h **** #define SysTick_LOAD_RELOAD_Msk            (0xFFFFFFUL << SysTick_LOAD_RELOAD_Pos)        /*!< SysT
+ 478:./Core/core_cm3.h **** 
+ 479:./Core/core_cm3.h **** /* SysTick Current Register Definitions */
+ 480:./Core/core_cm3.h **** #define SysTick_VAL_CURRENT_Pos             0                                             /*!< SysT
+ 481:./Core/core_cm3.h **** #define SysTick_VAL_CURRENT_Msk            (0xFFFFFFUL << SysTick_VAL_CURRENT_Pos)        /*!< SysT
+ 482:./Core/core_cm3.h **** 
+ 483:./Core/core_cm3.h **** /* SysTick Calibration Register Definitions */
+ 484:./Core/core_cm3.h **** #define SysTick_CALIB_NOREF_Pos            31                                             /*!< SysT
+ 485:./Core/core_cm3.h **** #define SysTick_CALIB_NOREF_Msk            (1UL << SysTick_CALIB_NOREF_Pos)               /*!< SysT
+ 486:./Core/core_cm3.h **** 
+ 487:./Core/core_cm3.h **** #define SysTick_CALIB_SKEW_Pos             30                                             /*!< SysT
+ 488:./Core/core_cm3.h **** #define SysTick_CALIB_SKEW_Msk             (1UL << SysTick_CALIB_SKEW_Pos)                /*!< SysT
+ 489:./Core/core_cm3.h **** 
+ 490:./Core/core_cm3.h **** #define SysTick_CALIB_TENMS_Pos             0                                             /*!< SysT
+ 491:./Core/core_cm3.h **** #define SysTick_CALIB_TENMS_Msk            (0xFFFFFFUL << SysTick_VAL_CURRENT_Pos)        /*!< SysT
+ 492:./Core/core_cm3.h **** 
+ 493:./Core/core_cm3.h **** /*@} end of group CMSIS_SysTick */
+ 494:./Core/core_cm3.h **** 
+ 495:./Core/core_cm3.h **** 
+ 496:./Core/core_cm3.h **** /** \ingroup  CMSIS_core_register
+ 497:./Core/core_cm3.h ****     \defgroup CMSIS_ITM CMSIS ITM
+ 498:./Core/core_cm3.h ****   Type definitions for the Cortex-M Instrumentation Trace Macrocell (ITM)
+ 499:./Core/core_cm3.h ****   @{
+ 500:./Core/core_cm3.h ****  */
+ 501:./Core/core_cm3.h **** 
+ 502:./Core/core_cm3.h **** /** \brief  Structure type to access the Instrumentation Trace Macrocell Register (ITM).
+ 503:./Core/core_cm3.h ****  */
+ 504:./Core/core_cm3.h **** typedef struct
+ 505:./Core/core_cm3.h **** {
+ 506:./Core/core_cm3.h ****   __O  union
+ 507:./Core/core_cm3.h ****   {
+ 508:./Core/core_cm3.h ****     __O  uint8_t    u8;                  /*!< Offset: 0x000 ( /W)  ITM Stimulus Port 8-bit         
+ 509:./Core/core_cm3.h ****     __O  uint16_t   u16;                 /*!< Offset: 0x000 ( /W)  ITM Stimulus Port 16-bit        
+ 510:./Core/core_cm3.h ****     __O  uint32_t   u32;                 /*!< Offset: 0x000 ( /W)  ITM Stimulus Port 32-bit        
+ 511:./Core/core_cm3.h ****   }  PORT [32];                          /*!< Offset: 0x000 ( /W)  ITM Stimulus Port Registers     
+ 512:./Core/core_cm3.h ****        uint32_t RESERVED0[864];
+ 513:./Core/core_cm3.h ****   __IO uint32_t TER;                     /*!< Offset:       (R/W)  ITM Trace Enable Register       
+ 514:./Core/core_cm3.h ****        uint32_t RESERVED1[15];
+ 515:./Core/core_cm3.h ****   __IO uint32_t TPR;                     /*!< Offset:       (R/W)  ITM Trace Privilege Register    
+ 516:./Core/core_cm3.h ****        uint32_t RESERVED2[15];
+ 517:./Core/core_cm3.h ****   __IO uint32_t TCR;                     /*!< Offset:       (R/W)  ITM Trace Control Register      
+ 518:./Core/core_cm3.h ****        uint32_t RESERVED3[29];
+ 519:./Core/core_cm3.h ****   __IO uint32_t IWR;                     /*!< Offset:       (R/W)  ITM Integration Write Register  
+ 520:./Core/core_cm3.h ****   __IO uint32_t IRR;                     /*!< Offset:       (R/W)  ITM Integration Read Register   
+ 521:./Core/core_cm3.h ****   __IO uint32_t IMCR;                    /*!< Offset:       (R/W)  ITM Integration Mode Control Reg
+ 522:./Core/core_cm3.h ****        uint32_t RESERVED4[43];
+ 523:./Core/core_cm3.h ****   __IO uint32_t LAR;                     /*!< Offset:       (R/W)  ITM Lock Access Register        
+ 524:./Core/core_cm3.h ****   __IO uint32_t LSR;                     /*!< Offset:       (R/W)  ITM Lock Status Register        
+ 525:./Core/core_cm3.h ****        uint32_t RESERVED5[6];
+ 526:./Core/core_cm3.h ****   __I  uint32_t PID4;                    /*!< Offset:       (R/ )  ITM Peripheral Identification Re
+ 527:./Core/core_cm3.h ****   __I  uint32_t PID5;                    /*!< Offset:       (R/ )  ITM Peripheral Identification Re
+ 528:./Core/core_cm3.h ****   __I  uint32_t PID6;                    /*!< Offset:       (R/ )  ITM Peripheral Identification Re
+ 529:./Core/core_cm3.h ****   __I  uint32_t PID7;                    /*!< Offset:       (R/ )  ITM Peripheral Identification Re
+ 530:./Core/core_cm3.h ****   __I  uint32_t PID0;                    /*!< Offset:       (R/ )  ITM Peripheral Identification Re
+ 531:./Core/core_cm3.h ****   __I  uint32_t PID1;                    /*!< Offset:       (R/ )  ITM Peripheral Identification Re
+ 532:./Core/core_cm3.h ****   __I  uint32_t PID2;                    /*!< Offset:       (R/ )  ITM Peripheral Identification Re
+ 533:./Core/core_cm3.h ****   __I  uint32_t PID3;                    /*!< Offset:       (R/ )  ITM Peripheral Identification Re
+ 534:./Core/core_cm3.h ****   __I  uint32_t CID0;                    /*!< Offset:       (R/ )  ITM Component  Identification Re
+ 535:./Core/core_cm3.h ****   __I  uint32_t CID1;                    /*!< Offset:       (R/ )  ITM Component  Identification Re
+ 536:./Core/core_cm3.h ****   __I  uint32_t CID2;                    /*!< Offset:       (R/ )  ITM Component  Identification Re
+ 537:./Core/core_cm3.h ****   __I  uint32_t CID3;                    /*!< Offset:       (R/ )  ITM Component  Identification Re
+ 538:./Core/core_cm3.h **** } ITM_Type;
+ 539:./Core/core_cm3.h **** 
+ 540:./Core/core_cm3.h **** /* ITM Trace Privilege Register Definitions */
+ 541:./Core/core_cm3.h **** #define ITM_TPR_PRIVMASK_Pos                0                                             /*!< ITM 
+ 542:./Core/core_cm3.h **** #define ITM_TPR_PRIVMASK_Msk               (0xFUL << ITM_TPR_PRIVMASK_Pos)                /*!< ITM 
+ 543:./Core/core_cm3.h **** 
+ 544:./Core/core_cm3.h **** /* ITM Trace Control Register Definitions */
+ 545:./Core/core_cm3.h **** #define ITM_TCR_BUSY_Pos                   23                                             /*!< ITM 
+ 546:./Core/core_cm3.h **** #define ITM_TCR_BUSY_Msk                   (1UL << ITM_TCR_BUSY_Pos)                      /*!< ITM 
+ 547:./Core/core_cm3.h **** 
+ 548:./Core/core_cm3.h **** #define ITM_TCR_ATBID_Pos                  16                                             /*!< ITM 
+ 549:./Core/core_cm3.h **** #define ITM_TCR_ATBID_Msk                  (0x7FUL << ITM_TCR_ATBID_Pos)                  /*!< ITM 
+ 550:./Core/core_cm3.h **** 
+ 551:./Core/core_cm3.h **** #define ITM_TCR_TSPrescale_Pos              8                                             /*!< ITM 
+ 552:./Core/core_cm3.h **** #define ITM_TCR_TSPrescale_Msk             (3UL << ITM_TCR_TSPrescale_Pos)                /*!< ITM 
+ 553:./Core/core_cm3.h **** 
+ 554:./Core/core_cm3.h **** #define ITM_TCR_SWOENA_Pos                  4                                             /*!< ITM 
+ 555:./Core/core_cm3.h **** #define ITM_TCR_SWOENA_Msk                 (1UL << ITM_TCR_SWOENA_Pos)                    /*!< ITM 
+ 556:./Core/core_cm3.h **** 
+ 557:./Core/core_cm3.h **** #define ITM_TCR_DWTENA_Pos                  3                                             /*!< ITM 
+ 558:./Core/core_cm3.h **** #define ITM_TCR_DWTENA_Msk                 (1UL << ITM_TCR_DWTENA_Pos)                    /*!< ITM 
+ 559:./Core/core_cm3.h **** 
+ 560:./Core/core_cm3.h **** #define ITM_TCR_SYNCENA_Pos                 2                                             /*!< ITM 
+ 561:./Core/core_cm3.h **** #define ITM_TCR_SYNCENA_Msk                (1UL << ITM_TCR_SYNCENA_Pos)                   /*!< ITM 
+ 562:./Core/core_cm3.h **** 
+ 563:./Core/core_cm3.h **** #define ITM_TCR_TSENA_Pos                   1                                             /*!< ITM 
+ 564:./Core/core_cm3.h **** #define ITM_TCR_TSENA_Msk                  (1UL << ITM_TCR_TSENA_Pos)                     /*!< ITM 
+ 565:./Core/core_cm3.h **** 
+ 566:./Core/core_cm3.h **** #define ITM_TCR_ITMENA_Pos                  0                                             /*!< ITM 
+ 567:./Core/core_cm3.h **** #define ITM_TCR_ITMENA_Msk                 (1UL << ITM_TCR_ITMENA_Pos)                    /*!< ITM 
+ 568:./Core/core_cm3.h **** 
+ 569:./Core/core_cm3.h **** /* ITM Integration Write Register Definitions */
+ 570:./Core/core_cm3.h **** #define ITM_IWR_ATVALIDM_Pos                0                                             /*!< ITM 
+ 571:./Core/core_cm3.h **** #define ITM_IWR_ATVALIDM_Msk               (1UL << ITM_IWR_ATVALIDM_Pos)                  /*!< ITM 
+ 572:./Core/core_cm3.h **** 
+ 573:./Core/core_cm3.h **** /* ITM Integration Read Register Definitions */
+ 574:./Core/core_cm3.h **** #define ITM_IRR_ATREADYM_Pos                0                                             /*!< ITM 
+ 575:./Core/core_cm3.h **** #define ITM_IRR_ATREADYM_Msk               (1UL << ITM_IRR_ATREADYM_Pos)                  /*!< ITM 
+ 576:./Core/core_cm3.h **** 
+ 577:./Core/core_cm3.h **** /* ITM Integration Mode Control Register Definitions */
+ 578:./Core/core_cm3.h **** #define ITM_IMCR_INTEGRATION_Pos            0                                             /*!< ITM 
+ 579:./Core/core_cm3.h **** #define ITM_IMCR_INTEGRATION_Msk           (1UL << ITM_IMCR_INTEGRATION_Pos)              /*!< ITM 
+ 580:./Core/core_cm3.h **** 
+ 581:./Core/core_cm3.h **** /* ITM Lock Status Register Definitions */
+ 582:./Core/core_cm3.h **** #define ITM_LSR_ByteAcc_Pos                 2                                             /*!< ITM 
+ 583:./Core/core_cm3.h **** #define ITM_LSR_ByteAcc_Msk                (1UL << ITM_LSR_ByteAcc_Pos)                   /*!< ITM 
+ 584:./Core/core_cm3.h **** 
+ 585:./Core/core_cm3.h **** #define ITM_LSR_Access_Pos                  1                                             /*!< ITM 
+ 586:./Core/core_cm3.h **** #define ITM_LSR_Access_Msk                 (1UL << ITM_LSR_Access_Pos)                    /*!< ITM 
+ 587:./Core/core_cm3.h **** 
+ 588:./Core/core_cm3.h **** #define ITM_LSR_Present_Pos                 0                                             /*!< ITM 
+ 589:./Core/core_cm3.h **** #define ITM_LSR_Present_Msk                (1UL << ITM_LSR_Present_Pos)                   /*!< ITM 
+ 590:./Core/core_cm3.h **** 
+ 591:./Core/core_cm3.h **** /*@}*/ /* end of group CMSIS_ITM */
+ 592:./Core/core_cm3.h **** 
+ 593:./Core/core_cm3.h **** 
+ 594:./Core/core_cm3.h **** /** \ingroup  CMSIS_core_register
+ 595:./Core/core_cm3.h ****     \defgroup CMSIS_InterruptType CMSIS Interrupt Type
+ 596:./Core/core_cm3.h ****   Type definitions for the Cortex-M Interrupt Type Register
+ 597:./Core/core_cm3.h ****   @{
+ 598:./Core/core_cm3.h ****  */
+ 599:./Core/core_cm3.h **** 
+ 600:./Core/core_cm3.h **** /** \brief  Structure type to access the Interrupt Type Register.
+ 601:./Core/core_cm3.h ****  */
+ 602:./Core/core_cm3.h **** typedef struct
+ 603:./Core/core_cm3.h **** {
+ 604:./Core/core_cm3.h ****        uint32_t RESERVED0;
+ 605:./Core/core_cm3.h ****   __I  uint32_t ICTR;                    /*!< Offset: 0x004 (R/ )  Interrupt Control Type Register 
+ 606:./Core/core_cm3.h **** #if ((defined __CM3_REV) && (__CM3_REV >= 0x200))
+ 607:./Core/core_cm3.h ****   __IO uint32_t ACTLR;                   /*!< Offset: 0x008 (R/W)  Auxiliary Control Register      
+ 608:./Core/core_cm3.h **** #else
+ 609:./Core/core_cm3.h ****        uint32_t RESERVED1;
+ 610:./Core/core_cm3.h **** #endif
+ 611:./Core/core_cm3.h **** } InterruptType_Type;
+ 612:./Core/core_cm3.h **** 
+ 613:./Core/core_cm3.h **** /* Interrupt Controller Type Register Definitions */
+ 614:./Core/core_cm3.h **** #define IntType_ICTR_INTLINESNUM_Pos  0                                                   /*!< Inte
+ 615:./Core/core_cm3.h **** #define IntType_ICTR_INTLINESNUM_Msk (0x1FUL << IntType_ICTR_INTLINESNUM_Pos)             /*!< Inte
+ 616:./Core/core_cm3.h **** 
+ 617:./Core/core_cm3.h **** /* Auxiliary Control Register Definitions */
+ 618:./Core/core_cm3.h **** #define IntType_ACTLR_DISFOLD_Pos     2                                                   /*!< Inte
+ 619:./Core/core_cm3.h **** #define IntType_ACTLR_DISFOLD_Msk    (1UL << IntType_ACTLR_DISFOLD_Pos)                   /*!< Inte
+ 620:./Core/core_cm3.h **** 
+ 621:./Core/core_cm3.h **** #define IntType_ACTLR_DISDEFWBUF_Pos  1                                                   /*!< Inte
+ 622:./Core/core_cm3.h **** #define IntType_ACTLR_DISDEFWBUF_Msk (1UL << IntType_ACTLR_DISDEFWBUF_Pos)                /*!< Inte
+ 623:./Core/core_cm3.h **** 
+ 624:./Core/core_cm3.h **** #define IntType_ACTLR_DISMCYCINT_Pos  0                                                   /*!< Inte
+ 625:./Core/core_cm3.h **** #define IntType_ACTLR_DISMCYCINT_Msk (1UL << IntType_ACTLR_DISMCYCINT_Pos)                /*!< Inte
+ 626:./Core/core_cm3.h **** 
+ 627:./Core/core_cm3.h **** /*@}*/ /* end of group CMSIS_InterruptType */
+ 628:./Core/core_cm3.h **** 
+ 629:./Core/core_cm3.h **** 
+ 630:./Core/core_cm3.h **** #if (__MPU_PRESENT == 1)
+ 631:./Core/core_cm3.h **** /** \ingroup  CMSIS_core_register
+ 632:./Core/core_cm3.h ****     \defgroup CMSIS_MPU CMSIS MPU
+ 633:./Core/core_cm3.h ****   Type definitions for the Cortex-M Memory Protection Unit (MPU)
+ 634:./Core/core_cm3.h ****   @{
+ 635:./Core/core_cm3.h ****  */
+ 636:./Core/core_cm3.h **** 
+ 637:./Core/core_cm3.h **** /** \brief  Structure type to access the Memory Protection Unit (MPU).
+ 638:./Core/core_cm3.h ****  */
+ 639:./Core/core_cm3.h **** typedef struct
+ 640:./Core/core_cm3.h **** {
+ 641:./Core/core_cm3.h ****   __I  uint32_t TYPE;                    /*!< Offset: 0x000 (R/ )  MPU Type Register               
+ 642:./Core/core_cm3.h ****   __IO uint32_t CTRL;                    /*!< Offset: 0x004 (R/W)  MPU Control Register            
+ 643:./Core/core_cm3.h ****   __IO uint32_t RNR;                     /*!< Offset: 0x008 (R/W)  MPU Region RNRber Register      
+ 644:./Core/core_cm3.h ****   __IO uint32_t RBAR;                    /*!< Offset: 0x00C (R/W)  MPU Region Base Address Register
+ 645:./Core/core_cm3.h ****   __IO uint32_t RASR;                    /*!< Offset: 0x010 (R/W)  MPU Region Attribute and Size Re
+ 646:./Core/core_cm3.h ****   __IO uint32_t RBAR_A1;                 /*!< Offset: 0x014 (R/W)  MPU Alias 1 Region Base Address 
+ 647:./Core/core_cm3.h ****   __IO uint32_t RASR_A1;                 /*!< Offset: 0x018 (R/W)  MPU Alias 1 Region Attribute and
+ 648:./Core/core_cm3.h ****   __IO uint32_t RBAR_A2;                 /*!< Offset: 0x01C (R/W)  MPU Alias 2 Region Base Address 
+ 649:./Core/core_cm3.h ****   __IO uint32_t RASR_A2;                 /*!< Offset: 0x020 (R/W)  MPU Alias 2 Region Attribute and
+ 650:./Core/core_cm3.h ****   __IO uint32_t RBAR_A3;                 /*!< Offset: 0x024 (R/W)  MPU Alias 3 Region Base Address 
+ 651:./Core/core_cm3.h ****   __IO uint32_t RASR_A3;                 /*!< Offset: 0x028 (R/W)  MPU Alias 3 Region Attribute and
+ 652:./Core/core_cm3.h **** } MPU_Type;
+ 653:./Core/core_cm3.h **** 
+ 654:./Core/core_cm3.h **** /* MPU Type Register */
+ 655:./Core/core_cm3.h **** #define MPU_TYPE_IREGION_Pos               16                                             /*!< MPU 
+ 656:./Core/core_cm3.h **** #define MPU_TYPE_IREGION_Msk               (0xFFUL << MPU_TYPE_IREGION_Pos)               /*!< MPU 
+ 657:./Core/core_cm3.h **** 
+ 658:./Core/core_cm3.h **** #define MPU_TYPE_DREGION_Pos                8                                             /*!< MPU 
+ 659:./Core/core_cm3.h **** #define MPU_TYPE_DREGION_Msk               (0xFFUL << MPU_TYPE_DREGION_Pos)               /*!< MPU 
+ 660:./Core/core_cm3.h **** 
+ 661:./Core/core_cm3.h **** #define MPU_TYPE_SEPARATE_Pos               0                                             /*!< MPU 
+ 662:./Core/core_cm3.h **** #define MPU_TYPE_SEPARATE_Msk              (1UL << MPU_TYPE_SEPARATE_Pos)                 /*!< MPU 
+ 663:./Core/core_cm3.h **** 
+ 664:./Core/core_cm3.h **** /* MPU Control Register */
+ 665:./Core/core_cm3.h **** #define MPU_CTRL_PRIVDEFENA_Pos             2                                             /*!< MPU 
+ 666:./Core/core_cm3.h **** #define MPU_CTRL_PRIVDEFENA_Msk            (1UL << MPU_CTRL_PRIVDEFENA_Pos)               /*!< MPU 
+ 667:./Core/core_cm3.h **** 
+ 668:./Core/core_cm3.h **** #define MPU_CTRL_HFNMIENA_Pos               1                                             /*!< MPU 
+ 669:./Core/core_cm3.h **** #define MPU_CTRL_HFNMIENA_Msk              (1UL << MPU_CTRL_HFNMIENA_Pos)                 /*!< MPU 
+ 670:./Core/core_cm3.h **** 
+ 671:./Core/core_cm3.h **** #define MPU_CTRL_ENABLE_Pos                 0                                             /*!< MPU 
+ 672:./Core/core_cm3.h **** #define MPU_CTRL_ENABLE_Msk                (1UL << MPU_CTRL_ENABLE_Pos)                   /*!< MPU 
+ 673:./Core/core_cm3.h **** 
+ 674:./Core/core_cm3.h **** /* MPU Region Number Register */
+ 675:./Core/core_cm3.h **** #define MPU_RNR_REGION_Pos                  0                                             /*!< MPU 
+ 676:./Core/core_cm3.h **** #define MPU_RNR_REGION_Msk                 (0xFFUL << MPU_RNR_REGION_Pos)                 /*!< MPU 
+ 677:./Core/core_cm3.h **** 
+ 678:./Core/core_cm3.h **** /* MPU Region Base Address Register */
+ 679:./Core/core_cm3.h **** #define MPU_RBAR_ADDR_Pos                   5                                             /*!< MPU 
+ 680:./Core/core_cm3.h **** #define MPU_RBAR_ADDR_Msk                  (0x7FFFFFFUL << MPU_RBAR_ADDR_Pos)             /*!< MPU 
+ 681:./Core/core_cm3.h **** 
+ 682:./Core/core_cm3.h **** #define MPU_RBAR_VALID_Pos                  4                                             /*!< MPU 
+ 683:./Core/core_cm3.h **** #define MPU_RBAR_VALID_Msk                 (1UL << MPU_RBAR_VALID_Pos)                    /*!< MPU 
+ 684:./Core/core_cm3.h **** 
+ 685:./Core/core_cm3.h **** #define MPU_RBAR_REGION_Pos                 0                                             /*!< MPU 
+ 686:./Core/core_cm3.h **** #define MPU_RBAR_REGION_Msk                (0xFUL << MPU_RBAR_REGION_Pos)                 /*!< MPU 
+ 687:./Core/core_cm3.h **** 
+ 688:./Core/core_cm3.h **** /* MPU Region Attribute and Size Register */
+ 689:./Core/core_cm3.h **** #define MPU_RASR_XN_Pos                    28                                             /*!< MPU 
+ 690:./Core/core_cm3.h **** #define MPU_RASR_XN_Msk                    (1UL << MPU_RASR_XN_Pos)                       /*!< MPU 
+ 691:./Core/core_cm3.h **** 
+ 692:./Core/core_cm3.h **** #define MPU_RASR_AP_Pos                    24                                             /*!< MPU 
+ 693:./Core/core_cm3.h **** #define MPU_RASR_AP_Msk                    (7UL << MPU_RASR_AP_Pos)                       /*!< MPU 
+ 694:./Core/core_cm3.h **** 
+ 695:./Core/core_cm3.h **** #define MPU_RASR_TEX_Pos                   19                                             /*!< MPU 
+ 696:./Core/core_cm3.h **** #define MPU_RASR_TEX_Msk                   (7UL << MPU_RASR_TEX_Pos)                      /*!< MPU 
+ 697:./Core/core_cm3.h **** 
+ 698:./Core/core_cm3.h **** #define MPU_RASR_S_Pos                     18                                             /*!< MPU 
+ 699:./Core/core_cm3.h **** #define MPU_RASR_S_Msk                     (1UL << MPU_RASR_S_Pos)                        /*!< MPU 
+ 700:./Core/core_cm3.h **** 
+ 701:./Core/core_cm3.h **** #define MPU_RASR_C_Pos                     17                                             /*!< MPU 
+ 702:./Core/core_cm3.h **** #define MPU_RASR_C_Msk                     (1UL << MPU_RASR_C_Pos)                        /*!< MPU 
+ 703:./Core/core_cm3.h **** 
+ 704:./Core/core_cm3.h **** #define MPU_RASR_B_Pos                     16                                             /*!< MPU 
+ 705:./Core/core_cm3.h **** #define MPU_RASR_B_Msk                     (1UL << MPU_RASR_B_Pos)                        /*!< MPU 
+ 706:./Core/core_cm3.h **** 
+ 707:./Core/core_cm3.h **** #define MPU_RASR_SRD_Pos                    8                                             /*!< MPU 
+ 708:./Core/core_cm3.h **** #define MPU_RASR_SRD_Msk                   (0xFFUL << MPU_RASR_SRD_Pos)                   /*!< MPU 
+ 709:./Core/core_cm3.h **** 
+ 710:./Core/core_cm3.h **** #define MPU_RASR_SIZE_Pos                   1                                             /*!< MPU 
+ 711:./Core/core_cm3.h **** #define MPU_RASR_SIZE_Msk                  (0x1FUL << MPU_RASR_SIZE_Pos)                  /*!< MPU 
+ 712:./Core/core_cm3.h **** 
+ 713:./Core/core_cm3.h **** #define MPU_RASR_ENA_Pos                     0                                            /*!< MPU 
+ 714:./Core/core_cm3.h **** #define MPU_RASR_ENA_Msk                    (0x1UL << MPU_RASR_ENA_Pos)                   /*!< MPU 
+ 715:./Core/core_cm3.h **** 
+ 716:./Core/core_cm3.h **** /*@} end of group CMSIS_MPU */
+ 717:./Core/core_cm3.h **** #endif
+ 718:./Core/core_cm3.h **** 
+ 719:./Core/core_cm3.h **** 
+ 720:./Core/core_cm3.h **** /** \ingroup  CMSIS_core_register
+ 721:./Core/core_cm3.h ****     \defgroup CMSIS_CoreDebug CMSIS Core Debug
+ 722:./Core/core_cm3.h ****   Type definitions for the Cortex-M Core Debug Registers
+ 723:./Core/core_cm3.h ****   @{
+ 724:./Core/core_cm3.h ****  */
+ 725:./Core/core_cm3.h **** 
+ 726:./Core/core_cm3.h **** /** \brief  Structure type to access the Core Debug Register (CoreDebug).
+ 727:./Core/core_cm3.h ****  */
+ 728:./Core/core_cm3.h **** typedef struct
+ 729:./Core/core_cm3.h **** {
+ 730:./Core/core_cm3.h ****   __IO uint32_t DHCSR;                   /*!< Offset: 0x000 (R/W)  Debug Halting Control and Status
+ 731:./Core/core_cm3.h ****   __O  uint32_t DCRSR;                   /*!< Offset: 0x004 ( /W)  Debug Core Register Selector Reg
+ 732:./Core/core_cm3.h ****   __IO uint32_t DCRDR;                   /*!< Offset: 0x008 (R/W)  Debug Core Register Data Registe
+ 733:./Core/core_cm3.h ****   __IO uint32_t DEMCR;                   /*!< Offset: 0x00C (R/W)  Debug Exception and Monitor Cont
+ 734:./Core/core_cm3.h **** } CoreDebug_Type;
+ 735:./Core/core_cm3.h **** 
+ 736:./Core/core_cm3.h **** /* Debug Halting Control and Status Register */
+ 737:./Core/core_cm3.h **** #define CoreDebug_DHCSR_DBGKEY_Pos         16                                             /*!< Core
+ 738:./Core/core_cm3.h **** #define CoreDebug_DHCSR_DBGKEY_Msk         (0xFFFFUL << CoreDebug_DHCSR_DBGKEY_Pos)       /*!< Core
+ 739:./Core/core_cm3.h **** 
+ 740:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_RESET_ST_Pos     25                                             /*!< Core
+ 741:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_RESET_ST_Msk     (1UL << CoreDebug_DHCSR_S_RESET_ST_Pos)        /*!< Core
+ 742:./Core/core_cm3.h **** 
+ 743:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_RETIRE_ST_Pos    24                                             /*!< Core
+ 744:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_RETIRE_ST_Msk    (1UL << CoreDebug_DHCSR_S_RETIRE_ST_Pos)       /*!< Core
+ 745:./Core/core_cm3.h **** 
+ 746:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_LOCKUP_Pos       19                                             /*!< Core
+ 747:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_LOCKUP_Msk       (1UL << CoreDebug_DHCSR_S_LOCKUP_Pos)          /*!< Core
+ 748:./Core/core_cm3.h **** 
+ 749:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_SLEEP_Pos        18                                             /*!< Core
+ 750:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_SLEEP_Msk        (1UL << CoreDebug_DHCSR_S_SLEEP_Pos)           /*!< Core
+ 751:./Core/core_cm3.h **** 
+ 752:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_HALT_Pos         17                                             /*!< Core
+ 753:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_HALT_Msk         (1UL << CoreDebug_DHCSR_S_HALT_Pos)            /*!< Core
+ 754:./Core/core_cm3.h **** 
+ 755:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_REGRDY_Pos       16                                             /*!< Core
+ 756:./Core/core_cm3.h **** #define CoreDebug_DHCSR_S_REGRDY_Msk       (1UL << CoreDebug_DHCSR_S_REGRDY_Pos)          /*!< Core
+ 757:./Core/core_cm3.h **** 
+ 758:./Core/core_cm3.h **** #define CoreDebug_DHCSR_C_SNAPSTALL_Pos     5                                             /*!< Core
+ 759:./Core/core_cm3.h **** #define CoreDebug_DHCSR_C_SNAPSTALL_Msk    (1UL << CoreDebug_DHCSR_C_SNAPSTALL_Pos)       /*!< Core
+ 760:./Core/core_cm3.h **** 
+ 761:./Core/core_cm3.h **** #define CoreDebug_DHCSR_C_MASKINTS_Pos      3                                             /*!< Core
+ 762:./Core/core_cm3.h **** #define CoreDebug_DHCSR_C_MASKINTS_Msk     (1UL << CoreDebug_DHCSR_C_MASKINTS_Pos)        /*!< Core
+ 763:./Core/core_cm3.h **** 
+ 764:./Core/core_cm3.h **** #define CoreDebug_DHCSR_C_STEP_Pos          2                                             /*!< Core
+ 765:./Core/core_cm3.h **** #define CoreDebug_DHCSR_C_STEP_Msk         (1UL << CoreDebug_DHCSR_C_STEP_Pos)            /*!< Core
+ 766:./Core/core_cm3.h **** 
+ 767:./Core/core_cm3.h **** #define CoreDebug_DHCSR_C_HALT_Pos          1                                             /*!< Core
+ 768:./Core/core_cm3.h **** #define CoreDebug_DHCSR_C_HALT_Msk         (1UL << CoreDebug_DHCSR_C_HALT_Pos)            /*!< Core
+ 769:./Core/core_cm3.h **** 
+ 770:./Core/core_cm3.h **** #define CoreDebug_DHCSR_C_DEBUGEN_Pos       0                                             /*!< Core
+ 771:./Core/core_cm3.h **** #define CoreDebug_DHCSR_C_DEBUGEN_Msk      (1UL << CoreDebug_DHCSR_C_DEBUGEN_Pos)         /*!< Core
+ 772:./Core/core_cm3.h **** 
+ 773:./Core/core_cm3.h **** /* Debug Core Register Selector Register */
+ 774:./Core/core_cm3.h **** #define CoreDebug_DCRSR_REGWnR_Pos         16                                             /*!< Core
+ 775:./Core/core_cm3.h **** #define CoreDebug_DCRSR_REGWnR_Msk         (1UL << CoreDebug_DCRSR_REGWnR_Pos)            /*!< Core
+ 776:./Core/core_cm3.h **** 
+ 777:./Core/core_cm3.h **** #define CoreDebug_DCRSR_REGSEL_Pos          0                                             /*!< Core
+ 778:./Core/core_cm3.h **** #define CoreDebug_DCRSR_REGSEL_Msk         (0x1FUL << CoreDebug_DCRSR_REGSEL_Pos)         /*!< Core
+ 779:./Core/core_cm3.h **** 
+ 780:./Core/core_cm3.h **** /* Debug Exception and Monitor Control Register */
+ 781:./Core/core_cm3.h **** #define CoreDebug_DEMCR_TRCENA_Pos         24                                             /*!< Core
+ 782:./Core/core_cm3.h **** #define CoreDebug_DEMCR_TRCENA_Msk         (1UL << CoreDebug_DEMCR_TRCENA_Pos)            /*!< Core
+ 783:./Core/core_cm3.h **** 
+ 784:./Core/core_cm3.h **** #define CoreDebug_DEMCR_MON_REQ_Pos        19                                             /*!< Core
+ 785:./Core/core_cm3.h **** #define CoreDebug_DEMCR_MON_REQ_Msk        (1UL << CoreDebug_DEMCR_MON_REQ_Pos)           /*!< Core
+ 786:./Core/core_cm3.h **** 
+ 787:./Core/core_cm3.h **** #define CoreDebug_DEMCR_MON_STEP_Pos       18                                             /*!< Core
+ 788:./Core/core_cm3.h **** #define CoreDebug_DEMCR_MON_STEP_Msk       (1UL << CoreDebug_DEMCR_MON_STEP_Pos)          /*!< Core
+ 789:./Core/core_cm3.h **** 
+ 790:./Core/core_cm3.h **** #define CoreDebug_DEMCR_MON_PEND_Pos       17                                             /*!< Core
+ 791:./Core/core_cm3.h **** #define CoreDebug_DEMCR_MON_PEND_Msk       (1UL << CoreDebug_DEMCR_MON_PEND_Pos)          /*!< Core
+ 792:./Core/core_cm3.h **** 
+ 793:./Core/core_cm3.h **** #define CoreDebug_DEMCR_MON_EN_Pos         16                                             /*!< Core
+ 794:./Core/core_cm3.h **** #define CoreDebug_DEMCR_MON_EN_Msk         (1UL << CoreDebug_DEMCR_MON_EN_Pos)            /*!< Core
+ 795:./Core/core_cm3.h **** 
+ 796:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_HARDERR_Pos     10                                             /*!< Core
+ 797:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_HARDERR_Msk     (1UL << CoreDebug_DEMCR_VC_HARDERR_Pos)        /*!< Core
+ 798:./Core/core_cm3.h **** 
+ 799:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_INTERR_Pos       9                                             /*!< Core
+ 800:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_INTERR_Msk      (1UL << CoreDebug_DEMCR_VC_INTERR_Pos)         /*!< Core
+ 801:./Core/core_cm3.h **** 
+ 802:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_BUSERR_Pos       8                                             /*!< Core
+ 803:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_BUSERR_Msk      (1UL << CoreDebug_DEMCR_VC_BUSERR_Pos)         /*!< Core
+ 804:./Core/core_cm3.h **** 
+ 805:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_STATERR_Pos      7                                             /*!< Core
+ 806:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_STATERR_Msk     (1UL << CoreDebug_DEMCR_VC_STATERR_Pos)        /*!< Core
+ 807:./Core/core_cm3.h **** 
+ 808:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_CHKERR_Pos       6                                             /*!< Core
+ 809:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_CHKERR_Msk      (1UL << CoreDebug_DEMCR_VC_CHKERR_Pos)         /*!< Core
+ 810:./Core/core_cm3.h **** 
+ 811:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_NOCPERR_Pos      5                                             /*!< Core
+ 812:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_NOCPERR_Msk     (1UL << CoreDebug_DEMCR_VC_NOCPERR_Pos)        /*!< Core
+ 813:./Core/core_cm3.h **** 
+ 814:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_MMERR_Pos        4                                             /*!< Core
+ 815:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_MMERR_Msk       (1UL << CoreDebug_DEMCR_VC_MMERR_Pos)          /*!< Core
+ 816:./Core/core_cm3.h **** 
+ 817:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_CORERESET_Pos    0                                             /*!< Core
+ 818:./Core/core_cm3.h **** #define CoreDebug_DEMCR_VC_CORERESET_Msk   (1UL << CoreDebug_DEMCR_VC_CORERESET_Pos)      /*!< Core
+ 819:./Core/core_cm3.h **** 
+ 820:./Core/core_cm3.h **** /*@} end of group CMSIS_CoreDebug */
+ 821:./Core/core_cm3.h **** 
+ 822:./Core/core_cm3.h **** 
+ 823:./Core/core_cm3.h **** /** \ingroup  CMSIS_core_register
+ 824:./Core/core_cm3.h ****   @{
+ 825:./Core/core_cm3.h ****  */
+ 826:./Core/core_cm3.h **** 
+ 827:./Core/core_cm3.h **** /* Memory mapping of Cortex-M3 Hardware */
+ 828:./Core/core_cm3.h **** #define SCS_BASE            (0xE000E000UL)                            /*!< System Control Space Bas
+ 829:./Core/core_cm3.h **** #define ITM_BASE            (0xE0000000UL)                            /*!< ITM Base Address        
+ 830:./Core/core_cm3.h **** #define CoreDebug_BASE      (0xE000EDF0UL)                            /*!< Core Debug Base Address 
+ 831:./Core/core_cm3.h **** #define SysTick_BASE        (SCS_BASE +  0x0010UL)                    /*!< SysTick Base Address    
+ 832:./Core/core_cm3.h **** #define NVIC_BASE           (SCS_BASE +  0x0100UL)                    /*!< NVIC Base Address       
+ 833:./Core/core_cm3.h **** #define SCB_BASE            (SCS_BASE +  0x0D00UL)                    /*!< System Control Block Bas
+ 834:./Core/core_cm3.h **** 
+ 835:./Core/core_cm3.h **** #define InterruptType       ((InterruptType_Type *) SCS_BASE)         /*!< Interrupt Type Register 
+ 836:./Core/core_cm3.h **** #define SCB                 ((SCB_Type *)           SCB_BASE)         /*!< SCB configuration struct
+ 837:./Core/core_cm3.h **** #define SysTick             ((SysTick_Type *)       SysTick_BASE)     /*!< SysTick configuration st
+ 838:./Core/core_cm3.h **** #define NVIC                ((NVIC_Type *)          NVIC_BASE)        /*!< NVIC configuration struc
+ 839:./Core/core_cm3.h **** #define ITM                 ((ITM_Type *)           ITM_BASE)         /*!< ITM configuration struct
+ 840:./Core/core_cm3.h **** #define CoreDebug           ((CoreDebug_Type *)     CoreDebug_BASE)   /*!< Core Debug configuration
+ 841:./Core/core_cm3.h **** 
+ 842:./Core/core_cm3.h **** #if (__MPU_PRESENT == 1)
+ 843:./Core/core_cm3.h ****   #define MPU_BASE          (SCS_BASE +  0x0D90UL)                    /*!< Memory Protection Unit  
+ 844:./Core/core_cm3.h ****   #define MPU               ((MPU_Type*)            MPU_BASE)         /*!< Memory Protection Unit  
+ 845:./Core/core_cm3.h **** #endif
+ 846:./Core/core_cm3.h **** 
+ 847:./Core/core_cm3.h **** /*@} */
+ 848:./Core/core_cm3.h **** 
+ 849:./Core/core_cm3.h **** 
+ 850:./Core/core_cm3.h **** 
+ 851:./Core/core_cm3.h **** /*******************************************************************************
+ 852:./Core/core_cm3.h ****  *                Hardware Abstraction Layer
+ 853:./Core/core_cm3.h ****  ******************************************************************************/
+ 854:./Core/core_cm3.h **** /** \addtogroup CMSIS_Core_FunctionInterface CMSIS Core Function Interface
+ 855:./Core/core_cm3.h ****   Core Function Interface contains:
+ 856:./Core/core_cm3.h ****   - Core NVIC Functions
+ 857:./Core/core_cm3.h ****   - Core SysTick Functions
+ 858:./Core/core_cm3.h ****   - Core Debug Functions
+ 859:./Core/core_cm3.h ****   - Core Register Access Functions
+ 860:./Core/core_cm3.h **** */
+ 861:./Core/core_cm3.h **** 
+ 862:./Core/core_cm3.h **** 
+ 863:./Core/core_cm3.h **** 
+ 864:./Core/core_cm3.h **** /* ##########################   NVIC functions  #################################### */
+ 865:./Core/core_cm3.h **** /** \ingroup  CMSIS_Core_FunctionInterface
+ 866:./Core/core_cm3.h ****     \defgroup CMSIS_Core_NVICFunctions CMSIS Core NVIC Functions
+ 867:./Core/core_cm3.h ****   @{
+ 868:./Core/core_cm3.h ****  */
+ 869:./Core/core_cm3.h **** /** @addtogroup CMSIS_Core_NVICFunctions
+ 870:./Core/core_cm3.h ****  * @{
+ 871:./Core/core_cm3.h ****  */
+ 872:./Core/core_cm3.h **** /** \brief  Set Priority Grouping
+ 873:./Core/core_cm3.h **** 
+ 874:./Core/core_cm3.h ****   This function sets the priority grouping field using the required unlock sequence.
+ 875:./Core/core_cm3.h ****   The parameter PriorityGroup is assigned to the field SCB->AIRCR [10:8] PRIGROUP field.
+ 876:./Core/core_cm3.h ****   Only values from 0..7 are used.
+ 877:./Core/core_cm3.h ****   In case of a conflict between priority grouping and available
+ 878:./Core/core_cm3.h ****   priority bits (__NVIC_PRIO_BITS) the smallest possible priority group is set.
+ 879:./Core/core_cm3.h **** 
+ 880:./Core/core_cm3.h ****     \param [in]      PriorityGroup  Priority grouping field
+ 881:./Core/core_cm3.h ****  */
+ 882:./Core/core_cm3.h **** static __INLINE void NVIC_SetPriorityGrouping(uint32_t PriorityGroup)
+ 883:./Core/core_cm3.h **** {
+ 884:./Core/core_cm3.h ****   uint32_t reg_value;
+ 885:./Core/core_cm3.h ****   uint32_t PriorityGroupTmp = (PriorityGroup & 0x07);                         /* only values 0..7 a
+ 886:./Core/core_cm3.h **** 
+ 887:./Core/core_cm3.h ****   reg_value  =  SCB->AIRCR;                                                   /* read old register 
+ 888:./Core/core_cm3.h ****   reg_value &= ~(SCB_AIRCR_VECTKEY_Msk | SCB_AIRCR_PRIGROUP_Msk);             /* clear bits to chan
+ 889:./Core/core_cm3.h ****   reg_value  =  (reg_value                       |
+ 890:./Core/core_cm3.h ****                 (0x5FA << SCB_AIRCR_VECTKEY_Pos) |
+ 891:./Core/core_cm3.h ****                 (PriorityGroupTmp << 8));                                     /* Insert write key a
+ 892:./Core/core_cm3.h ****   SCB->AIRCR =  reg_value;
+ 893:./Core/core_cm3.h **** }
+ 894:./Core/core_cm3.h **** 
+ 895:./Core/core_cm3.h **** 
+ 896:./Core/core_cm3.h **** /** \brief  Get Priority Grouping
+ 897:./Core/core_cm3.h **** 
+ 898:./Core/core_cm3.h ****   This function gets the priority grouping from NVIC Interrupt Controller.
+ 899:./Core/core_cm3.h ****   Priority grouping is SCB->AIRCR [10:8] PRIGROUP field.
+ 900:./Core/core_cm3.h **** 
+ 901:./Core/core_cm3.h ****     \return                Priority grouping field
+ 902:./Core/core_cm3.h ****  */
+ 903:./Core/core_cm3.h **** static __INLINE uint32_t NVIC_GetPriorityGrouping(void)
+ 904:./Core/core_cm3.h **** {
+ 905:./Core/core_cm3.h ****   return ((SCB->AIRCR & SCB_AIRCR_PRIGROUP_Msk) >> SCB_AIRCR_PRIGROUP_Pos);   /* read priority grou
+ 906:./Core/core_cm3.h **** }
+ 907:./Core/core_cm3.h **** 
+ 908:./Core/core_cm3.h **** 
+ 909:./Core/core_cm3.h **** /** \brief  Enable External Interrupt
+ 910:./Core/core_cm3.h **** 
+ 911:./Core/core_cm3.h ****     This function enables a device specific interupt in the NVIC interrupt controller.
+ 912:./Core/core_cm3.h ****     The interrupt number cannot be a negative value.
+ 913:./Core/core_cm3.h **** 
+ 914:./Core/core_cm3.h ****     \param [in]      IRQn  Number of the external interrupt to enable
+ 915:./Core/core_cm3.h ****  */
+ 916:./Core/core_cm3.h **** static __INLINE void NVIC_EnableIRQ(IRQn_Type IRQn)
+ 917:./Core/core_cm3.h **** {
+ 918:./Core/core_cm3.h ****   NVIC->ISER[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F)); /* enable interrupt */
+ 919:./Core/core_cm3.h **** }
+ 920:./Core/core_cm3.h **** 
+ 921:./Core/core_cm3.h **** 
+ 922:./Core/core_cm3.h **** /** \brief  Disable External Interrupt
+ 923:./Core/core_cm3.h **** 
+ 924:./Core/core_cm3.h ****     This function disables a device specific interupt in the NVIC interrupt controller.
+ 925:./Core/core_cm3.h ****     The interrupt number cannot be a negative value.
+ 926:./Core/core_cm3.h **** 
+ 927:./Core/core_cm3.h ****     \param [in]      IRQn  Number of the external interrupt to disable
+ 928:./Core/core_cm3.h ****  */
+ 929:./Core/core_cm3.h **** static __INLINE void NVIC_DisableIRQ(IRQn_Type IRQn)
+ 930:./Core/core_cm3.h **** {
+ 931:./Core/core_cm3.h ****   NVIC->ICER[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F)); /* disable interrupt */
+  36              		.loc 2 931 0
+  37 0000 0D4A     		ldr	r2, .L6
+  38              	.LBE15:
+  39              	.LBE14:
+  52:./src/serial.c **** 
+  53:./src/serial.c ****   if ( portNum == 0 )
+  40              		.loc 1 53 0
+  41 0002 60B1     		cbz	r0, .L5
+  42              	.LVL1:
+  54:./src/serial.c ****   {
+  55:./src/serial.c **** 	/* Port 0 */
+  56:./src/serial.c **** 	NVIC_DisableIRQ(UART0_IRQn);
+  57:./src/serial.c **** 	LPC_PINCON->PINSEL0 &= ~0x000000F0;
+  58:./src/serial.c **** 	LPC_PINCON->PINSEL0 |= 0x00000050;     /* RxD0 is P0.3 and TxD0 is P0.2 */
+  59:./src/serial.c ****   }
+  60:./src/serial.c ****   else
+  61:./src/serial.c ****   {
+  62:./src/serial.c **** 	/* Port 1 */
+  63:./src/serial.c **** 	NVIC_DisableIRQ(UART1_IRQn);
+  64:./src/serial.c **** 	LPC_PINCON->PINSEL4 &= ~0x0000000F;
+  43              		.loc 1 64 0
+  44 0004 0D4B     		ldr	r3, .L6+4
+  45              	.LBB17:
+  46              	.LBB18:
+  47              		.loc 2 931 0
+  48 0006 4021     		movs	r1, #64
+  49 0008 C2F88010 		str	r1, [r2, #128]
+  50              	.LBE18:
+  51              	.LBE17:
+  52              		.loc 1 64 0
+  53 000c 1A69     		ldr	r2, [r3, #16]
+  54 000e 22F00F02 		bic	r2, r2, #15
+  55 0012 1A61     		str	r2, [r3, #16]
+  65:./src/serial.c **** 	LPC_PINCON->PINSEL4 |= 0x0000000A;    /* Enable RxD1 P2.1, TxD1 P2.0 */
+  56              		.loc 1 65 0
+  57 0014 1A69     		ldr	r2, [r3, #16]
+  58 0016 42F00A02 		orr	r2, r2, #10
+  59 001a 1A61     		str	r2, [r3, #16]
+  60 001c 7047     		bx	lr
+  61              	.LVL2:
+  62              	.L5:
+  57:./src/serial.c **** 	LPC_PINCON->PINSEL0 &= ~0x000000F0;
+  63              		.loc 1 57 0
+  64 001e 074B     		ldr	r3, .L6+4
+  65              	.LBB19:
+  66              	.LBB16:
+  67              		.loc 2 931 0
+  68 0020 2021     		movs	r1, #32
+  69 0022 C2F88010 		str	r1, [r2, #128]
+  70              	.LBE16:
+  71              	.LBE19:
+  57:./src/serial.c **** 	LPC_PINCON->PINSEL0 &= ~0x000000F0;
+  72              		.loc 1 57 0
+  73 0026 1A68     		ldr	r2, [r3]
+  74 0028 22F0F002 		bic	r2, r2, #240
+  75 002c 1A60     		str	r2, [r3]
+  58:./src/serial.c **** 	LPC_PINCON->PINSEL0 |= 0x00000050;     /* RxD0 is P0.3 and TxD0 is P0.2 */
+  76              		.loc 1 58 0
+  77 002e 1A68     		ldr	r2, [r3]
+  78 0030 42F05002 		orr	r2, r2, #80
+  79 0034 1A60     		str	r2, [r3]
+  80 0036 7047     		bx	lr
+  81              	.L7:
+  82              		.align	2
+  83              	.L6:
+  84 0038 00E100E0 		.word	-536813312
+  85 003c 00C00240 		.word	1073922048
+  86              		.cfi_endproc
+  87              	.LFE55:
+  89              		.section	.text.ser_ClosePort,"ax",%progbits
+  90              		.align	2
+  91              		.global	ser_ClosePort
+  92              		.thumb
+  93              		.thumb_func
+  95              	ser_ClosePort:
+  96              	.LFB56:
+  66:./src/serial.c ****   }
+  67:./src/serial.c ****   return;
+  68:./src/serial.c **** }
+  69:./src/serial.c **** 
+  70:./src/serial.c **** /*----------------------------------------------------------------------------
+  71:./src/serial.c ****   close the serial port
+  72:./src/serial.c ****  *---------------------------------------------------------------------------*/
+  73:./src/serial.c **** void ser_ClosePort (char portNum ) {
+  97              		.loc 1 73 0
+  98              		.cfi_startproc
+  99              		@ args = 0, pretend = 0, frame = 0
+ 100              		@ frame_needed = 0, uses_anonymous_args = 0
+ 101              		@ link register save eliminated.
+ 102              	.LVL3:
+ 103 0000 30B4     		push	{r4, r5}
+ 104              		.cfi_def_cfa_offset 8
+ 105              		.cfi_offset 4, -8
+ 106              		.cfi_offset 5, -4
+  74:./src/serial.c ****   if ( portNum == 0 )
+  75:./src/serial.c ****   {
+  76:./src/serial.c **** 	/* POrt 0 */
+  77:./src/serial.c **** 	LPC_PINCON->PINSEL0 &= ~0x000000F0;
+ 107              		.loc 1 77 0
+ 108 0002 0D4B     		ldr	r3, .L12
+  74:./src/serial.c ****   if ( portNum == 0 )
+ 109              		.loc 1 74 0
+ 110 0004 60B1     		cbz	r0, .L11
+  78:./src/serial.c **** 	/* Disable the interrupt in the VIC and UART controllers */
+  79:./src/serial.c **** 	LPC_UART0->IER = 0;
+  80:./src/serial.c **** 	NVIC_DisableIRQ(UART0_IRQn);
+  81:./src/serial.c ****   }
+  82:./src/serial.c ****   else
+  83:./src/serial.c ****   {
+  84:./src/serial.c **** 	/* Port 1 */
+  85:./src/serial.c **** 	LPC_PINCON->PINSEL4 &= ~0x0000000F;
+ 111              		.loc 1 85 0
+ 112 0006 1D69     		ldr	r5, [r3, #16]
+  86:./src/serial.c **** 	/* Disable the interrupt in the VIC and UART controllers */
+  87:./src/serial.c **** 	LPC_UART1->IER = 0;
+ 113              		.loc 1 87 0
+ 114 0008 0C48     		ldr	r0, .L12+4
+ 115              	.LVL4:
+  85:./src/serial.c **** 	LPC_PINCON->PINSEL4 &= ~0x0000000F;
+ 116              		.loc 1 85 0
+ 117 000a 25F00F05 		bic	r5, r5, #15
+ 118              		.loc 1 87 0
+ 119 000e 0024     		movs	r4, #0
+ 120              	.LBB20:
+ 121              	.LBB21:
+ 122              		.loc 2 931 0
+ 123 0010 0B4A     		ldr	r2, .L12+8
+ 124              	.LBE21:
+ 125              	.LBE20:
+  85:./src/serial.c **** 	LPC_PINCON->PINSEL4 &= ~0x0000000F;
+ 126              		.loc 1 85 0
+ 127 0012 1D61     		str	r5, [r3, #16]
+ 128              	.LBB24:
+ 129              	.LBB22:
+ 130              		.loc 2 931 0
+ 131 0014 4021     		movs	r1, #64
+ 132              	.LBE22:
+ 133              	.LBE24:
+ 134              		.loc 1 87 0
+ 135 0016 4460     		str	r4, [r0, #4]
+ 136              	.LVL5:
+  88:./src/serial.c **** 	NVIC_DisableIRQ(UART1_IRQn);
+  89:./src/serial.c ****   }
+  90:./src/serial.c ****   return;
+  91:./src/serial.c **** }
+ 137              		.loc 1 91 0
+ 138 0018 30BC     		pop	{r4, r5}
+ 139              	.LBB25:
+ 140              	.LBB23:
+ 141              		.loc 2 931 0
+ 142 001a C2F88010 		str	r1, [r2, #128]
+ 143              	.LBE23:
+ 144              	.LBE25:
+ 145              		.loc 1 91 0
+ 146 001e 7047     		bx	lr
+ 147              	.LVL6:
+ 148              	.L11:
+  77:./src/serial.c **** 	LPC_PINCON->PINSEL0 &= ~0x000000F0;
+ 149              		.loc 1 77 0
+ 150 0020 1D68     		ldr	r5, [r3]
+  79:./src/serial.c **** 	LPC_UART0->IER = 0;
+ 151              		.loc 1 79 0
+ 152 0022 084C     		ldr	r4, .L12+12
+  77:./src/serial.c **** 	LPC_PINCON->PINSEL0 &= ~0x000000F0;
+ 153              		.loc 1 77 0
+ 154 0024 25F0F005 		bic	r5, r5, #240
+ 155              	.LBB26:
+ 156              	.LBB27:
+ 157              		.loc 2 931 0
+ 158 0028 054A     		ldr	r2, .L12+8
+ 159              	.LBE27:
+ 160              	.LBE26:
+  77:./src/serial.c **** 	LPC_PINCON->PINSEL0 &= ~0x000000F0;
+ 161              		.loc 1 77 0
+ 162 002a 1D60     		str	r5, [r3]
+ 163              	.LBB30:
+ 164              	.LBB28:
+ 165              		.loc 2 931 0
+ 166 002c 2021     		movs	r1, #32
+ 167              	.LBE28:
+ 168              	.LBE30:
+  79:./src/serial.c **** 	LPC_UART0->IER = 0;
+ 169              		.loc 1 79 0
+ 170 002e 6060     		str	r0, [r4, #4]
+ 171              	.LVL7:
+ 172              		.loc 1 91 0
+ 173 0030 30BC     		pop	{r4, r5}
+ 174              	.LBB31:
+ 175              	.LBB29:
+ 176              		.loc 2 931 0
+ 177 0032 C2F88010 		str	r1, [r2, #128]
+ 178              	.LBE29:
+ 179              	.LBE31:
+ 180              		.loc 1 91 0
+ 181 0036 7047     		bx	lr
+ 182              	.L13:
+ 183              		.align	2
+ 184              	.L12:
+ 185 0038 00C00240 		.word	1073922048
+ 186 003c 00000140 		.word	1073807360
+ 187 0040 00E100E0 		.word	-536813312
+ 188 0044 00C00040 		.word	1073790976
+ 189              		.cfi_endproc
+ 190              	.LFE56:
+ 192              		.section	.text.ser_InitPort0,"ax",%progbits
+ 193              		.align	2
+ 194              		.global	ser_InitPort0
+ 195              		.thumb
+ 196              		.thumb_func
+ 198              	ser_InitPort0:
+ 199              	.LFB57:
+  92:./src/serial.c **** 
+  93:./src/serial.c **** /*----------------------------------------------------------------------------
+  94:./src/serial.c ****   initialize the serial port
+  95:./src/serial.c ****  *---------------------------------------------------------------------------*/
+  96:./src/serial.c **** void ser_InitPort0 (unsigned long baudrate, unsigned int  databits,
+  97:./src/serial.c ****                   unsigned int  parity,   unsigned int  stopbits) {
+ 200              		.loc 1 97 0
+ 201              		.cfi_startproc
+ 202              		@ args = 0, pretend = 0, frame = 0
+ 203              		@ frame_needed = 0, uses_anonymous_args = 0
+ 204              		@ link register save eliminated.
+ 205              	.LVL8:
+ 206 0000 0539     		subs	r1, r1, #5
+ 207              	.LVL9:
+ 208 0002 0229     		cmp	r1, #2
+ 209 0004 2DE9F007 		push	{r4, r5, r6, r7, r8, r9, r10}
+ 210              		.cfi_def_cfa_offset 28
+ 211              		.cfi_offset 4, -28
+ 212              		.cfi_offset 5, -24
+ 213              		.cfi_offset 6, -20
+ 214              		.cfi_offset 7, -16
+ 215              		.cfi_offset 8, -12
+ 216              		.cfi_offset 9, -8
+ 217              		.cfi_offset 10, -4
+ 218 0008 98BF     		it	ls
+ 219 000a 2C4C     		ldrls	r4, .L27
+  98:./src/serial.c **** 
+  99:./src/serial.c ****   unsigned char lcr_p, lcr_s, lcr_d;
+ 100:./src/serial.c ****   unsigned int dll;
+ 101:./src/serial.c ****   unsigned int pclkdiv, pclk;
+ 102:./src/serial.c **** 
+ 103:./src/serial.c ****   switch (databits) {
+ 104:./src/serial.c ****     case 5:                                            // 5 Data bits
+ 105:./src/serial.c ****       lcr_d = 0x00;
+ 106:./src/serial.c ****     break;
+ 107:./src/serial.c ****     case 6:                                            // 6 Data bits
+ 108:./src/serial.c ****       lcr_d = 0x01;
+ 109:./src/serial.c ****     break;
+ 110:./src/serial.c ****     case 7:                                            // 7 Data bits
+ 111:./src/serial.c ****       lcr_d = 0x02;
+ 112:./src/serial.c ****     break;
+ 113:./src/serial.c ****     case 8:                                            // 8 Data bits
+ 114:./src/serial.c ****     default:
+ 115:./src/serial.c ****       lcr_d = 0x03;
+ 116:./src/serial.c ****     break;
+ 117:./src/serial.c ****   }
+ 118:./src/serial.c **** 
+ 119:./src/serial.c ****   switch (stopbits) {
+ 220              		.loc 1 119 0
+ 221 000c 03F1FF33 		add	r3, r3, #-1
+ 222              	.LVL10:
+ 223 0010 94BF     		ite	ls
+ 224 0012 665C     		ldrbls	r6, [r4, r1]	@ zero_extendqisi2
+  97:./src/serial.c ****                   unsigned int  parity,   unsigned int  stopbits) {
+ 225              		.loc 1 97 0
+ 226 0014 0326     		movhi	r6, #3
+ 227              	.LVL11:
+ 228              		.loc 1 119 0
+ 229 0016 012B     		cmp	r3, #1
+ 230 0018 02F1FF33 		add	r3, r2, #-1
+ 231              	.LVL12:
+ 120:./src/serial.c ****     case 1:                                            // 1,5 Stop bits
+ 121:./src/serial.c ****     case 2:                                            // 2   Stop bits
+ 122:./src/serial.c ****       lcr_s = 0x04;
+ 232              		.loc 1 122 0
+ 233 001c 8CBF     		ite	hi
+ 234 001e 0022     		movhi	r2, #0
+ 235 0020 0422     		movls	r2, #4
+ 236              	.LVL13:
+ 237 0022 032B     		cmp	r3, #3
+ 238 0024 98BF     		it	ls
+ 239 0026 2649     		ldrls	r1, .L27+4
+ 240              	.LVL14:
+ 123:./src/serial.c ****     break;
+ 124:./src/serial.c ****     case 0:                                            // 1   Stop bit
+ 125:./src/serial.c ****     default:
+ 126:./src/serial.c ****       lcr_s = 0x00;
+ 127:./src/serial.c ****     break;
+ 128:./src/serial.c ****   }
+ 129:./src/serial.c **** 
+ 130:./src/serial.c ****   switch (parity) {
+ 131:./src/serial.c ****     case 1:                                            // Parity Odd
+ 132:./src/serial.c ****       lcr_p = 0x08;
+ 133:./src/serial.c ****     break;
+ 134:./src/serial.c ****     case 2:                                            // Parity Even
+ 135:./src/serial.c ****       lcr_p = 0x18;
+ 136:./src/serial.c ****     break;
+ 137:./src/serial.c ****     case 3:                                            // Parity Mark
+ 138:./src/serial.c ****       lcr_p = 0x28;
+ 139:./src/serial.c ****     break;
+ 140:./src/serial.c ****     case 4:                                            // Parity Space
+ 141:./src/serial.c ****       lcr_p = 0x38;
+ 142:./src/serial.c ****     break;
+ 143:./src/serial.c ****     case 0:                                            // Parity None
+ 144:./src/serial.c ****     default:
+ 145:./src/serial.c ****       lcr_p = 0x00;
+ 146:./src/serial.c ****     break;
+ 147:./src/serial.c ****   }
+ 148:./src/serial.c **** 
+ 149:./src/serial.c ****   SER_BUF_RESET(ser_out);                              // reset out buffer
+ 241              		.loc 1 149 0
+ 242 0028 264C     		ldr	r4, .L27+8
+ 243 002a 98BF     		it	ls
+ 244 002c CD5C     		ldrbls	r5, [r1, r3]	@ zero_extendqisi2
+ 150:./src/serial.c ****   SER_BUF_RESET(ser_in);                               // reset in buffer
+ 245              		.loc 1 150 0
+ 246 002e 2649     		ldr	r1, .L27+12
+ 149:./src/serial.c ****   SER_BUF_RESET(ser_out);                              // reset out buffer
+ 247              		.loc 1 149 0
+ 248 0030 4FF00003 		mov	r3, #0
+ 249              	.LVL15:
+ 151:./src/serial.c **** 
+ 152:./src/serial.c ****   /* Bit 6~7 is for UART0 */
+ 153:./src/serial.c ****   pclkdiv = (LPC_SC->PCLKSEL0 >> 6) & 0x03;
+ 250              		.loc 1 153 0
+ 251 0034 254F     		ldr	r7, .L27+16
+ 149:./src/serial.c ****   SER_BUF_RESET(ser_out);                              // reset out buffer
+ 252              		.loc 1 149 0
+ 253 0036 C4F88030 		str	r3, [r4, #128]
+ 254 003a C4F88430 		str	r3, [r4, #132]
+ 150:./src/serial.c ****   SER_BUF_RESET(ser_in);                               // reset in buffer
+ 255              		.loc 1 150 0
+ 256 003e C1F88030 		str	r3, [r1, #128]
+ 257 0042 C1F88430 		str	r3, [r1, #132]
+ 258              		.loc 1 153 0
+ 259 0046 D7F8A831 		ldr	r3, [r7, #424]
+ 126:./src/serial.c ****       lcr_s = 0x00;
+ 260              		.loc 1 126 0
+ 261 004a 88BF     		it	hi
+ 262 004c 0025     		movhi	r5, #0
+ 263              	.LVL16:
+ 264              		.loc 1 153 0
+ 265 004e C3F38113 		ubfx	r3, r3, #6, #2
+ 266              	.LVL17:
+ 154:./src/serial.c **** 
+ 155:./src/serial.c ****   switch ( pclkdiv )
+ 267              		.loc 1 155 0
+ 268 0052 022B     		cmp	r3, #2
+ 269 0054 2ED0     		beq	.L20
+ 270 0056 032B     		cmp	r3, #3
+ 271 0058 28D0     		beq	.L21
+ 272 005a 012B     		cmp	r3, #1
+ 156:./src/serial.c ****   {
+ 157:./src/serial.c **** 	case 0x00:
+ 158:./src/serial.c **** 	default:
+ 159:./src/serial.c **** 	  pclk = SystemCoreClock/4;
+ 160:./src/serial.c **** 	  break;
+ 161:./src/serial.c **** 	case 0x01:
+ 162:./src/serial.c **** 	  pclk = SystemCoreClock;
+ 273              		.loc 1 162 0
+ 274 005c 1C4B     		ldr	r3, .L27+20
+ 275 005e 1B68     		ldr	r3, [r3]
+ 155:./src/serial.c ****   switch ( pclkdiv )
+ 276              		.loc 1 155 0
+ 277 0060 00D0     		beq	.L23
+ 159:./src/serial.c **** 	  pclk = SystemCoreClock/4;
+ 278              		.loc 1 159 0
+ 279 0062 9B08     		lsrs	r3, r3, #2
+ 280              	.LVL18:
+ 281              	.L23:
+ 163:./src/serial.c **** 	  break;
+ 164:./src/serial.c **** 	case 0x02:
+ 165:./src/serial.c **** 	  pclk = SystemCoreClock/2;
+ 166:./src/serial.c **** 	  break;
+ 167:./src/serial.c **** 	case 0x03:
+ 168:./src/serial.c **** 	  pclk = SystemCoreClock/8;
+ 169:./src/serial.c **** 	  break;
+ 170:./src/serial.c ****   }
+ 171:./src/serial.c **** 
+ 172:./src/serial.c ****   dll = (pclk/16)/baudrate ;	/*baud rate */
+ 173:./src/serial.c ****   LPC_UART0->FDR = 0;                             // Fractional divider not used
+ 174:./src/serial.c ****   LPC_UART0->LCR = 0x80 | lcr_d | lcr_p | lcr_s;  // Data bits, Parity,   Stop bit
+ 282              		.loc 1 174 0
+ 283 0064 3243     		orrs	r2, r2, r6
+ 284              	.LVL19:
+ 172:./src/serial.c ****   dll = (pclk/16)/baudrate ;	/*baud rate */
+ 285              		.loc 1 172 0
+ 286 0066 1B09     		lsrs	r3, r3, #4
+ 287              	.LVL20:
+ 288 0068 B3FBF0F0 		udiv	r0, r3, r0
+ 289              	.LVL21:
+ 290              		.loc 1 174 0
+ 291 006c 2A43     		orrs	r2, r2, r5
+ 173:./src/serial.c ****   LPC_UART0->FDR = 0;                             // Fractional divider not used
+ 292              		.loc 1 173 0
+ 293 006e 194B     		ldr	r3, .L27+24
+ 175:./src/serial.c ****   LPC_UART0->DLL = dll;                           // Baud Rate depending on PCLK
+ 294              		.loc 1 175 0
+ 295 0070 5FFA80F8 		uxtb	r8, r0
+ 176:./src/serial.c ****   LPC_UART0->DLM = (dll >> 8);                    // High divisor latch
+ 177:./src/serial.c ****   LPC_UART0->LCR = 0x00 | lcr_d | lcr_p | lcr_s;  // DLAB = 0
+ 178:./src/serial.c ****   LPC_UART0->IER = 0x03;                          // Enable TX/RX interrupts
+ 179:./src/serial.c **** 
+ 180:./src/serial.c ****   LPC_UART0->FCR = 0x07;				/* Enable and reset TX and RX FIFO. */
+ 181:./src/serial.c ****   ser_txRestart = 1;                                   // TX fifo is empty
+ 296              		.loc 1 181 0
+ 297 0074 184D     		ldr	r5, .L27+28
+ 298              	.LVL22:
+ 174:./src/serial.c ****   LPC_UART0->LCR = 0x80 | lcr_d | lcr_p | lcr_s;  // Data bits, Parity,   Stop bit
+ 299              		.loc 1 174 0
+ 300 0076 42F08009 		orr	r9, r2, #128
+ 173:./src/serial.c ****   LPC_UART0->FDR = 0;                             // Fractional divider not used
+ 301              		.loc 1 173 0
+ 302 007a 4FF0000A 		mov	r10, #0
+ 176:./src/serial.c ****   LPC_UART0->DLM = (dll >> 8);                    // High divisor latch
+ 303              		.loc 1 176 0
+ 304 007e C0F3072C 		ubfx	ip, r0, #8, #8
+ 180:./src/serial.c ****   LPC_UART0->FCR = 0x07;				/* Enable and reset TX and RX FIFO. */
+ 305              		.loc 1 180 0
+ 306 0082 0727     		movs	r7, #7
+ 307              	.LBB32:
+ 308              	.LBB33:
+ 918:./Core/core_cm3.h ****   NVIC->ISER[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F)); /* enable interrupt */
+ 309              		.loc 2 918 0
+ 310 0084 1549     		ldr	r1, .L27+32
+ 311              	.LBE33:
+ 312              	.LBE32:
+ 178:./src/serial.c ****   LPC_UART0->IER = 0x03;                          // Enable TX/RX interrupts
+ 313              		.loc 1 178 0
+ 314 0086 0320     		movs	r0, #3
+ 315              	.LVL23:
+ 173:./src/serial.c ****   LPC_UART0->FDR = 0;                             // Fractional divider not used
+ 316              		.loc 1 173 0
+ 317 0088 83F828A0 		strb	r10, [r3, #40]
+ 318              		.loc 1 181 0
+ 319 008c 0126     		movs	r6, #1
+ 320              	.LVL24:
+ 174:./src/serial.c ****   LPC_UART0->LCR = 0x80 | lcr_d | lcr_p | lcr_s;  // Data bits, Parity,   Stop bit
+ 321              		.loc 1 174 0
+ 322 008e 83F80C90 		strb	r9, [r3, #12]
+ 323              	.LBB36:
+ 324              	.LBB34:
+ 918:./Core/core_cm3.h ****   NVIC->ISER[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F)); /* enable interrupt */
+ 325              		.loc 2 918 0
+ 326 0092 2024     		movs	r4, #32
+ 327              	.LBE34:
+ 328              	.LBE36:
+ 175:./src/serial.c ****   LPC_UART0->DLL = dll;                           // Baud Rate depending on PCLK
+ 329              		.loc 1 175 0
+ 330 0094 83F80080 		strb	r8, [r3]
+ 176:./src/serial.c ****   LPC_UART0->DLM = (dll >> 8);                    // High divisor latch
+ 331              		.loc 1 176 0
+ 332 0098 83F804C0 		strb	ip, [r3, #4]
+ 177:./src/serial.c ****   LPC_UART0->LCR = 0x00 | lcr_d | lcr_p | lcr_s;  // DLAB = 0
+ 333              		.loc 1 177 0
+ 334 009c 1A73     		strb	r2, [r3, #12]
+ 178:./src/serial.c ****   LPC_UART0->IER = 0x03;                          // Enable TX/RX interrupts
+ 335              		.loc 1 178 0
+ 336 009e 5860     		str	r0, [r3, #4]
+ 180:./src/serial.c ****   LPC_UART0->FCR = 0x07;				/* Enable and reset TX and RX FIFO. */
+ 337              		.loc 1 180 0
+ 338 00a0 1F72     		strb	r7, [r3, #8]
+ 339              		.loc 1 181 0
+ 340 00a2 2E60     		str	r6, [r5]
+ 341              	.LVL25:
+ 342              	.LBB37:
+ 343              	.LBB35:
+ 918:./Core/core_cm3.h ****   NVIC->ISER[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F)); /* enable interrupt */
+ 344              		.loc 2 918 0
+ 345 00a4 0C60     		str	r4, [r1]
+ 346              	.LBE35:
+ 347              	.LBE37:
+ 182:./src/serial.c **** 
+ 183:./src/serial.c ****   /* Enable the UART Interrupt */
+ 184:./src/serial.c ****   NVIC_EnableIRQ(UART0_IRQn);
+ 185:./src/serial.c ****   return;
+ 186:./src/serial.c **** }
+ 348              		.loc 1 186 0
+ 349 00a6 BDE8F007 		pop	{r4, r5, r6, r7, r8, r9, r10}
+ 350 00aa 7047     		bx	lr
+ 351              	.LVL26:
+ 352              	.L21:
+ 168:./src/serial.c **** 	  pclk = SystemCoreClock/8;
+ 353              		.loc 1 168 0
+ 354 00ac 084B     		ldr	r3, .L27+20
+ 355 00ae 1B68     		ldr	r3, [r3]
+ 356 00b0 DB08     		lsrs	r3, r3, #3
+ 357              	.LVL27:
+ 169:./src/serial.c **** 	  break;
+ 358              		.loc 1 169 0
+ 359 00b2 D7E7     		b	.L23
+ 360              	.LVL28:
+ 361              	.L20:
+ 165:./src/serial.c **** 	  pclk = SystemCoreClock/2;
+ 362              		.loc 1 165 0
+ 363 00b4 064B     		ldr	r3, .L27+20
+ 364 00b6 1B68     		ldr	r3, [r3]
+ 365 00b8 5B08     		lsrs	r3, r3, #1
+ 366              	.LVL29:
+ 166:./src/serial.c **** 	  break;
+ 367              		.loc 1 166 0
+ 368 00ba D3E7     		b	.L23
+ 369              	.L28:
+ 370              		.align	2
+ 371              	.L27:
+ 372 00bc 00000000 		.word	.LANCHOR0
+ 373 00c0 00000000 		.word	.LANCHOR1
+ 374 00c4 00000000 		.word	ser_out
+ 375 00c8 00000000 		.word	ser_in
+ 376 00cc 00C00F40 		.word	1074774016
+ 377 00d0 00000000 		.word	SystemCoreClock
+ 378 00d4 00C00040 		.word	1073790976
+ 379 00d8 00000000 		.word	ser_txRestart
+ 380 00dc 00E100E0 		.word	-536813312
+ 381              		.cfi_endproc
+ 382              	.LFE57:
+ 384              		.section	.text.ser_InitPort1,"ax",%progbits
+ 385              		.align	2
+ 386              		.global	ser_InitPort1
+ 387              		.thumb
+ 388              		.thumb_func
+ 390              	ser_InitPort1:
+ 391              	.LFB58:
+ 187:./src/serial.c **** 
+ 188:./src/serial.c **** /*----------------------------------------------------------------------------
+ 189:./src/serial.c ****   initialize the serial port
+ 190:./src/serial.c ****  *---------------------------------------------------------------------------*/
+ 191:./src/serial.c **** void ser_InitPort1 (unsigned long baudrate, unsigned int  databits,
+ 192:./src/serial.c ****                   unsigned int  parity,   unsigned int  stopbits) {
+ 392              		.loc 1 192 0
+ 393              		.cfi_startproc
+ 394              		@ args = 0, pretend = 0, frame = 0
+ 395              		@ frame_needed = 0, uses_anonymous_args = 0
+ 396              		@ link register save eliminated.
+ 397              	.LVL30:
+ 398 0000 0539     		subs	r1, r1, #5
+ 399              	.LVL31:
+ 400 0002 0229     		cmp	r1, #2
+ 401 0004 2DE9F007 		push	{r4, r5, r6, r7, r8, r9, r10}
+ 402              		.cfi_def_cfa_offset 28
+ 403              		.cfi_offset 4, -28
+ 404              		.cfi_offset 5, -24
+ 405              		.cfi_offset 6, -20
+ 406              		.cfi_offset 7, -16
+ 407              		.cfi_offset 8, -12
+ 408              		.cfi_offset 9, -8
+ 409              		.cfi_offset 10, -4
+ 410 0008 98BF     		it	ls
+ 411 000a 2C4C     		ldrls	r4, .L42
+ 193:./src/serial.c **** 
+ 194:./src/serial.c ****   unsigned char lcr_p, lcr_s, lcr_d;
+ 195:./src/serial.c ****   unsigned int dll;
+ 196:./src/serial.c ****   unsigned int pclkdiv, pclk;
+ 197:./src/serial.c **** 
+ 198:./src/serial.c ****   switch (databits) {
+ 199:./src/serial.c ****     case 5:                                            // 5 Data bits
+ 200:./src/serial.c ****       lcr_d = 0x00;
+ 201:./src/serial.c ****     break;
+ 202:./src/serial.c ****     case 6:                                            // 6 Data bits
+ 203:./src/serial.c ****       lcr_d = 0x01;
+ 204:./src/serial.c ****     break;
+ 205:./src/serial.c ****     case 7:                                            // 7 Data bits
+ 206:./src/serial.c ****       lcr_d = 0x02;
+ 207:./src/serial.c ****     break;
+ 208:./src/serial.c ****     case 8:                                            // 8 Data bits
+ 209:./src/serial.c ****     default:
+ 210:./src/serial.c ****       lcr_d = 0x03;
+ 211:./src/serial.c ****     break;
+ 212:./src/serial.c ****   }
+ 213:./src/serial.c **** 
+ 214:./src/serial.c ****   switch (stopbits) {
+ 412              		.loc 1 214 0
+ 413 000c 03F1FF33 		add	r3, r3, #-1
+ 414              	.LVL32:
+ 415 0010 94BF     		ite	ls
+ 416 0012 665C     		ldrbls	r6, [r4, r1]	@ zero_extendqisi2
+ 192:./src/serial.c ****                   unsigned int  parity,   unsigned int  stopbits) {
+ 417              		.loc 1 192 0
+ 418 0014 0326     		movhi	r6, #3
+ 419              	.LVL33:
+ 420              		.loc 1 214 0
+ 421 0016 012B     		cmp	r3, #1
+ 422 0018 02F1FF33 		add	r3, r2, #-1
+ 423              	.LVL34:
+ 215:./src/serial.c ****     case 1:                                            // 1,5 Stop bits
+ 216:./src/serial.c ****     case 2:                                            // 2   Stop bits
+ 217:./src/serial.c ****       lcr_s = 0x04;
+ 424              		.loc 1 217 0
+ 425 001c 8CBF     		ite	hi
+ 426 001e 0022     		movhi	r2, #0
+ 427 0020 0422     		movls	r2, #4
+ 428              	.LVL35:
+ 429 0022 032B     		cmp	r3, #3
+ 430 0024 98BF     		it	ls
+ 431 0026 2649     		ldrls	r1, .L42+4
+ 432              	.LVL36:
+ 218:./src/serial.c ****     break;
+ 219:./src/serial.c ****     case 0:                                            // 1   Stop bit
+ 220:./src/serial.c ****     default:
+ 221:./src/serial.c ****       lcr_s = 0x00;
+ 222:./src/serial.c ****     break;
+ 223:./src/serial.c ****   }
+ 224:./src/serial.c **** 
+ 225:./src/serial.c ****   switch (parity) {
+ 226:./src/serial.c ****     case 1:                                            // Parity Odd
+ 227:./src/serial.c ****       lcr_p = 0x08;
+ 228:./src/serial.c ****     break;
+ 229:./src/serial.c ****     case 2:                                            // Parity Even
+ 230:./src/serial.c ****       lcr_p = 0x18;
+ 231:./src/serial.c ****     break;
+ 232:./src/serial.c ****     case 3:                                            // Parity Mark
+ 233:./src/serial.c ****       lcr_p = 0x28;
+ 234:./src/serial.c ****     break;
+ 235:./src/serial.c ****     case 4:                                            // Parity Space
+ 236:./src/serial.c ****       lcr_p = 0x38;
+ 237:./src/serial.c ****     break;
+ 238:./src/serial.c ****     case 0:                                            // Parity None
+ 239:./src/serial.c ****     default:
+ 240:./src/serial.c ****       lcr_p = 0x00;
+ 241:./src/serial.c ****     break;
+ 242:./src/serial.c ****   }
+ 243:./src/serial.c **** 
+ 244:./src/serial.c ****   SER_BUF_RESET(ser_out);                              // reset out buffer
+ 433              		.loc 1 244 0
+ 434 0028 264C     		ldr	r4, .L42+8
+ 435 002a 98BF     		it	ls
+ 436 002c CD5C     		ldrbls	r5, [r1, r3]	@ zero_extendqisi2
+ 245:./src/serial.c ****   SER_BUF_RESET(ser_in);                               // reset in buffer
+ 437              		.loc 1 245 0
+ 438 002e 2649     		ldr	r1, .L42+12
+ 244:./src/serial.c ****   SER_BUF_RESET(ser_out);                              // reset out buffer
+ 439              		.loc 1 244 0
+ 440 0030 4FF00003 		mov	r3, #0
+ 441              	.LVL37:
+ 246:./src/serial.c **** 
+ 247:./src/serial.c ****   /* Bit 8,9 are for UART1 */
+ 248:./src/serial.c ****   pclkdiv = (LPC_SC->PCLKSEL0 >> 8) & 0x03;
+ 442              		.loc 1 248 0
+ 443 0034 254F     		ldr	r7, .L42+16
+ 244:./src/serial.c ****   SER_BUF_RESET(ser_out);                              // reset out buffer
+ 444              		.loc 1 244 0
+ 445 0036 C4F88030 		str	r3, [r4, #128]
+ 446 003a C4F88430 		str	r3, [r4, #132]
+ 245:./src/serial.c ****   SER_BUF_RESET(ser_in);                               // reset in buffer
+ 447              		.loc 1 245 0
+ 448 003e C1F88030 		str	r3, [r1, #128]
+ 449 0042 C1F88430 		str	r3, [r1, #132]
+ 450              		.loc 1 248 0
+ 451 0046 D7F8A831 		ldr	r3, [r7, #424]
+ 221:./src/serial.c ****       lcr_s = 0x00;
+ 452              		.loc 1 221 0
+ 453 004a 88BF     		it	hi
+ 454 004c 0025     		movhi	r5, #0
+ 455              	.LVL38:
+ 456              		.loc 1 248 0
+ 457 004e C3F30123 		ubfx	r3, r3, #8, #2
+ 458              	.LVL39:
+ 249:./src/serial.c **** 
+ 250:./src/serial.c ****   switch ( pclkdiv )
+ 459              		.loc 1 250 0
+ 460 0052 022B     		cmp	r3, #2
+ 461 0054 2ED0     		beq	.L35
+ 462 0056 032B     		cmp	r3, #3
+ 463 0058 28D0     		beq	.L36
+ 464 005a 012B     		cmp	r3, #1
+ 251:./src/serial.c ****   {
+ 252:./src/serial.c **** 	case 0x00:
+ 253:./src/serial.c **** 	default:
+ 254:./src/serial.c **** 	  pclk = SystemCoreClock/4;
+ 255:./src/serial.c **** 	  break;
+ 256:./src/serial.c **** 	case 0x01:
+ 257:./src/serial.c **** 	  pclk = SystemCoreClock;
+ 465              		.loc 1 257 0
+ 466 005c 1C4B     		ldr	r3, .L42+20
+ 467 005e 1B68     		ldr	r3, [r3]
+ 250:./src/serial.c ****   switch ( pclkdiv )
+ 468              		.loc 1 250 0
+ 469 0060 00D0     		beq	.L38
+ 254:./src/serial.c **** 	  pclk = SystemCoreClock/4;
+ 470              		.loc 1 254 0
+ 471 0062 9B08     		lsrs	r3, r3, #2
+ 472              	.LVL40:
+ 473              	.L38:
+ 258:./src/serial.c **** 	  break;
+ 259:./src/serial.c **** 	case 0x02:
+ 260:./src/serial.c **** 	  pclk = SystemCoreClock/2;
+ 261:./src/serial.c **** 	  break;
+ 262:./src/serial.c **** 	case 0x03:
+ 263:./src/serial.c **** 	  pclk = SystemCoreClock/8;
+ 264:./src/serial.c **** 	  break;
+ 265:./src/serial.c ****   }
+ 266:./src/serial.c **** 
+ 267:./src/serial.c ****   dll = (pclk/16)/baudrate ;	/*baud rate */
+ 268:./src/serial.c ****   LPC_UART1->FDR = 0;                             // Fractional divider not used
+ 269:./src/serial.c ****   LPC_UART1->LCR = 0x80 | lcr_d | lcr_p | lcr_s;  // Data bits, Parity,   Stop bit
+ 474              		.loc 1 269 0
+ 475 0064 3243     		orrs	r2, r2, r6
+ 476              	.LVL41:
+ 267:./src/serial.c ****   dll = (pclk/16)/baudrate ;	/*baud rate */
+ 477              		.loc 1 267 0
+ 478 0066 1B09     		lsrs	r3, r3, #4
+ 479              	.LVL42:
+ 480 0068 B3FBF0F0 		udiv	r0, r3, r0
+ 481              	.LVL43:
+ 482              		.loc 1 269 0
+ 483 006c 2A43     		orrs	r2, r2, r5
+ 268:./src/serial.c ****   LPC_UART1->FDR = 0;                             // Fractional divider not used
+ 484              		.loc 1 268 0
+ 485 006e 194B     		ldr	r3, .L42+24
+ 270:./src/serial.c ****   LPC_UART1->DLL = dll;                           // Baud Rate depending on PCLK
+ 486              		.loc 1 270 0
+ 487 0070 5FFA80F8 		uxtb	r8, r0
+ 271:./src/serial.c ****   LPC_UART1->DLM = (dll >> 8);                    // High divisor latch
+ 272:./src/serial.c ****   LPC_UART1->LCR = 0x00 | lcr_d | lcr_p | lcr_s;  // DLAB = 0
+ 273:./src/serial.c ****   LPC_UART1->IER = 0x03;                          // Enable TX/RX interrupts
+ 274:./src/serial.c **** 
+ 275:./src/serial.c ****   LPC_UART1->FCR = 0x07;				/* Enable and reset TX and RX FIFO. */
+ 276:./src/serial.c ****   ser_txRestart = 1;                                   // TX fifo is empty
+ 488              		.loc 1 276 0
+ 489 0074 184D     		ldr	r5, .L42+28
+ 490              	.LVL44:
+ 269:./src/serial.c ****   LPC_UART1->LCR = 0x80 | lcr_d | lcr_p | lcr_s;  // Data bits, Parity,   Stop bit
+ 491              		.loc 1 269 0
+ 492 0076 42F08009 		orr	r9, r2, #128
+ 268:./src/serial.c ****   LPC_UART1->FDR = 0;                             // Fractional divider not used
+ 493              		.loc 1 268 0
+ 494 007a 4FF0000A 		mov	r10, #0
+ 271:./src/serial.c ****   LPC_UART1->DLM = (dll >> 8);                    // High divisor latch
+ 495              		.loc 1 271 0
+ 496 007e C0F3072C 		ubfx	ip, r0, #8, #8
+ 275:./src/serial.c ****   LPC_UART1->FCR = 0x07;				/* Enable and reset TX and RX FIFO. */
+ 497              		.loc 1 275 0
+ 498 0082 0727     		movs	r7, #7
+ 499              	.LBB38:
+ 500              	.LBB39:
+ 918:./Core/core_cm3.h ****   NVIC->ISER[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F)); /* enable interrupt */
+ 501              		.loc 2 918 0
+ 502 0084 1549     		ldr	r1, .L42+32
+ 503              	.LBE39:
+ 504              	.LBE38:
+ 273:./src/serial.c ****   LPC_UART1->IER = 0x03;                          // Enable TX/RX interrupts
+ 505              		.loc 1 273 0
+ 506 0086 0320     		movs	r0, #3
+ 507              	.LVL45:
+ 268:./src/serial.c ****   LPC_UART1->FDR = 0;                             // Fractional divider not used
+ 508              		.loc 1 268 0
+ 509 0088 C3F828A0 		str	r10, [r3, #40]
+ 510              		.loc 1 276 0
+ 511 008c 0126     		movs	r6, #1
+ 512              	.LVL46:
+ 269:./src/serial.c ****   LPC_UART1->LCR = 0x80 | lcr_d | lcr_p | lcr_s;  // Data bits, Parity,   Stop bit
+ 513              		.loc 1 269 0
+ 514 008e 83F80C90 		strb	r9, [r3, #12]
+ 515              	.LBB42:
+ 516              	.LBB40:
+ 918:./Core/core_cm3.h ****   NVIC->ISER[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F)); /* enable interrupt */
+ 517              		.loc 2 918 0
+ 518 0092 4024     		movs	r4, #64
+ 519              	.LBE40:
+ 520              	.LBE42:
+ 270:./src/serial.c ****   LPC_UART1->DLL = dll;                           // Baud Rate depending on PCLK
+ 521              		.loc 1 270 0
+ 522 0094 83F80080 		strb	r8, [r3]
+ 271:./src/serial.c ****   LPC_UART1->DLM = (dll >> 8);                    // High divisor latch
+ 523              		.loc 1 271 0
+ 524 0098 83F804C0 		strb	ip, [r3, #4]
+ 272:./src/serial.c ****   LPC_UART1->LCR = 0x00 | lcr_d | lcr_p | lcr_s;  // DLAB = 0
+ 525              		.loc 1 272 0
+ 526 009c 1A73     		strb	r2, [r3, #12]
+ 273:./src/serial.c ****   LPC_UART1->IER = 0x03;                          // Enable TX/RX interrupts
+ 527              		.loc 1 273 0
+ 528 009e 5860     		str	r0, [r3, #4]
+ 275:./src/serial.c ****   LPC_UART1->FCR = 0x07;				/* Enable and reset TX and RX FIFO. */
+ 529              		.loc 1 275 0
+ 530 00a0 1F72     		strb	r7, [r3, #8]
+ 531              		.loc 1 276 0
+ 532 00a2 2E60     		str	r6, [r5]
+ 533              	.LVL47:
+ 534              	.LBB43:
+ 535              	.LBB41:
+ 918:./Core/core_cm3.h ****   NVIC->ISER[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F)); /* enable interrupt */
+ 536              		.loc 2 918 0
+ 537 00a4 0C60     		str	r4, [r1]
+ 538              	.LBE41:
+ 539              	.LBE43:
+ 277:./src/serial.c **** 
+ 278:./src/serial.c ****   /* Enable the UART Interrupt */
+ 279:./src/serial.c ****   NVIC_EnableIRQ(UART1_IRQn);
+ 280:./src/serial.c ****   return;
+ 281:./src/serial.c **** }
+ 540              		.loc 1 281 0
+ 541 00a6 BDE8F007 		pop	{r4, r5, r6, r7, r8, r9, r10}
+ 542 00aa 7047     		bx	lr
+ 543              	.LVL48:
+ 544              	.L36:
+ 263:./src/serial.c **** 	  pclk = SystemCoreClock/8;
+ 545              		.loc 1 263 0
+ 546 00ac 084B     		ldr	r3, .L42+20
+ 547 00ae 1B68     		ldr	r3, [r3]
+ 548 00b0 DB08     		lsrs	r3, r3, #3
+ 549              	.LVL49:
+ 264:./src/serial.c **** 	  break;
+ 550              		.loc 1 264 0
+ 551 00b2 D7E7     		b	.L38
+ 552              	.LVL50:
+ 553              	.L35:
+ 260:./src/serial.c **** 	  pclk = SystemCoreClock/2;
+ 554              		.loc 1 260 0
+ 555 00b4 064B     		ldr	r3, .L42+20
+ 556 00b6 1B68     		ldr	r3, [r3]
+ 557 00b8 5B08     		lsrs	r3, r3, #1
+ 558              	.LVL51:
+ 261:./src/serial.c **** 	  break;
+ 559              		.loc 1 261 0
+ 560 00ba D3E7     		b	.L38
+ 561              	.L43:
+ 562              		.align	2
+ 563              	.L42:
+ 564 00bc 00000000 		.word	.LANCHOR2
+ 565 00c0 00000000 		.word	.LANCHOR3
+ 566 00c4 00000000 		.word	ser_out
+ 567 00c8 00000000 		.word	ser_in
+ 568 00cc 00C00F40 		.word	1074774016
+ 569 00d0 00000000 		.word	SystemCoreClock
+ 570 00d4 00000140 		.word	1073807360
+ 571 00d8 00000000 		.word	ser_txRestart
+ 572 00dc 00E100E0 		.word	-536813312
+ 573              		.cfi_endproc
+ 574              	.LFE58:
+ 576              		.section	.text.ser_Read,"ax",%progbits
+ 577              		.align	2
+ 578              		.global	ser_Read
+ 579              		.thumb
+ 580              		.thumb_func
+ 582              	ser_Read:
+ 583              	.LFB59:
+ 282:./src/serial.c **** 
+ 283:./src/serial.c **** /*----------------------------------------------------------------------------
+ 284:./src/serial.c ****   read data from serial port
+ 285:./src/serial.c ****  *---------------------------------------------------------------------------*/
+ 286:./src/serial.c **** int ser_Read (char *buffer, const int *length) {
+ 584              		.loc 1 286 0
+ 585              		.cfi_startproc
+ 586              		@ args = 0, pretend = 0, frame = 0
+ 587              		@ frame_needed = 0, uses_anonymous_args = 0
+ 588              		@ link register save eliminated.
+ 589              	.LVL52:
+ 590 0000 E0B4     		push	{r5, r6, r7}
+ 591              		.cfi_def_cfa_offset 12
+ 592              		.cfi_offset 5, -12
+ 593              		.cfi_offset 6, -8
+ 594              		.cfi_offset 7, -4
+ 287:./src/serial.c ****   int bytesToRead, bytesRead;
+ 288:./src/serial.c **** 
+ 289:./src/serial.c ****   /* Read *length bytes, block if *bytes are not avaialable	*/
+ 290:./src/serial.c ****   bytesToRead = *length;
+ 595              		.loc 1 290 0
+ 596 0002 0F68     		ldr	r7, [r1]
+ 597              	.LVL53:
+ 291:./src/serial.c ****   bytesToRead = (bytesToRead < (*length)) ? bytesToRead : (*length);
+ 292:./src/serial.c ****   bytesRead = bytesToRead;
+ 293:./src/serial.c **** 
+ 294:./src/serial.c ****   while (bytesToRead--) {
+ 598              		.loc 1 294 0
+ 599 0004 A7B1     		cbz	r7, .L50
+ 600 0006 0C4B     		ldr	r3, .L52
+ 601 0008 C619     		adds	r6, r0, r7
+ 295:./src/serial.c ****     while (SER_BUF_EMPTY(ser_in));                     // Block until data is available if none
+ 602              		.loc 1 295 0
+ 603 000a 1D46     		mov	r5, r3
+ 604              	.LVL54:
+ 605              	.L47:
+ 606              		.loc 1 295 0 is_stmt 0 discriminator 1
+ 607 000c D3F88410 		ldr	r1, [r3, #132]
+ 608 0010 D3F88020 		ldr	r2, [r3, #128]
+ 609 0014 9142     		cmp	r1, r2
+ 610 0016 F9D0     		beq	.L47
+ 296:./src/serial.c ****     *buffer++ = SER_BUF_RD(ser_in);
+ 611              		.loc 1 296 0 is_stmt 1
+ 612 0018 D5F88420 		ldr	r2, [r5, #132]
+ 613 001c 511C     		adds	r1, r2, #1
+ 614 001e C5F88410 		str	r1, [r5, #132]
+ 615 0022 02F07F02 		and	r2, r2, #127
+ 616 0026 AA5C     		ldrb	r2, [r5, r2]	@ zero_extendqisi2
+ 617 0028 00F8012B 		strb	r2, [r0], #1
+ 618              	.LVL55:
+ 294:./src/serial.c ****   while (bytesToRead--) {
+ 619              		.loc 1 294 0
+ 620 002c B042     		cmp	r0, r6
+ 621 002e EDD1     		bne	.L47
+ 622              	.L50:
+ 297:./src/serial.c ****   }
+ 298:./src/serial.c ****   return (bytesRead);
+ 299:./src/serial.c **** }
+ 623              		.loc 1 299 0
+ 624 0030 3846     		mov	r0, r7
+ 625              	.LVL56:
+ 626 0032 E0BC     		pop	{r5, r6, r7}
+ 627              	.LVL57:
+ 628 0034 7047     		bx	lr
+ 629              	.L53:
+ 630 0036 00BF     		.align	2
+ 631              	.L52:
+ 632 0038 00000000 		.word	ser_in
+ 633              		.cfi_endproc
+ 634              	.LFE59:
+ 636              		.section	.text.ser_Write,"ax",%progbits
+ 637              		.align	2
+ 638              		.global	ser_Write
+ 639              		.thumb
+ 640              		.thumb_func
+ 642              	ser_Write:
+ 643              	.LFB60:
+ 300:./src/serial.c **** 
+ 301:./src/serial.c **** /*----------------------------------------------------------------------------
+ 302:./src/serial.c ****   write data to the serial port
+ 303:./src/serial.c ****  *---------------------------------------------------------------------------*/
+ 304:./src/serial.c **** int ser_Write (char portNum, const char *buffer, int *length) {
+ 644              		.loc 1 304 0
+ 645              		.cfi_startproc
+ 646              		@ args = 0, pretend = 0, frame = 0
+ 647              		@ frame_needed = 0, uses_anonymous_args = 0
+ 648              		@ link register save eliminated.
+ 649              	.LVL58:
+ 650 0000 70B4     		push	{r4, r5, r6}
+ 651              		.cfi_def_cfa_offset 12
+ 652              		.cfi_offset 4, -12
+ 653              		.cfi_offset 5, -8
+ 654              		.cfi_offset 6, -4
+ 655 0002 164B     		ldr	r3, .L66
+ 305:./src/serial.c ****   int  bytesToWrite, bytesWritten;
+ 306:./src/serial.c **** 
+ 307:./src/serial.c ****   // Write *length bytes
+ 308:./src/serial.c ****   bytesToWrite = *length;
+ 656              		.loc 1 308 0
+ 657 0004 1668     		ldr	r6, [r2]
+ 658              	.LVL59:
+ 659              	.L56:
+ 309:./src/serial.c ****   bytesWritten = bytesToWrite;
+ 310:./src/serial.c **** 
+ 311:./src/serial.c ****   while (!SER_BUF_EMPTY(ser_out));               // Block until space is available if none
+ 660              		.loc 1 311 0 discriminator 1
+ 661 0006 D3F88440 		ldr	r4, [r3, #132]
+ 662 000a D3F88020 		ldr	r2, [r3, #128]
+ 663 000e 9442     		cmp	r4, r2
+ 664 0010 F9D1     		bne	.L56
+ 665 0012 8D19     		adds	r5, r1, r6
+ 312:./src/serial.c ****   while (bytesToWrite) {
+ 666              		.loc 1 312 0 discriminator 1
+ 667 0014 5EB1     		cbz	r6, .L60
+ 668              	.LVL60:
+ 669              	.L61:
+ 313:./src/serial.c ****       SER_BUF_WR(ser_out, *buffer++);            // Read Rx FIFO to buffer
+ 670              		.loc 1 313 0
+ 671 0016 D3F88020 		ldr	r2, [r3, #128]
+ 672 001a 541C     		adds	r4, r2, #1
+ 673 001c C3F88040 		str	r4, [r3, #128]
+ 674 0020 11F8014B 		ldrb	r4, [r1], #1	@ zero_extendqisi2
+ 675              	.LVL61:
+ 676 0024 02F07F02 		and	r2, r2, #127
+ 677              	.LVL62:
+ 312:./src/serial.c ****   while (bytesToWrite) {
+ 678              		.loc 1 312 0
+ 679 0028 A942     		cmp	r1, r5
+ 680              		.loc 1 313 0
+ 681 002a 9C54     		strb	r4, [r3, r2]
+ 682              	.LVL63:
+ 312:./src/serial.c ****   while (bytesToWrite) {
+ 683              		.loc 1 312 0
+ 684 002c F3D1     		bne	.L61
+ 685              	.L60:
+ 314:./src/serial.c ****       bytesToWrite--;
+ 315:./src/serial.c ****   }
+ 316:./src/serial.c **** 
+ 317:./src/serial.c ****   if (ser_txRestart) {
+ 686              		.loc 1 317 0
+ 687 002e 0C4A     		ldr	r2, .L66+4
+ 688 0030 1168     		ldr	r1, [r2]
+ 689              	.LVL64:
+ 690 0032 69B1     		cbz	r1, .L59
+ 318:./src/serial.c ****     ser_txRestart = 0;
+ 691              		.loc 1 318 0
+ 692 0034 0021     		movs	r1, #0
+ 693 0036 1160     		str	r1, [r2]
+ 319:./src/serial.c **** 	if ( portNum == 0 )
+ 320:./src/serial.c **** 	{
+ 321:./src/serial.c **** 	  LPC_UART0->THR = SER_BUF_RD(ser_out);             // Write to the Tx Register
+ 694              		.loc 1 321 0
+ 695 0038 D3F88420 		ldr	r2, [r3, #132]
+ 319:./src/serial.c **** 	if ( portNum == 0 )
+ 696              		.loc 1 319 0
+ 697 003c 58B1     		cbz	r0, .L65
+ 322:./src/serial.c ****     }
+ 323:./src/serial.c **** 	else
+ 324:./src/serial.c **** 	{
+ 325:./src/serial.c ****       LPC_UART1->THR = SER_BUF_RD(ser_out);             // Write to the Tx Register
+ 698              		.loc 1 325 0
+ 699 003e 0949     		ldr	r1, .L66+8
+ 700              	.L64:
+ 701 0040 501C     		adds	r0, r2, #1
+ 702              	.LVL65:
+ 703 0042 C3F88400 		str	r0, [r3, #132]
+ 704 0046 02F07F02 		and	r2, r2, #127
+ 705 004a 9B5C     		ldrb	r3, [r3, r2]	@ zero_extendqisi2
+ 706 004c DBB2     		uxtb	r3, r3
+ 707 004e 0B70     		strb	r3, [r1]
+ 708              	.L59:
+ 326:./src/serial.c **** 	}
+ 327:./src/serial.c ****   }
+ 328:./src/serial.c **** 
+ 329:./src/serial.c ****   return (bytesWritten);
+ 330:./src/serial.c **** }
+ 709              		.loc 1 330 0
+ 710 0050 3046     		mov	r0, r6
+ 711 0052 70BC     		pop	{r4, r5, r6}
+ 712              	.LVL66:
+ 713 0054 7047     		bx	lr
+ 714              	.LVL67:
+ 715              	.L65:
+ 321:./src/serial.c **** 	  LPC_UART0->THR = SER_BUF_RD(ser_out);             // Write to the Tx Register
+ 716              		.loc 1 321 0
+ 717 0056 0449     		ldr	r1, .L66+12
+ 718 0058 F2E7     		b	.L64
+ 719              	.L67:
+ 720 005a 00BF     		.align	2
+ 721              	.L66:
+ 722 005c 00000000 		.word	ser_out
+ 723 0060 00000000 		.word	ser_txRestart
+ 724 0064 00000140 		.word	1073807360
+ 725 0068 00C00040 		.word	1073790976
+ 726              		.cfi_endproc
+ 727              	.LFE60:
+ 729              		.section	.text.ser_AvailChar,"ax",%progbits
+ 730              		.align	2
+ 731              		.global	ser_AvailChar
+ 732              		.thumb
+ 733              		.thumb_func
+ 735              	ser_AvailChar:
+ 736              	.LFB61:
+ 331:./src/serial.c **** 
+ 332:./src/serial.c **** /*----------------------------------------------------------------------------
+ 333:./src/serial.c ****   check if character(s) are available at the serial interface
+ 334:./src/serial.c ****  *---------------------------------------------------------------------------*/
+ 335:./src/serial.c **** void ser_AvailChar (int *availChar) {
+ 737              		.loc 1 335 0
+ 738              		.cfi_startproc
+ 739              		@ args = 0, pretend = 0, frame = 0
+ 740              		@ frame_needed = 0, uses_anonymous_args = 0
+ 741              		@ link register save eliminated.
+ 742              	.LVL68:
+ 336:./src/serial.c **** 
+ 337:./src/serial.c ****   *availChar = SER_BUF_COUNT(ser_in);
+ 743              		.loc 1 337 0
+ 744 0000 044B     		ldr	r3, .L69
+ 745 0002 D3F88020 		ldr	r2, [r3, #128]
+ 746 0006 D3F88430 		ldr	r3, [r3, #132]
+ 747 000a D31A     		subs	r3, r2, r3
+ 748 000c 03F07F03 		and	r3, r3, #127
+ 749 0010 0360     		str	r3, [r0]
+ 750 0012 7047     		bx	lr
+ 751              	.L70:
+ 752              		.align	2
+ 753              	.L69:
+ 754 0014 00000000 		.word	ser_in
+ 755              		.cfi_endproc
+ 756              	.LFE61:
+ 758              		.section	.text.ser_LineState,"ax",%progbits
+ 759              		.align	2
+ 760              		.global	ser_LineState
+ 761              		.thumb
+ 762              		.thumb_func
+ 764              	ser_LineState:
+ 765              	.LFB62:
+ 338:./src/serial.c **** 
+ 339:./src/serial.c **** }
+ 340:./src/serial.c **** 
+ 341:./src/serial.c **** /*----------------------------------------------------------------------------
+ 342:./src/serial.c ****   read the line state of the serial port
+ 343:./src/serial.c ****  *---------------------------------------------------------------------------*/
+ 344:./src/serial.c **** void ser_LineState (unsigned short *lineState) {
+ 766              		.loc 1 344 0
+ 767              		.cfi_startproc
+ 768              		@ args = 0, pretend = 0, frame = 0
+ 769              		@ frame_needed = 0, uses_anonymous_args = 0
+ 770              		@ link register save eliminated.
+ 771              	.LVL69:
+ 345:./src/serial.c **** 
+ 346:./src/serial.c ****   *lineState = ser_lineState;
+ 772              		.loc 1 346 0
+ 773 0000 024B     		ldr	r3, .L72
+ 347:./src/serial.c ****   ser_lineState = 0;
+ 774              		.loc 1 347 0
+ 775 0002 0022     		movs	r2, #0
+ 346:./src/serial.c ****   *lineState = ser_lineState;
+ 776              		.loc 1 346 0
+ 777 0004 1988     		ldrh	r1, [r3]
+ 778 0006 0180     		strh	r1, [r0]	@ movhi
+ 779              		.loc 1 347 0
+ 780 0008 1A80     		strh	r2, [r3]	@ movhi
+ 781 000a 7047     		bx	lr
+ 782              	.L73:
+ 783              		.align	2
+ 784              	.L72:
+ 785 000c 00000000 		.word	ser_lineState
+ 786              		.cfi_endproc
+ 787              	.LFE62:
+ 789              		.section	.text.UART1_IRQHandler,"ax",%progbits
+ 790              		.align	2
+ 791              		.global	UART1_IRQHandler
+ 792              		.thumb
+ 793              		.thumb_func
+ 795              	UART1_IRQHandler:
+ 796              	.LFB63:
+ 348:./src/serial.c **** 
+ 349:./src/serial.c **** }
+ 350:./src/serial.c **** 
+ 351:./src/serial.c **** /*----------------------------------------------------------------------------
+ 352:./src/serial.c ****   serial port 0 interrupt
+ 353:./src/serial.c ****  *---------------------------------------------------------------------------*/
+ 354:./src/serial.c **** //void UART0_IRQHandler(void)
+ 355:./src/serial.c **** //{
+ 356:./src/serial.c **** //  unsigned long iir;
+ 357:./src/serial.c **** //
+ 358:./src/serial.c **** //  iir = LPC_UART0->IIR;
+ 359:./src/serial.c **** //
+ 360:./src/serial.c **** //  if ((iir & 0x4) || (iir & 0xC)) {            // RDA or CTI pending
+ 361:./src/serial.c **** //    while (LPC_UART0->LSR & 0x01) {                 // Rx FIFO is not empty
+ 362:./src/serial.c **** //      SER_BUF_WR(ser_in, LPC_UART0->RBR);           // Read Rx FIFO to buffer
+ 363:./src/serial.c **** //    }
+ 364:./src/serial.c **** //  }
+ 365:./src/serial.c **** //  if ((iir & 0x2)) {                           // TXMIS pending
+ 366:./src/serial.c **** //	if (SER_BUF_COUNT(ser_out) != 0) {
+ 367:./src/serial.c **** //      LPC_UART0->THR = SER_BUF_RD(ser_out);         // Write to the Tx FIFO
+ 368:./src/serial.c **** //      ser_txRestart = 0;
+ 369:./src/serial.c **** //    }
+ 370:./src/serial.c **** //	else {
+ 371:./src/serial.c **** //      ser_txRestart = 1;
+ 372:./src/serial.c **** //	}
+ 373:./src/serial.c **** //  }
+ 374:./src/serial.c **** //  ser_lineState = LPC_UART0->LSR & 0x1E;            // update linestate
+ 375:./src/serial.c **** //  return;
+ 376:./src/serial.c **** //}
+ 377:./src/serial.c **** 
+ 378:./src/serial.c **** /*----------------------------------------------------------------------------
+ 379:./src/serial.c ****   serial port 1 interrupt
+ 380:./src/serial.c ****  *---------------------------------------------------------------------------*/
+ 381:./src/serial.c **** void UART1_IRQHandler(void)
+ 382:./src/serial.c **** {
+ 797              		.loc 1 382 0
+ 798              		.cfi_startproc
+ 799              		@ args = 0, pretend = 0, frame = 0
+ 800              		@ frame_needed = 0, uses_anonymous_args = 0
+ 801              		@ link register save eliminated.
+ 802 0000 10B4     		push	{r4}
+ 803              		.cfi_def_cfa_offset 4
+ 804              		.cfi_offset 4, -4
+ 383:./src/serial.c ****   unsigned long iir;
+ 384:./src/serial.c **** 
+ 385:./src/serial.c ****   iir = LPC_UART1->IIR;
+ 805              		.loc 1 385 0
+ 806 0002 2049     		ldr	r1, .L88
+ 807 0004 8C68     		ldr	r4, [r1, #8]
+ 808              	.LVL70:
+ 386:./src/serial.c **** 
+ 387:./src/serial.c ****   if ((iir & 0x4) || (iir & 0xC)) {            // RDA or CTI pending
+ 809              		.loc 1 387 0
+ 810 0006 14F00C0F 		tst	r4, #12
+ 811 000a 10D0     		beq	.L78
+ 388:./src/serial.c ****     while (LPC_UART1->LSR & 0x01) {                 // Rx FIFO is not empty
+ 812              		.loc 1 388 0 discriminator 1
+ 813 000c 0B7D     		ldrb	r3, [r1, #20]	@ zero_extendqisi2
+ 814 000e DB07     		lsls	r3, r3, #31
+ 815 0010 0DD5     		bpl	.L78
+ 816 0012 1D4B     		ldr	r3, .L88+4
+ 817              	.L79:
+ 389:./src/serial.c ****       SER_BUF_WR(ser_in, LPC_UART1->RBR);           // Read Rx FIFO to buffer
+ 818              		.loc 1 389 0
+ 819 0014 D3F88020 		ldr	r2, [r3, #128]
+ 820 0018 501C     		adds	r0, r2, #1
+ 821 001a C3F88000 		str	r0, [r3, #128]
+ 822 001e 0878     		ldrb	r0, [r1]	@ zero_extendqisi2
+ 823 0020 02F07F02 		and	r2, r2, #127
+ 824 0024 C0B2     		uxtb	r0, r0
+ 825 0026 9854     		strb	r0, [r3, r2]
+ 388:./src/serial.c ****     while (LPC_UART1->LSR & 0x01) {                 // Rx FIFO is not empty
+ 826              		.loc 1 388 0
+ 827 0028 0A7D     		ldrb	r2, [r1, #20]	@ zero_extendqisi2
+ 828 002a D007     		lsls	r0, r2, #31
+ 829 002c F2D4     		bmi	.L79
+ 830              	.L78:
+ 390:./src/serial.c ****     }
+ 391:./src/serial.c ****   }
+ 392:./src/serial.c ****   if ((iir & 0x2)) {                           // TXMIS pending
+ 831              		.loc 1 392 0
+ 832 002e A207     		lsls	r2, r4, #30
+ 833 0030 0AD5     		bpl	.L77
+ 393:./src/serial.c **** 	if (SER_BUF_COUNT(ser_out) != 0) {
+ 834              		.loc 1 393 0
+ 835 0032 164B     		ldr	r3, .L88+8
+ 836 0034 D3F88010 		ldr	r1, [r3, #128]
+ 837 0038 D3F88420 		ldr	r2, [r3, #132]
+ 838 003c 8A1A     		subs	r2, r1, r2
+ 839 003e 5206     		lsls	r2, r2, #25
+ 840 0040 11D1     		bne	.L87
+ 394:./src/serial.c ****       LPC_UART1->THR = SER_BUF_RD(ser_out);         // Write to the Tx FIFO
+ 395:./src/serial.c ****       ser_txRestart = 0;
+ 396:./src/serial.c ****     }
+ 397:./src/serial.c **** 	else {
+ 398:./src/serial.c ****       ser_txRestart = 1;
+ 841              		.loc 1 398 0
+ 842 0042 134B     		ldr	r3, .L88+12
+ 843 0044 0122     		movs	r2, #1
+ 844 0046 1A60     		str	r2, [r3]
+ 845              	.L77:
+ 399:./src/serial.c **** 	}
+ 400:./src/serial.c ****   }
+ 401:./src/serial.c ****   ser_lineState = ((LPC_UART1->MSR<<8)|LPC_UART1->LSR) & 0xE01E;    // update linestate
+ 846              		.loc 1 401 0
+ 847 0048 0E4B     		ldr	r3, .L88
+ 848 004a 124A     		ldr	r2, .L88+16
+ 849 004c 197E     		ldrb	r1, [r3, #24]	@ zero_extendqisi2
+ 850 004e 1B7D     		ldrb	r3, [r3, #20]	@ zero_extendqisi2
+ 402:./src/serial.c ****   return;
+ 403:./src/serial.c **** }
+ 851              		.loc 1 403 0
+ 852 0050 5DF8044B 		ldr	r4, [sp], #4
+ 853              	.LVL71:
+ 401:./src/serial.c ****   ser_lineState = ((LPC_UART1->MSR<<8)|LPC_UART1->LSR) & 0xE01E;    // update linestate
+ 854              		.loc 1 401 0
+ 855 0054 43EA0123 		orr	r3, r3, r1, lsl #8
+ 856 0058 23F4FF53 		bic	r3, r3, #8160
+ 857 005c 23F00103 		bic	r3, r3, #1
+ 858 0060 9BB2     		uxth	r3, r3
+ 859 0062 1380     		strh	r3, [r2]	@ movhi
+ 860              		.loc 1 403 0
+ 861 0064 7047     		bx	lr
+ 862              	.LVL72:
+ 863              	.L87:
+ 394:./src/serial.c ****       LPC_UART1->THR = SER_BUF_RD(ser_out);         // Write to the Tx FIFO
+ 864              		.loc 1 394 0
+ 865 0066 D3F88420 		ldr	r2, [r3, #132]
+ 866 006a 0649     		ldr	r1, .L88
+ 867 006c 501C     		adds	r0, r2, #1
+ 868 006e C3F88400 		str	r0, [r3, #132]
+ 869 0072 02F07F02 		and	r2, r2, #127
+ 870 0076 985C     		ldrb	r0, [r3, r2]	@ zero_extendqisi2
+ 395:./src/serial.c ****       ser_txRestart = 0;
+ 871              		.loc 1 395 0
+ 872 0078 054B     		ldr	r3, .L88+12
+ 394:./src/serial.c ****       LPC_UART1->THR = SER_BUF_RD(ser_out);         // Write to the Tx FIFO
+ 873              		.loc 1 394 0
+ 874 007a C0B2     		uxtb	r0, r0
+ 395:./src/serial.c ****       ser_txRestart = 0;
+ 875              		.loc 1 395 0
+ 876 007c 0022     		movs	r2, #0
+ 394:./src/serial.c ****       LPC_UART1->THR = SER_BUF_RD(ser_out);         // Write to the Tx FIFO
+ 877              		.loc 1 394 0
+ 878 007e 0870     		strb	r0, [r1]
+ 395:./src/serial.c ****       ser_txRestart = 0;
+ 879              		.loc 1 395 0
+ 880 0080 1A60     		str	r2, [r3]
+ 881 0082 E1E7     		b	.L77
+ 882              	.L89:
+ 883              		.align	2
+ 884              	.L88:
+ 885 0084 00000140 		.word	1073807360
+ 886 0088 00000000 		.word	ser_in
+ 887 008c 00000000 		.word	ser_out
+ 888 0090 00000000 		.word	ser_txRestart
+ 889 0094 00000000 		.word	ser_lineState
+ 890              		.cfi_endproc
+ 891              	.LFE63:
+ 893              		.comm	ser_in,136,4
+ 894              		.comm	ser_out,136,4
+ 895              		.comm	ser_lineState,2,2
+ 896              		.comm	ser_txRestart,4,4
+ 897              		.section	.rodata.CSWTCH.15,"a",%progbits
+ 898              		.align	2
+ 899              		.set	.LANCHOR0,. + 0
+ 902              	CSWTCH.15:
+ 903 0000 00       		.byte	0
+ 904 0001 01       		.byte	1
+ 905 0002 02       		.byte	2
+ 906 0003 00       		.section	.rodata.CSWTCH.16,"a",%progbits
+ 907              		.align	2
+ 908              		.set	.LANCHOR1,. + 0
+ 911              	CSWTCH.16:
+ 912 0000 08       		.byte	8
+ 913 0001 18       		.byte	24
+ 914 0002 28       		.byte	40
+ 915 0003 38       		.byte	56
+ 916              		.section	.rodata.CSWTCH.18,"a",%progbits
+ 917              		.align	2
+ 918              		.set	.LANCHOR2,. + 0
+ 921              	CSWTCH.18:
+ 922 0000 00       		.byte	0
+ 923 0001 01       		.byte	1
+ 924 0002 02       		.byte	2
+ 925 0003 00       		.section	.rodata.CSWTCH.19,"a",%progbits
+ 926              		.align	2
+ 927              		.set	.LANCHOR3,. + 0
+ 930              	CSWTCH.19:
+ 931 0000 08       		.byte	8
+ 932 0001 18       		.byte	24
+ 933 0002 28       		.byte	40
+ 934 0003 38       		.byte	56
+ 935              		.text
+ 936              	.Letext0:
+ 937              		.file 3 "./LPC17xx/LPC17xx.h"
+ 938              		.file 4 "d:\\gnu\\4_8\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 939              		.file 5 "d:\\gnu\\4_8\\arm-none-eabi\\include\\stdint.h"
+ 940              		.file 6 "./LPC17xx/system_LPC17xx.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 serial.c
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:19     .text.ser_OpenPort:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:24     .text.ser_OpenPort:00000000 ser_OpenPort
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:84     .text.ser_OpenPort:00000038 $d
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:90     .text.ser_ClosePort:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:95     .text.ser_ClosePort:00000000 ser_ClosePort
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:185    .text.ser_ClosePort:00000038 $d
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:193    .text.ser_InitPort0:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:198    .text.ser_InitPort0:00000000 ser_InitPort0
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:372    .text.ser_InitPort0:000000bc $d
+                            *COM*:00000088 ser_out
+                            *COM*:00000088 ser_in
+                            *COM*:00000004 ser_txRestart
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:385    .text.ser_InitPort1:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:390    .text.ser_InitPort1:00000000 ser_InitPort1
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:564    .text.ser_InitPort1:000000bc $d
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:577    .text.ser_Read:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:582    .text.ser_Read:00000000 ser_Read
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:632    .text.ser_Read:00000038 $d
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:637    .text.ser_Write:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:642    .text.ser_Write:00000000 ser_Write
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:722    .text.ser_Write:0000005c $d
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:730    .text.ser_AvailChar:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:735    .text.ser_AvailChar:00000000 ser_AvailChar
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:754    .text.ser_AvailChar:00000014 $d
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:759    .text.ser_LineState:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:764    .text.ser_LineState:00000000 ser_LineState
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:785    .text.ser_LineState:0000000c $d
+                            *COM*:00000002 ser_lineState
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:790    .text.UART1_IRQHandler:00000000 $t
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:795    .text.UART1_IRQHandler:00000000 UART1_IRQHandler
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:885    .text.UART1_IRQHandler:00000084 $d
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:898    .rodata.CSWTCH.15:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:902    .rodata.CSWTCH.15:00000000 CSWTCH.15
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:907    .rodata.CSWTCH.16:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:911    .rodata.CSWTCH.16:00000000 CSWTCH.16
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:917    .rodata.CSWTCH.18:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:921    .rodata.CSWTCH.18:00000000 CSWTCH.18
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:926    .rodata.CSWTCH.19:00000000 $d
+C:\Users\kosmos\AppData\Local\Temp\ccrDJUuf.s:930    .rodata.CSWTCH.19:00000000 CSWTCH.19
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+SystemCoreClock
